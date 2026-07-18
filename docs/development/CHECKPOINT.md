@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after audiod D-Bus activation artifacts
+Status: current after publishd D-Bus activation artifacts
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, and the initial project, host, identity, and audio D-Bus adapter and activation-artifact slices.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, and the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices.
 
 ## Current Position
 
@@ -13,7 +13,7 @@ The current system is a local-first, read-only development preview made of:
 
 - Rust domain crates for project format, publish planning, host/identity metadata, audio metadata, services, publication history, and CLI output helpers
 - Native CLIs for project, publish, host, identity, record, listen, and way command discovery
-- D-Bus service binaries for project, host, identity, and audio service boundaries
+- D-Bus service binaries for project, publish, host, identity, and audio service boundaries
 - Qt 6 C++ Workspace scaffold using read-only CLI JSON adapters
 - Examples and invalid fixtures for project, publish, host, identity, and audio metadata behavior
 - Smoke scripts for Qt startup and CLI JSON contract fields
@@ -49,17 +49,20 @@ cargo clippy --all-targets -- -D warnings
 scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/publishd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
 scripts/audiod-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
+scripts/publishd-dbus-activation-smoke.sh
 scripts/host-identity-dbus-activation-smoke.sh
 scripts/audiod-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
+scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after `waystone-audiod` D-Bus adapter and activation artifact pass: all passed on 2026-07-18.
+Result after `waystone-publishd` D-Bus adapter and activation artifact pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -67,8 +70,11 @@ Result after `waystone-audiod` D-Bus adapter and activation artifact pass: all p
 - No files outside this repository were edited by the assistant.
 - Sibling Waystone applications remain future add-ons only.
 - `waystone-projectd` direct D-Bus serving is implemented for project create, list, inspect, and validate.
+- `waystone-publishd` direct D-Bus serving is implemented for non-mutating publication preview and planned-history generation.
 - `waystone-projectd` fails cleanly without a session bus and rejects duplicate bus ownership.
 - `waystone-projectd` D-Bus service file and systemd user unit are present in the repo.
+- `waystone-publishd` fails cleanly without a session bus and rejects duplicate bus ownership.
+- `waystone-publishd` D-Bus service file and systemd user unit are present in the repo.
 - `waystone-hostd` direct D-Bus serving is implemented for host list, inspect, and validate.
 - `waystone-identityd` direct D-Bus serving is implemented for identity list, inspect, and validate.
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
@@ -85,7 +91,7 @@ Result after `waystone-audiod` D-Bus adapter and activation artifact pass: all p
 
 Recommended next implementation step:
 
-1. Decide whether the non-mutating publish preview should get the next D-Bus adapter.
+1. Pivot back to user-visible workflow: project GUI connection, text/Gemtext authoring, and local preview.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 

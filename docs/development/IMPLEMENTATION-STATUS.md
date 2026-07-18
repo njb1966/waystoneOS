@@ -30,6 +30,7 @@ cli/listen/
 cli/way/
 ui/workspace-qt/
 services/projectd/
+services/publishd/
 services/hostd/
 services/identityd/
 services/audiod/
@@ -254,6 +255,8 @@ Current behavior:
 - Wraps publish dry-run preview behind request/response structs
 - Builds planned publication history records
 - Preserves blocked dry-run state
+- Exposes preview and planned-history generation through `waystone-publishd` D-Bus adapter
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Does not perform remote mutation
 
 Current tests cover:
@@ -472,6 +475,26 @@ Current state:
 - Service contract documented in `docs/architecture/PROJECT-SERVICE.md`
 - Uses `crates/project-service/` as its internal boundary
 
+## Publish Service
+
+Implemented in:
+
+```text
+services/publishd/
+```
+
+Current state:
+
+- Runs as a direct D-Bus session service when launched manually
+- Owns `org.waystone.Publish1` at `/org/waystone/Publish`
+- Implements `PreviewPublication` and `BuildPlannedHistory`
+- Requests single-owner bus name behavior; duplicate daemon instances fail quickly
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
+- D-Bus autostart is smoke-tested through a generated temporary service file
+- Systemd user unit syntax is smoke-tested through a generated temporary daemon path
+- Does not compare remote state, perform transfers, delete remote files, unlock credentials, or verify remote results
+- Uses `crates/publish-service/` as its internal boundary
+
 ## Host and Identity Services
 
 Implemented in:
@@ -571,17 +594,20 @@ QT_QPA_PLATFORM=offscreen timeout 5s /tmp/waystone-workspace-qt-build/waystone-w
 scripts/workspace-qt-smoke.sh
 scripts/cli-json-contract-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/publishd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
 scripts/audiod-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
+scripts/publishd-dbus-activation-smoke.sh
 scripts/host-identity-dbus-activation-smoke.sh
 scripts/audiod-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
+scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, host/identity, and audiod unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -609,6 +635,7 @@ cmake --build /tmp/waystone-workspace-qt-build
 
 - Installed D-Bus activation
 - Installed long-running `waystone-projectd`
+- Installed or activatable long-running `waystone-publishd`
 - Installed or activatable long-running `waystone-hostd`
 - Installed or activatable long-running `waystone-identityd`
 - Installed or activatable long-running `waystone-audiod`

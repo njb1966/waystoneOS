@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.waystone.Publish1
+Exec=/usr/bin/waystone-publishd
+SystemdService=waystone-publishd.service

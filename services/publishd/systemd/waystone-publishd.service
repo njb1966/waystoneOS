@@ -1,0 +1,11 @@
+[Unit]
+Description=Waystone Publish Service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/waystone-publishd
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

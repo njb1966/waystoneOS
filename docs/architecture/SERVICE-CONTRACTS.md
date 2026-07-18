@@ -5,7 +5,7 @@ Date: 2026-07-18
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. These four daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -22,7 +22,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Domain | Current crate | Service daemon | D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
 | Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
-| Publishing | `crates/publish-service` | not scaffolded yet | `org.waystone.Publish1` | preview dry-run, planned history |
+| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history; D-Bus adapter for preview and planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
@@ -65,7 +65,7 @@ Current Rust crate:
 crates/publish-service/
 ```
 
-Future D-Bus interface:
+Current D-Bus interface:
 
 ```text
 org.waystone.Publish1
@@ -85,6 +85,7 @@ Current behavior:
 - Resolves host and identity metadata when caller supplies roots.
 - Builds planned publication history records through `waystone-publication-history`.
 - Preserves blocked dry-run state.
+- Exposes preview and planned-history generation through `waystone-publishd` D-Bus adapter.
 - Does not compare remote state, transfer files, delete files, verify remotes, or unlock credentials.
 
 ## Host Service
@@ -185,6 +186,7 @@ org.waystone.Project1.InspectProject
 org.waystone.Project1.ValidateProject
 
 org.waystone.Publish1.PreviewPublication
+org.waystone.Publish1.BuildPlannedHistory
 
 org.waystone.Host1.ListHosts
 org.waystone.Host1.InspectHost

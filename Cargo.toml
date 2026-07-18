@@ -19,6 +19,7 @@ members = [
     "cli/listen",
     "cli/way",
     "services/projectd",
+    "services/publishd",
     "services/hostd",
     "services/identityd",
     "services/audiod",

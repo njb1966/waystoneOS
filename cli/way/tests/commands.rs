@@ -16,4 +16,5 @@ fn help_lists_current_core_commands() {
     assert!(stdout.contains("identity"));
     assert!(stdout.contains("record"));
     assert!(stdout.contains("listen"));
+    assert!(stdout.contains("waystone-publishd"));
 }

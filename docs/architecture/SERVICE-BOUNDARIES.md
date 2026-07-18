@@ -120,6 +120,13 @@ Does not own:
 Initial operations:
 
 ```text
+PreviewPublication
+BuildPlannedHistory
+```
+
+Future operations:
+
+```text
 PreparePublication
 ValidatePublication
 ComparePublication
@@ -129,6 +136,10 @@ VerifyRemote
 RecordPublication
 ListPublicationHistory
 ```
+
+Current implementation is limited to non-mutating preview and planned-history
+generation. It does not compare remote state, perform transfers, delete files,
+unlock credentials, verify remote results, or write completed history records.
 
 Safety requirements:
 
@@ -302,7 +313,7 @@ Primary clients:
 ## Cross-Service Rules
 
 - `waystone-projectd` owns project structure.
-- `waystone-publishd` owns publication execution and history.
+- `waystone-publishd` owns publication preview now, and later publication execution and history.
 - `waystone-identityd` owns identities and credentials.
 - `waystone-hostd` owns host trust and destination metadata.
 - `waystone-audiod` owns audio capture and export.
@@ -332,4 +343,3 @@ Provisional object roots:
 ```
 
 The `1` suffix marks the interface generation, not the product version.
-

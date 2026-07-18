@@ -974,6 +974,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "waystone-publishd"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "waystone-publish-plan",
+ "waystone-publish-service",
+ "zbus",
+ "zbus_macros",
+ "zbus_names",
+ "zvariant",
+ "zvariant_derive",
+ "zvariant_utils",
+]
+
+[[package]]
 name = "waystone-record-cli"
 version = "0.1.0"
 dependencies = [

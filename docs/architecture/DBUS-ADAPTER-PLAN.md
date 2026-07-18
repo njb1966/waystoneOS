@@ -1,6 +1,6 @@
 # WaystoneOS D-Bus Adapter Plan
 
-Status: Project, host, identity, and audio adapters active
+Status: Project, publish, host, identity, and audio adapters active
 Date: 2026-07-18
 
 This document defines the first D-Bus adapter work. It intentionally does not add new domain behavior, new persistent formats, remote mutation, credential unlock, or GUI integration.
@@ -100,6 +100,36 @@ Still deferred for host and identity services:
 - Secret storage
 - Installing activation files into user or system service directories
 
+Publish daemon:
+
+```text
+services/publishd
+```
+
+Target interface:
+
+```text
+org.waystone.Publish1
+/org/waystone/Publish
+```
+
+Implemented methods:
+
+```text
+PreviewPublication
+BuildPlannedHistory
+```
+
+Still deferred for publish service:
+
+- Remote comparison
+- Remote transfer execution
+- Remote deletion
+- Remote verification
+- Credential unlock
+- Writing completed history records
+- Installing activation files into user or system service directories
+
 Audio daemon:
 
 ```text
@@ -189,6 +219,9 @@ services/projectd/
   src/main.rs
   src/dbus.rs
   tests/
+services/publishd/
+  src/main.rs
+  src/dbus.rs
 services/hostd/
   src/main.rs
   src/dbus.rs
@@ -204,6 +237,7 @@ Current crate direction:
 
 - Add D-Bus dependencies only to daemon crates that expose IPC.
 - Keep `crates/project-service` dependency-free from D-Bus.
+- Keep `crates/publish-service` dependency-free from D-Bus.
 - Keep `crates/host-service` and `crates/identity-service` dependency-free from D-Bus.
 - Keep `crates/audio-service` dependency-free from D-Bus.
 - Use the daemon binary for the session bus service.
@@ -228,12 +262,15 @@ cargo clippy --all-targets -- -D warnings
 scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/publishd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
 scripts/audiod-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
+scripts/publishd-dbus-activation-smoke.sh
 scripts/host-identity-dbus-activation-smoke.sh
 scripts/audiod-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
+scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
@@ -250,6 +287,9 @@ Additional D-Bus verification should prove:
 - A duplicate daemon instance on the same session bus fails quickly instead of taking over the name.
 - D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
 - The checked-in systemd user unit verifies after substituting a temporary daemon path.
+- `waystone-publishd` can start, own `org.waystone.Publish1`, reject duplicate ownership, and serve preview, planned-history, and invalid-request responses.
+- Publish D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
+- The checked-in publish systemd user unit verifies after substituting a temporary daemon path.
 - `waystone-hostd` can start, own `org.waystone.Host1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.
 - `waystone-identityd` can start, own `org.waystone.Identity1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.
 - Host and identity D-Bus service-file autostart works on a private test session bus using generated temporary service files.
@@ -261,14 +301,13 @@ Additional D-Bus verification should prove:
 ## Non-Goals
 
 - Do not replace the Qt Workspace CLI adapter in the same slice.
-- Do not add publish D-Bus adapters until the current daemon pattern remains stable.
 - Do not add remote publication, credential unlock, or host-key probing.
 - Do not add audio capture, playback, device enumeration, or editing.
 - Do not add files outside this repository.
 
 ## Next Work
 
-1. Decide whether the non-mutating publish preview should get the next D-Bus adapter.
+1. Pivot back to user-visible workflow: project GUI connection, text/Gemtext authoring, and local preview.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
-4. Keep project migration, repair, archive, export, credential unlock, host-key probing, and cross-service calls deferred.
+4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

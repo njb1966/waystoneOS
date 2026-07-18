@@ -1,7 +1,7 @@
 # WaystoneOS Publishing Service
 
-Status: Draft for Phase 0
-Date: 2026-07-17
+Status: Current non-mutating contract
+Date: 2026-07-18
 
 `waystone-publishd` owns publication preparation, validation orchestration, transfer planning, transfer execution, remote verification, and publication history.
 
@@ -139,7 +139,7 @@ History records should be stored under the project `history/` directory as inspe
 
 The current implementation can generate a planned history record from a dry-run. Planned records are previews only; they must not be written as completed publication history because no transfer or verification has occurred.
 
-Initial TOML shape:
+Current planned TOML shape:
 
 ```toml
 [publication]
@@ -150,17 +150,16 @@ target = "production"
 method = "rsync"
 identity = "nick-pub"
 destination = "gemini://example.org"
-transfer_result = "success"
-verification_result = "success"
+transfer_result = "planned"
+verification_result = "not-run"
 
 [[files]]
 path = "content/index.gmi"
-action = "updated"
-sha256 = "..."
+action = "planned-upload"
 
 [rollback]
-available = true
-notes = "Previous remote hash recorded"
+available = false
+notes = "Dry-run only; no remote state changed"
 ```
 
 ## Remote Verification
@@ -175,32 +174,30 @@ Initial verification checks:
 - Confirm feed availability when feed was updated.
 - Confirm audio enclosure availability when audio was published.
 
-## D-Bus Interface Sketch
+## D-Bus Interface
 
-Provisional bus name:
+Current bus name:
 
 ```text
 org.waystone.Publish1
 ```
 
-Provisional object root:
+Current object root:
 
 ```text
 /org/waystone/Publish
 ```
 
-Initial methods:
+Implemented methods:
 
 ```text
-PreparePublication
-ValidatePublication
-ComparePublication
-PreviewTransfer
-Publish
-VerifyRemote
-RecordPublication
-ListPublicationHistory
+PreviewPublication
+BuildPlannedHistory
 ```
+
+Future methods may include `PreparePublication`, `ValidatePublication`,
+`ComparePublication`, `PreviewTransfer`, `Publish`, `VerifyRemote`,
+`RecordPublication`, and `ListPublicationHistory`.
 
 ## Error Codes
 
@@ -221,7 +218,7 @@ ListPublicationHistory
 
 For version 0.1, define and test dry-run behavior before real remote mutation.
 
-The current implementation supports a local, non-mutating dry-run plan that lists publishable project files for a selected target. It can also resolve host and identity metadata when local metadata roots are provided. It does not compare remote state, perform transfer, delete files, access credentials, probe SSH host keys, or verify a remote result.
+The current implementation supports a local, non-mutating dry-run plan that lists publishable project files for a selected target. It can also resolve host and identity metadata when local metadata roots are provided, and it can generate planned publication history records without writing them as completed history. These operations are available through both the `publish` CLI and `waystone-publishd` D-Bus adapter. It does not compare remote state, perform transfer, delete files, access credentials, probe SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 
