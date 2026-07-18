@@ -57,6 +57,7 @@ Still deferred:
 - D-Bus methods adapt existing service crate operations.
 - The service crate remains the owner of domain behavior.
 - The daemon owns request dispatch, IPC error mapping, process lifecycle, and logging.
+- The daemon must request its well-known bus name as a single owner; duplicate instances must fail instead of replacing or queueing.
 - D-Bus payloads should stay schema-versioned and structured.
 - Errors must remain secret-safe and suitable for CLI or GUI display.
 - No adapter method may read outside caller-supplied roots except through the service crate's existing validation rules.
@@ -150,18 +151,18 @@ Additional D-Bus verification should prove:
 - `ValidateProject` reports invalid fixtures without panicking.
 - Invalid JSON requests return a structured `invalid_request` response.
 - The daemon reports startup failure cleanly when a session bus is unavailable.
+- A duplicate daemon instance on the same session bus fails quickly instead of taking over the name.
 
 ## Non-Goals
 
 - Do not replace the Qt Workspace CLI adapter in the same slice.
-- Do not add project create over D-Bus in the same slice.
 - Do not add host, identity, audio, or publish D-Bus adapters until the project adapter pattern is working.
 - Do not add remote publication, credential unlock, or host-key probing.
 - Do not add files outside this repository.
 
 ## Next Work
 
-1. Add tighter lifecycle/error tests for unavailable session bus and duplicate bus ownership.
-2. Add systemd user activation only after the direct daemon and test-session-bus path are stable.
-3. Update the Qt Workspace adapter only after service lifecycle and error behavior are stable.
+1. Add systemd user activation only after the direct daemon and test-session-bus path are stable.
+2. Update the Qt Workspace adapter only after service lifecycle and error behavior are stable.
+3. Consider whether host and identity should get the next D-Bus adapters.
 4. Keep project migration, repair, archive, export, and cross-service calls deferred.

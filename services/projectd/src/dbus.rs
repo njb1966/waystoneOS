@@ -148,6 +148,8 @@ impl ProjectDbus {
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let _connection = connection::Builder::session()?
+        .allow_name_replacements(false)
+        .replace_existing_names(false)
         .name(BUS_NAME)?
         .serve_at(OBJECT_PATH, ProjectDbus::default())?
         .build()?;

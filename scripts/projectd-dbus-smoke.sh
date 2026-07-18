@@ -11,6 +11,27 @@ export WAYSTONE_PROJECTD_DBUS_CREATE_PARENT="$create_parent"
 
 cargo build -p waystone-projectd
 
+missing_bus="unix:path=/tmp/waystone-projectd-missing-bus-$$"
+set +e
+missing_bus_output="$(DBUS_SESSION_BUS_ADDRESS="$missing_bus" \
+  target/debug/waystone-projectd 2>&1)"
+missing_bus_status=$?
+set -e
+if [ "$missing_bus_status" -eq 0 ]; then
+  echo "projectd D-Bus smoke: daemon started without an available session bus"
+  echo "$missing_bus_output"
+  exit 1
+fi
+
+case "$missing_bus_output" in
+  *waystone-projectd:*) ;;
+  *)
+    echo "projectd D-Bus smoke: unavailable bus failure was not reported clearly"
+    echo "$missing_bus_output"
+    exit 1
+    ;;
+esac
+
 dbus-run-session -- bash -c '
 set -eu
 
@@ -37,6 +58,26 @@ if [ "$ready" -ne 1 ]; then
   cat "$0"
   exit 1
 fi
+
+duplicate_log="$0.duplicate"
+set +e
+timeout 3s target/debug/waystone-projectd > "$duplicate_log" 2>&1
+duplicate_status=$?
+set -e
+if [ "$duplicate_status" -eq 0 ] || [ "$duplicate_status" -eq 124 ]; then
+  echo "projectd D-Bus smoke: duplicate daemon did not fail quickly"
+  cat "$duplicate_log"
+  exit 1
+fi
+
+case "$(cat "$duplicate_log")" in
+  *waystone-projectd:*) ;;
+  *)
+    echo "projectd D-Bus smoke: duplicate ownership failure was not reported clearly"
+    cat "$duplicate_log"
+    exit 1
+    ;;
+esac
 
 list_output="$(busctl --user call \
   org.waystone.Project1 \
