@@ -1,7 +1,7 @@
 # WaystoneOS Host and Identity Model
 
-Status: Draft for Phase 0
-Date: 2026-07-17
+Status: Current metadata contract
+Date: 2026-07-18
 
 Hosts and identities are separate objects. Projects may reference them, but projects do not own credentials or host trust state.
 
@@ -127,45 +127,33 @@ org.waystone.Identity1
 /org/waystone/Identity
 ```
 
-Initial host methods:
+Implemented host methods:
 
 ```text
-CreateHost
 ListHosts
 InspectHost
-UpdateHost
-RemoveHost
-InspectHostKey
-TrustHostKey
-DiagnoseHost
-ListHostServices
+ValidateHost
 ```
 
-Initial identity methods:
+Implemented identity methods:
 
 ```text
-CreateIdentity
 ListIdentities
 InspectIdentity
-ExportIdentity
-ImportIdentity
-LockIdentity
-RemoveIdentity
-CreateCertificate
-InspectCertificate
-RenewCertificate
-ExportCertificate
-TrustCertificate
-RevokeCertificate
+ValidateIdentity
 ```
+
+Future host methods may include `CreateHost`, `UpdateHost`, `RemoveHost`,
+`InspectHostKey`, `TrustHostKey`, `DiagnoseHost`, and `ListHostServices`.
+Future identity methods may include create, import, export, lock, removal,
+certificate, and revocation operations.
 
 ## Version 0.1 Cut
 
 Version 0.1 should define host and identity records well enough for publication dry-runs.
 
-The current implementation provides metadata-only host and identity record loading, listing, inspection, and validation. It does not store secrets, probe SSH host keys, unlock credentials, or contact remote hosts.
+The current implementation provides metadata-only host and identity record loading, listing, inspection, and validation through both CLIs and D-Bus adapters. It does not store secrets, probe SSH host keys, unlock credentials, or contact remote hosts.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 
 Real secret storage and host-key probing remain deferred until the publishing implementation is ready to mutate remote systems.
-

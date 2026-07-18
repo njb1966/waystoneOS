@@ -845,7 +845,15 @@ dependencies = [
 name = "waystone-hostd"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "waystone-host-service",
+ "zbus",
+ "zbus_macros",
+ "zbus_names",
+ "zvariant",
+ "zvariant_derive",
+ "zvariant_utils",
 ]
 
 [[package]]
@@ -867,7 +875,15 @@ dependencies = [
 name = "waystone-identityd"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "waystone-identity-service",
+ "zbus",
+ "zbus_macros",
+ "zbus_names",
+ "zvariant",
+ "zvariant_derive",
+ "zvariant_utils",
 ]
 
 [[package]]

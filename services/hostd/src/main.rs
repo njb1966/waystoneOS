@@ -1,4 +1,8 @@
 fn main() {
-    let _service = waystone_host_service::HostService;
-    println!("waystone-hostd scaffold: D-Bus service not implemented yet");
+    if let Err(error) = dbus::run() {
+        eprintln!("waystone-hostd: {error}");
+        std::process::exit(1);
+    }
 }
+
+mod dbus;

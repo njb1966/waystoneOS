@@ -1,4 +1,8 @@
 fn main() {
-    let _service = waystone_identity_service::IdentityService;
-    println!("waystone-identityd scaffold: D-Bus service not implemented yet");
+    if let Err(error) = dbus::run() {
+        eprintln!("waystone-identityd: {error}");
+        std::process::exit(1);
+    }
 }
+
+mod dbus;

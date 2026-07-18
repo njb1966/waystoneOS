@@ -125,7 +125,8 @@ Current behavior:
 
 - Wraps host metadata operations behind request/response structs
 - Provides a service boundary for list/inspect/validate
-- Does not implement D-Bus activation
+- Exposes list/inspect/validate through `waystone-hostd` D-Bus adapter
+- Does not implement D-Bus activation artifacts yet
 
 Current tests cover:
 
@@ -143,7 +144,8 @@ Current behavior:
 
 - Wraps identity metadata operations behind request/response structs
 - Provides a service boundary for list/inspect/validate
-- Does not implement D-Bus activation
+- Exposes list/inspect/validate through `waystone-identityd` D-Bus adapter
+- Does not implement D-Bus activation artifacts yet
 
 Current tests cover:
 
@@ -476,13 +478,16 @@ Implemented in:
 ```text
 services/hostd/
 services/identityd/
-services/audiod/
 ```
 
 Current state:
 
-- Placeholder binaries only
-- D-Bus services not implemented
+- Run as direct D-Bus session services when launched manually
+- `waystone-hostd` owns `org.waystone.Host1` at `/org/waystone/Host`
+- `waystone-identityd` owns `org.waystone.Identity1` at `/org/waystone/Identity`
+- Implement list, inspect, validate, and structured invalid-request responses
+- Request single-owner bus name behavior; duplicate daemon instances fail quickly
+- Do not have repo-local activation artifacts yet
 - Metadata logic remains in `crates/host-identity/`
 - `hostd` uses `crates/host-service/` as its internal boundary
 - `identityd` uses `crates/identity-service/` as its internal boundary
@@ -558,11 +563,12 @@ QT_QPA_PLATFORM=offscreen timeout 5s /tmp/waystone-workspace-qt-build/waystone-w
 scripts/workspace-qt-smoke.sh
 scripts/cli-json-contract-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/host-identity-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smoke verified D-Bus service-file autostart, and the systemd smoke verified unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The activation smoke verified projectd D-Bus service-file autostart, and the systemd smoke verified projectd unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -590,8 +596,8 @@ cmake --build /tmp/waystone-workspace-qt-build
 
 - Installed D-Bus activation
 - Installed long-running `waystone-projectd`
-- Long-running `waystone-hostd`
-- Long-running `waystone-identityd`
+- Installed or activatable long-running `waystone-hostd`
+- Installed or activatable long-running `waystone-identityd`
 - Long-running `waystone-audiod`
 - `way` subcommand dispatch
 - Project migration

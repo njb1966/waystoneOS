@@ -1,30 +1,30 @@
 # WaystoneOS Service Contracts
 
 Status: Current implementation contract
-Date: 2026-07-17
+Date: 2026-07-18
 
-This document records the service contracts that exist now and the D-Bus names they are expected to map to later.
+This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` has the first D-Bus adapter for project creation, listing, inspection, and validation. The other daemon binaries are placeholders. No D-Bus activation, authorization layer, or systemd integration exists yet.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` remains a placeholder. Only `waystone-projectd` has repo-local activation artifacts; no activation files are installed outside this repository.
 
 ## Contract Rules
 
 - Domain behavior lives in reusable crates.
 - CLI and future GUI code should call service crates or the same command semantics, not duplicate domain behavior.
-- Placeholder daemons may reference service crates, but they must not invent separate behavior.
-- Future D-Bus interfaces adapt the service crate contracts; they do not own the business rules.
+- Daemons may reference service crates, but they must not invent separate behavior.
+- D-Bus interfaces adapt the service crate contracts; they do not own the business rules.
 - Request and response types should remain narrow, explicit, and serializable in shape even before IPC is implemented.
 - Errors must stay secret-safe and suitable for human or JSON CLI output.
 - Remote mutation, credential unlock, and destructive operations require explicit contract additions before implementation.
 
 ## Current Contracts
 
-| Domain | Current crate | Placeholder daemon | Future D-Bus name | Current operations |
+| Domain | Current crate | Service daemon | D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
 | Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
 | Publishing | `crates/publish-service` | not scaffolded yet | `org.waystone.Publish1` | preview dry-run, planned history |
-| Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate |
-| Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate |
+| Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
+| Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | list, inspect, validate |
 
 ## Project Service
@@ -35,7 +35,7 @@ Current Rust crate:
 crates/project-service/
 ```
 
-Future D-Bus interface:
+Current D-Bus interface:
 
 ```text
 org.waystone.Project1
@@ -65,7 +65,7 @@ Current Rust crate:
 crates/publish-service/
 ```
 
-Future D-Bus interface:
+Current D-Bus interface:
 
 ```text
 org.waystone.Publish1
@@ -95,7 +95,7 @@ Current Rust crate:
 crates/host-service/
 ```
 
-Future D-Bus interface:
+Current D-Bus interface:
 
 ```text
 org.waystone.Host1
@@ -199,6 +199,6 @@ org.waystone.Audio1.InspectRecording
 org.waystone.Audio1.ValidateRecording
 ```
 
-The first D-Bus slice should be adapter work only: daemon lifecycle, method dispatch, error mapping, and integration tests. It should not change persistent formats or add remote mutation as a side effect.
+The first D-Bus slices are adapter work only: daemon lifecycle, method dispatch, error mapping, and integration tests. They do not change persistent formats or add remote mutation as a side effect.
 
-The accepted first slice is documented in [DBUS-ADAPTER-PLAN.md](DBUS-ADAPTER-PLAN.md) and [ADR-0013](../decisions/0013-first-dbus-adapter-slice.md): start with read-only `waystone-projectd` methods before adding mutating project operations or other daemons.
+The accepted D-Bus direction is documented in [DBUS-ADAPTER-PLAN.md](DBUS-ADAPTER-PLAN.md) and [ADR-0013](../decisions/0013-first-dbus-adapter-slice.md): adapt service crates through narrow daemon interfaces, keep domain behavior out of IPC code, and defer GUI migration until activation and install behavior are stable.
