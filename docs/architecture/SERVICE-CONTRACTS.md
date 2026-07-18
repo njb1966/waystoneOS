@@ -5,7 +5,7 @@ Date: 2026-07-18
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. These three daemons have repo-local activation artifacts. `waystone-audiod` remains a placeholder. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. These four daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -25,7 +25,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Publishing | `crates/publish-service` | not scaffolded yet | `org.waystone.Publish1` | preview dry-run, planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
-| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | list, inspect, validate |
+| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 
 ## Project Service
 
@@ -65,7 +65,7 @@ Current Rust crate:
 crates/publish-service/
 ```
 
-Current D-Bus interface:
+Future D-Bus interface:
 
 ```text
 org.waystone.Publish1
@@ -123,7 +123,7 @@ Current Rust crate:
 crates/identity-service/
 ```
 
-Future D-Bus interface:
+Current D-Bus interface:
 
 ```text
 org.waystone.Identity1
@@ -152,7 +152,7 @@ Current Rust crate:
 crates/audio-service/
 ```
 
-Future D-Bus interface:
+Current D-Bus interface:
 
 ```text
 org.waystone.Audio1

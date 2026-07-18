@@ -1,6 +1,6 @@
 # WaystoneOS D-Bus Adapter Plan
 
-Status: Project, host, and identity adapters active
+Status: Project, host, identity, and audio adapters active
 Date: 2026-07-18
 
 This document defines the first D-Bus adapter work. It intentionally does not add new domain behavior, new persistent formats, remote mutation, credential unlock, or GUI integration.
@@ -100,6 +100,35 @@ Still deferred for host and identity services:
 - Secret storage
 - Installing activation files into user or system service directories
 
+Audio daemon:
+
+```text
+services/audiod
+```
+
+Target interface:
+
+```text
+org.waystone.Audio1
+/org/waystone/Audio
+```
+
+Implemented methods:
+
+```text
+ListRecordings
+InspectRecording
+ValidateRecording
+```
+
+Still deferred for audio service:
+
+- Audio capture
+- Audio playback
+- Audio device enumeration
+- Audio editing, trimming, normalization, and codec export
+- Installing activation files into user or system service directories
+
 ## Adapter Rules
 
 - D-Bus methods adapt existing service crate operations.
@@ -166,6 +195,9 @@ services/hostd/
 services/identityd/
   src/main.rs
   src/dbus.rs
+services/audiod/
+  src/main.rs
+  src/dbus.rs
 ```
 
 Current crate direction:
@@ -173,6 +205,7 @@ Current crate direction:
 - Add D-Bus dependencies only to daemon crates that expose IPC.
 - Keep `crates/project-service` dependency-free from D-Bus.
 - Keep `crates/host-service` and `crates/identity-service` dependency-free from D-Bus.
+- Keep `crates/audio-service` dependency-free from D-Bus.
 - Use the daemon binary for the session bus service.
 - Add integration tests that launch the daemon against a temporary session bus when practical.
 
@@ -196,10 +229,13 @@ scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
+scripts/audiod-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
 scripts/host-identity-dbus-activation-smoke.sh
+scripts/audiod-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
+scripts/audiod-systemd-unit-smoke.sh
 ```
 
 Additional D-Bus verification should prove:
@@ -218,17 +254,21 @@ Additional D-Bus verification should prove:
 - `waystone-identityd` can start, own `org.waystone.Identity1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.
 - Host and identity D-Bus service-file autostart works on a private test session bus using generated temporary service files.
 - The checked-in host and identity systemd user units verify after substituting temporary daemon paths.
+- `waystone-audiod` can start, own `org.waystone.Audio1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.
+- Audio D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
+- The checked-in audio systemd user unit verifies after substituting a temporary daemon path.
 
 ## Non-Goals
 
 - Do not replace the Qt Workspace CLI adapter in the same slice.
-- Do not add audio or publish D-Bus adapters until the current daemon pattern remains stable.
+- Do not add publish D-Bus adapters until the current daemon pattern remains stable.
 - Do not add remote publication, credential unlock, or host-key probing.
+- Do not add audio capture, playback, device enumeration, or editing.
 - Do not add files outside this repository.
 
 ## Next Work
 
-1. Decide whether `waystone-audiod` should get the next read-only D-Bus adapter.
+1. Decide whether the non-mutating publish preview should get the next D-Bus adapter.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, and cross-service calls deferred.

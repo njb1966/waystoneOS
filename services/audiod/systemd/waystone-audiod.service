@@ -1,0 +1,11 @@
+[Unit]
+Description=Waystone Audio Service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/waystone-audiod
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

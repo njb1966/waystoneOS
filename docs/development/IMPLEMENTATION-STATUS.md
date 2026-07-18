@@ -331,7 +331,8 @@ Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
 - Provides a service boundary for list/inspect/validate
-- Does not implement D-Bus activation
+- Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Does not capture or play audio
 
 Current tests cover:
@@ -417,7 +418,7 @@ way [help|--help]
 Current behavior:
 
 - Lists current core commands
-- Lists current service binaries and the remaining audio placeholder
+- Lists current service binaries
 - Returns exit code `2` for unsupported arguments
 - Does not dispatch to subcommands yet
 
@@ -504,8 +505,13 @@ services/audiod/
 
 Current state:
 
-- Placeholder binary only
-- D-Bus service not implemented
+- Runs as a direct D-Bus session service when launched manually
+- Owns `org.waystone.Audio1` at `/org/waystone/Audio`
+- Implements `ListRecordings`, `InspectRecording`, and `ValidateRecording`
+- Requests single-owner bus name behavior; duplicate daemon instances fail quickly
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
+- D-Bus autostart is smoke-tested through a generated temporary service file
+- Systemd user unit syntax is smoke-tested through a generated temporary daemon path
 - Audio capture not implemented
 - Uses `crates/audio-service/` as its internal boundary
 
@@ -566,13 +572,16 @@ scripts/workspace-qt-smoke.sh
 scripts/cli-json-contract-smoke.sh
 scripts/projectd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
+scripts/audiod-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
 scripts/host-identity-dbus-activation-smoke.sh
+scripts/audiod-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
+scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The activation smokes verified projectd and host/identity D-Bus service-file autostart. The systemd smokes verified projectd and host/identity unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, host/identity, and audiod unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -602,7 +611,7 @@ cmake --build /tmp/waystone-workspace-qt-build
 - Installed long-running `waystone-projectd`
 - Installed or activatable long-running `waystone-hostd`
 - Installed or activatable long-running `waystone-identityd`
-- Long-running `waystone-audiod`
+- Installed or activatable long-running `waystone-audiod`
 - `way` subcommand dispatch
 - Project migration
 - Project archive/export

@@ -1,4 +1,8 @@
 fn main() {
-    let _service = waystone_audio_service::AudioService;
-    println!("waystone-audiod scaffold: D-Bus service and audio capture not implemented yet");
+    if let Err(error) = dbus::run() {
+        eprintln!("waystone-audiod: {error}");
+        std::process::exit(1);
+    }
 }
+
+mod dbus;

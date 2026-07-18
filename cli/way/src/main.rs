@@ -40,5 +40,5 @@ fn print_help() {
     println!("  waystone-projectd    Project D-Bus service");
     println!("  waystone-hostd       Host D-Bus service");
     println!("  waystone-identityd   Identity D-Bus service");
-    println!("  waystone-audiod      Audio service placeholder");
+    println!("  waystone-audiod      Audio metadata D-Bus service");
 }

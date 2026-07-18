@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.waystone.Audio1
+Exec=/usr/bin/waystone-audiod
+SystemdService=waystone-audiod.service
