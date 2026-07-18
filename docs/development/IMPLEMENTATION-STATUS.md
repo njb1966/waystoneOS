@@ -440,7 +440,8 @@ Current behavior:
 - Keeps page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Keeps local Workspace root configuration in `ui/workspace-qt/src/workspace_config.*`
 - Provides example root configuration in `ui/workspace-qt/workspace.example.ini`
-- Uses static placeholder data for Explore
+- Shows active configured roots in the Explore pane
+- Uses static placeholder resource data for Explore
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
 ## Project Service

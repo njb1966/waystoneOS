@@ -26,7 +26,8 @@ Implemented:
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
-- Static placeholder data for Explore only
+- Explore pane active-root display for the loaded Workspace configuration
+- Static placeholder resource data for Explore only
 
 Not implemented:
 

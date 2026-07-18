@@ -1,6 +1,7 @@
 #include "workspace_pages.h"
 
 #include "cli_adapter.h"
+#include "workspace_config.h"
 
 #include <QAbstractItemView>
 #include <QFrame>
@@ -257,7 +258,7 @@ void populateIdentityTable(QTableWidget *identitiesTable, QPlainTextEdit *detail
 
 } // namespace
 
-QWidget *explorePage() {
+QWidget *explorePage(const WorkspaceConfig &config) {
     auto *page = new QWidget;
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(16, 12, 16, 12);
@@ -269,6 +270,13 @@ QWidget *explorePage() {
                             {{"Local start", "gemini", "available"},
                              {"Saved capsule", "gemini", "empty"},
                              {"Offline notes", "file", "available"}}));
+    layout->addWidget(sectionLabel("Active Roots"));
+    layout->addWidget(table({"Root", "Path"},
+                            {{"Repository", config.repoRoot},
+                             {"Projects", config.projectsRoot},
+                             {"Hosts", config.hostsRoot},
+                             {"Identities", config.identitiesRoot},
+                             {"Audio metadata", config.audioMetadataRoot}}));
     layout->addStretch();
     return page;
 }

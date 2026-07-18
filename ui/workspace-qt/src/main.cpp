@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
     splitter->addWidget(navigation);
 
     auto *pages = new QStackedWidget;
-    pages->addWidget(explorePage());
+    pages->addWidget(explorePage(workspaceConfig));
     pages->addWidget(createPage(&adapter));
     pages->addWidget(publishPage(&adapter));
     pages->addWidget(operatePage(&adapter));

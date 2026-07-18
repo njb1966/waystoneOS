@@ -23,6 +23,7 @@ The current system is a local-first, read-only development preview made of:
 The Qt Workspace currently has:
 
 - Explore pane with static placeholder data
+- Explore pane active-root display for the loaded Workspace configuration
 - Create pane backed by `project`, `record`, and `listen` CLI JSON output
 - Publish pane backed by `publish --dry-run --json`
 - Operate pane backed by `host` and `identity` CLI JSON output
