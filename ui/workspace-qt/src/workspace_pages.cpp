@@ -4,7 +4,10 @@
 #include "workspace_config.h"
 
 #include <QAbstractItemView>
+#include <QDir>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -54,6 +57,27 @@ QTableWidget *table(const QStringList &headers, const QList<QStringList> &rows) 
 
 QString rootStatus(const QString &path) {
     return QFileInfo::exists(path) ? "available" : "missing";
+}
+
+QWidget *rootEditorRow(QWidget *parent, const QString &label, QLineEdit *edit) {
+    auto *row = new QWidget(parent);
+    auto *layout = new QHBoxLayout(row);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(6);
+
+    auto *browse = new QPushButton("Browse", row);
+    layout->addWidget(edit, 1);
+    layout->addWidget(browse);
+
+    QObject::connect(browse, &QPushButton::clicked, [=]() {
+        const QString selected =
+            QFileDialog::getExistingDirectory(parent, label, edit->text());
+        if (!selected.isEmpty()) {
+            edit->setText(QDir::cleanPath(selected));
+        }
+    });
+
+    return row;
 }
 
 void populateProjectTable(QTableWidget *projectsTable, QPlainTextEdit *details,
@@ -286,6 +310,50 @@ QWidget *explorePage(const WorkspaceConfig &config) {
                               config.identitiesRoot},
                              {"Audio metadata", rootStatus(config.audioMetadataRoot),
                               config.audioMetadataRoot}}));
+
+    layout->addWidget(sectionLabel("User Settings"));
+    auto *settings = new QWidget(page);
+    auto *form = new QFormLayout(settings);
+    form->setContentsMargins(0, 0, 0, 0);
+    form->setSpacing(8);
+
+    auto *projectsRoot = new QLineEdit(config.projectsRoot, settings);
+    auto *hostsRoot = new QLineEdit(config.hostsRoot, settings);
+    auto *identitiesRoot = new QLineEdit(config.identitiesRoot, settings);
+    auto *audioMetadataRoot = new QLineEdit(config.audioMetadataRoot, settings);
+    form->addRow("Projects", rootEditorRow(settings, "Projects Root", projectsRoot));
+    form->addRow("Hosts", rootEditorRow(settings, "Hosts Root", hostsRoot));
+    form->addRow("Identities",
+                 rootEditorRow(settings, "Identities Root", identitiesRoot));
+    form->addRow("Audio metadata",
+                 rootEditorRow(settings, "Audio Metadata Root", audioMetadataRoot));
+
+    auto *actions = new QWidget(settings);
+    auto *actionsLayout = new QHBoxLayout(actions);
+    actionsLayout->setContentsMargins(0, 0, 0, 0);
+    auto *save = new QPushButton("Save User Settings", actions);
+    auto *status = new QLabel("User config: " + WorkspaceConfig::userConfigPath(), actions);
+    actionsLayout->addWidget(save);
+    actionsLayout->addWidget(status, 1);
+    form->addRow("", actions);
+
+    QObject::connect(save, &QPushButton::clicked, [=]() {
+        WorkspaceConfig edited = config;
+        edited.projectsRoot = projectsRoot->text();
+        edited.hostsRoot = hostsRoot->text();
+        edited.identitiesRoot = identitiesRoot->text();
+        edited.audioMetadataRoot = audioMetadataRoot->text();
+
+        QString error;
+        if (!WorkspaceConfig::saveUserConfig(edited, &error)) {
+            status->setText(error);
+            return;
+        }
+
+        status->setText("Saved user settings. Changes apply on next launch.");
+    });
+
+    layout->addWidget(settings);
     layout->addStretch();
     return page;
 }

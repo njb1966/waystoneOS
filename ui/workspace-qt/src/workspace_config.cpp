@@ -82,6 +82,40 @@ WorkspaceConfig WorkspaceConfig::load(const QString &repoRoot,
     return config;
 }
 
+bool WorkspaceConfig::saveUserConfig(const WorkspaceConfig &config, QString *error) {
+    const QString path = userConfigPath();
+    if (path.isEmpty()) {
+        if (error != nullptr) {
+            *error = "User config location is not available";
+        }
+        return false;
+    }
+
+    const QFileInfo file(path);
+    if (!QDir().mkpath(file.absolutePath())) {
+        if (error != nullptr) {
+            *error = "Could not create user config directory: " + file.absolutePath();
+        }
+        return false;
+    }
+
+    QSettings settings(path, QSettings::IniFormat);
+    settings.setValue("roots/projects", QDir::cleanPath(config.projectsRoot));
+    settings.setValue("roots/hosts", QDir::cleanPath(config.hostsRoot));
+    settings.setValue("roots/identities", QDir::cleanPath(config.identitiesRoot));
+    settings.setValue("roots/audio_metadata", QDir::cleanPath(config.audioMetadataRoot));
+    settings.sync();
+
+    if (settings.status() != QSettings::NoError) {
+        if (error != nullptr) {
+            *error = "Could not write user config: " + path;
+        }
+        return false;
+    }
+
+    return true;
+}
+
 QString WorkspaceConfig::userConfigPath() {
     const QString configDir =
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);

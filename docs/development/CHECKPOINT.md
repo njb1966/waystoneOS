@@ -31,10 +31,11 @@ The Qt Workspace currently has:
 - Local root configuration in `ui/workspace-qt/src/workspace_config.*`
 - Example root configuration in `ui/workspace-qt/workspace.example.ini`
 - Config lookup order: explicit `--config`, user app config, repository defaults
+- Explore pane editing for persistent user root settings
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally read-only. It does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 ## Verification Marker
 
@@ -48,7 +49,7 @@ scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 ```
 
-Result after Workspace root configuration pass: all passed on 2026-07-18.
+Result after Workspace user settings editor pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -63,9 +64,9 @@ Result after Workspace root configuration pass: all passed on 2026-07-18.
 
 Recommended next implementation step:
 
-1. Add UI editing for persistent user settings.
+1. Add deeper tests or smoke checks for bad config paths and missing root directories.
 2. Keep configuration file based and local-only; do not introduce D-Bus yet.
-3. Add deeper tests or smoke checks for bad config paths and missing root directories.
+3. Consider live reload for settings only after the current edit/save path is stable.
 
 Alternative next step:
 

@@ -442,6 +442,7 @@ Current behavior:
 - Provides example root configuration in `ui/workspace-qt/workspace.example.ini`
 - Shows active configured roots in the Explore pane
 - Reads explicit `--config`, user app config, or repository defaults in that order
+- Lets the Explore pane write persistent user root settings
 - Preflights missing configured roots before running pane CLIs
 - Uses static placeholder resource data for Explore
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
@@ -596,5 +597,5 @@ cmake --build /tmp/waystone-workspace-qt-build
 - Audio playback
 - Audio trimming, normalization, or export
 - Deeper Workspace actions beyond read-only inspect and preview
-- UI editing for persistent user settings
+- Live reload after editing persistent user settings
 - Browser, Helm, or Comm integration

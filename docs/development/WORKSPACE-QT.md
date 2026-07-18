@@ -27,6 +27,7 @@ Implemented:
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
 - Explore pane active-root display for the loaded Workspace configuration
+- Explore pane editing for persistent user root settings
 - Missing root preflight errors shown in affected panes
 - Static placeholder resource data for Explore only
 
@@ -97,6 +98,8 @@ Example config:
 ```text
 ui/workspace-qt/workspace.example.ini
 ```
+
+The Explore pane can save the same root settings to the user config file. Saved user settings are loaded on the next launch when neither `--config` nor `--no-user-config` is passed.
 
 Supported keys:
 

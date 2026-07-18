@@ -44,6 +44,8 @@ By default, the UI reads from repository examples:
 
 An INI file can override those roots. Explicit `--config` wins. If no explicit config is passed, the UI checks Qt's user app config location for `workspace.ini`; if that file is absent, repository defaults are used.
 
+The Explore pane can write persistent user root settings to the same user config file. Saved settings are picked up on the next launch unless `--config` or `--no-user-config` is used.
+
 Example config:
 
 ```text
