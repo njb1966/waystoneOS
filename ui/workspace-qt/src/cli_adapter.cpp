@@ -44,12 +44,11 @@ QString resolutionText(const QJsonObject &object) {
 
 } // namespace
 
-CliAdapter::CliAdapter(QString repoRoot) : repoRoot_(QDir(repoRoot).absolutePath()) {}
+CliAdapter::CliAdapter(WorkspaceConfig config) : config_(std::move(config)) {}
 
 QList<ProjectSummary> CliAdapter::listProjects(QString *error) const {
-    const QString projectsRoot = QDir(repoRoot_).filePath("examples/projects");
     const CommandResult result =
-        runCommand("project", {"list", "--json", projectsRoot});
+        runCommand("project", {"list", "--json", config_.projectsRoot});
 
     if (!result.error.isEmpty()) {
         if (error != nullptr) {
@@ -139,9 +138,9 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
          "--target",
          target,
          "--hosts",
-         QDir(repoRoot_).filePath("examples/connections/hosts"),
+         config_.hostsRoot,
          "--identities",
-         QDir(repoRoot_).filePath("examples/connections/identities"),
+         config_.identitiesRoot,
          "--json"});
 
     PublishPreview preview;
@@ -183,7 +182,7 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
 
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
     const CommandResult result = runCommand(
-        "host", {"list", "--json", QDir(repoRoot_).filePath("examples/connections/hosts")});
+        "host", {"list", "--json", config_.hostsRoot});
 
     if (!result.error.isEmpty()) {
         if (error != nullptr) {
@@ -263,9 +262,7 @@ QString CliAdapter::hostValidationState(const QString &path) const {
 
 QList<IdentitySummary> CliAdapter::listIdentities(QString *error) const {
     const CommandResult result =
-        runCommand("identity",
-                   {"list", "--json",
-                    QDir(repoRoot_).filePath("examples/connections/identities")});
+        runCommand("identity", {"list", "--json", config_.identitiesRoot});
 
     if (!result.error.isEmpty()) {
         if (error != nullptr) {
@@ -344,7 +341,7 @@ QString CliAdapter::identityValidationState(const QString &path) const {
 
 QList<RecordingSummary> CliAdapter::listRecordings(QString *error) const {
     const CommandResult result =
-        runCommand("record", {"list", "--json", audioMetadataRoot()});
+        runCommand("record", {"list", "--json", config_.audioMetadataRoot});
 
     if (!result.error.isEmpty()) {
         if (error != nullptr) {
@@ -362,7 +359,7 @@ QList<RecordingSummary> CliAdapter::listRecordings(QString *error) const {
 
     QSet<QString> playableIds;
     const CommandResult playableResult =
-        runCommand("listen", {"library", "--json", audioMetadataRoot()});
+        runCommand("listen", {"library", "--json", config_.audioMetadataRoot});
     if (playableResult.exitCode == 0) {
         QString playableParseError;
         const QJsonObject playableRoot =
@@ -437,7 +434,7 @@ QString CliAdapter::recordingValidationState(const QString &path) const {
 }
 
 QString CliAdapter::commandProgram(const QString &binaryName) const {
-    const QString localBinary = QDir(repoRoot_).filePath("target/debug/" + binaryName);
+    const QString localBinary = QDir(config_.repoRoot).filePath("target/debug/" + binaryName);
     if (QFileInfo(localBinary).isExecutable()) {
         return localBinary;
     }
@@ -448,7 +445,7 @@ CommandResult CliAdapter::runCommand(const QString &binaryName,
                                      const QStringList &arguments) const {
     QProcess process;
     CommandResult result;
-    process.setWorkingDirectory(repoRoot_);
+    process.setWorkingDirectory(config_.repoRoot);
     process.start(commandProgram(binaryName), arguments);
 
     if (!process.waitForStarted(3000)) {
@@ -493,9 +490,4 @@ QString CliAdapter::commandFailureDetail(const CommandResult &result,
     }
 
     return fallback;
-}
-
-QString CliAdapter::audioMetadataRoot() const {
-    return QDir(repoRoot_).filePath(
-        "examples/projects/audio-capsule.wayproject/audio/metadata");
 }

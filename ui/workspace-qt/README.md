@@ -33,6 +33,21 @@ Current UI data is limited to:
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 
+## Workspace Roots
+
+By default, the UI reads from repository examples:
+
+- `examples/projects`
+- `examples/connections/hosts`
+- `examples/connections/identities`
+- `examples/projects/audio-capsule.wayproject/audio/metadata`
+
+An INI file can override those roots. See:
+
+```text
+ui/workspace-qt/workspace.example.ini
+```
+
 ## Debian Build
 
 Expected packages:
@@ -68,6 +83,12 @@ Or pass the repository root explicitly:
 
 ```bash
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
+```
+
+Run with explicit workspace roots:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
 ```
 
 Repeatable smoke check:

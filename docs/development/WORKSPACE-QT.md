@@ -25,6 +25,7 @@ Implemented:
 - Read-only Publish-pane adapter using `publish --dry-run --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
+- Local Workspace root configuration in `workspace_config.cpp`
 - Static placeholder data for Explore only
 
 Not implemented:
@@ -77,13 +78,35 @@ If launched from another working directory, pass the repo root:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
 ```
 
+If using explicit data roots, pass an INI file:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
+```
+
+Example config:
+
+```text
+ui/workspace-qt/workspace.example.ini
+```
+
+Supported keys:
+
+```ini
+[roots]
+projects = examples/projects
+hosts = examples/connections/hosts
+identities = examples/connections/identities
+audio_metadata = examples/projects/audio-capsule.wayproject/audio/metadata
+```
+
 Headless startup smoke test:
 
 ```bash
 scripts/workspace-qt-smoke.sh
 ```
 
-The smoke test uses Qt's `offscreen` platform and is expected to keep running in the Qt event loop until the script timeout interrupts it.
+The smoke test uses Qt's `offscreen` platform and verifies both default-root startup and explicit-config startup.
 
 CLI JSON contract smoke test:
 

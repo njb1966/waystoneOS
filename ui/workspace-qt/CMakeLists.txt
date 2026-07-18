@@ -11,6 +11,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 add_executable(waystone-workspace
     src/cli_adapter.cpp
     src/main.cpp
+    src/workspace_config.cpp
     src/workspace_pages.cpp
 )
 

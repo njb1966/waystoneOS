@@ -22,8 +22,20 @@ status=$?
 set -e
 
 if [ "$status" -eq 124 ]; then
-  echo "waystone-workspace smoke: startup succeeded and event loop remained active"
-  exit 0
+  set +e
+  QT_QPA_PLATFORM=offscreen \
+    timeout 5s "$build_dir/waystone-workspace" \
+      --repo-root "$repo_root" \
+      --config "$repo_root/ui/workspace-qt/workspace.example.ini"
+  config_status=$?
+  set -e
+  if [ "$config_status" -eq 124 ]; then
+    echo "waystone-workspace smoke: default and config startup succeeded"
+    exit 0
+  fi
+
+  echo "waystone-workspace smoke: config startup failed with exit code $config_status"
+  exit "$config_status"
 fi
 
 if [ "$status" -eq 0 ]; then

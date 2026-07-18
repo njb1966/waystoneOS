@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: paused for repository initialization
+Status: current after Workspace root configuration
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state before the first git commit/push.
+This checkpoint marks the current implementation state after the first repository push and the first local Workspace root configuration slice.
 
 ## Current Position
 
@@ -27,6 +27,8 @@ The Qt Workspace currently has:
 - Publish pane backed by `publish --dry-run --json`
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
+- Local root configuration in `ui/workspace-qt/src/workspace_config.*`
+- Example root configuration in `ui/workspace-qt/workspace.example.ini`
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
@@ -44,25 +46,25 @@ scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 ```
 
-Result after checkpoint documentation pass: all passed on 2026-07-18.
+Result after Workspace root configuration pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
-- No git operations have been run by the assistant.
+- Initial repository commit and push were completed after explicit user approval.
 - No files outside this repository were edited by the assistant.
 - Sibling Waystone applications remain future add-ons only.
 - D-Bus daemon lifecycle is not implemented.
 - Remote publication execution is not implemented.
-- Qt Workspace data roots are still hardcoded to repository examples.
+- Qt Workspace data roots default to repository examples and can be overridden with `--config`.
 
 ## Next Work Queue
 
 Recommended next implementation step:
 
-1. Replace hardcoded example-root assumptions in `CliAdapter` with a small local Workspace settings/config model.
-2. Add configurable roots for projects, hosts, identities, and audio metadata.
+1. Add a UI surface for viewing the active configured roots.
+2. Add a persistent user settings location outside explicit `--config`.
 3. Keep configuration file based and local-only; do not introduce D-Bus yet.
-4. Add tests or smoke checks for config fallback behavior.
+4. Add deeper tests or smoke checks for bad config paths and missing root directories.
 
 Alternative next step:
 

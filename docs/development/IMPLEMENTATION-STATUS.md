@@ -438,6 +438,8 @@ Current behavior:
 - Uses the existing `host` and `identity` CLI JSON output for read-only Operate-pane list, inspect, and validate
 - Keeps command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
 - Keeps page construction in `ui/workspace-qt/src/workspace_pages.*`
+- Keeps local Workspace root configuration in `ui/workspace-qt/src/workspace_config.*`
+- Provides example root configuration in `ui/workspace-qt/workspace.example.ini`
 - Uses static placeholder data for Explore
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
@@ -565,6 +567,7 @@ cargo build -p waystone-project-cli -p waystone-publish-cli -p waystone-host-cli
 cmake -S ui/workspace-qt -B /tmp/waystone-workspace-qt-build
 cmake --build /tmp/waystone-workspace-qt-build
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
 ```
 
 ## Not Implemented Yet
@@ -589,4 +592,5 @@ cmake --build /tmp/waystone-workspace-qt-build
 - Audio playback
 - Audio trimming, normalization, or export
 - Deeper Workspace actions beyond read-only inspect and preview
+- Persistent user settings location outside explicit `--config`
 - Browser, Helm, or Comm integration

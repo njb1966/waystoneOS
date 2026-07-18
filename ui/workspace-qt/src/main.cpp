@@ -1,4 +1,5 @@
 #include "cli_adapter.h"
+#include "workspace_config.h"
 #include "workspace_pages.h"
 
 #include <QApplication>
@@ -26,6 +27,16 @@ QString configuredRepoRoot(const QApplication &app) {
         }
     }
     return QDir::currentPath();
+}
+
+QString configuredConfigPath(const QApplication &app) {
+    const QStringList args = app.arguments();
+    for (int index = 1; index + 1 < args.size(); ++index) {
+        if (args.at(index) == "--config") {
+            return args.at(index + 1);
+        }
+    }
+    return {};
 }
 
 void addMenus(QMainWindow &window) {
@@ -94,7 +105,10 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName("Waystone Workspace");
     const QString repoRoot = configuredRepoRoot(app);
-    const CliAdapter adapter(repoRoot);
+    QString configWarning;
+    const WorkspaceConfig workspaceConfig =
+        WorkspaceConfig::load(repoRoot, configuredConfigPath(app), &configWarning);
+    const CliAdapter adapter(workspaceConfig);
     setApplicationStyle(app);
 
     QMainWindow window;
@@ -147,11 +161,14 @@ int main(int argc, char *argv[]) {
     splitter->setStretchFactor(1, 1);
     rootLayout->addWidget(splitter, 1);
 
+    const QString statusSuffix =
+        configWarning.isEmpty() ? QString() : "   " + configWarning;
     auto setWorkspace = [&](int index) {
         pages->setCurrentIndex(index);
         buttonGroup->button(index)->setChecked(true);
         window.statusBar()->showMessage(
-            workspaces.at(index) + "   Audio: Idle   Network: Offline   Project: None");
+            workspaces.at(index) +
+            "   Audio: Idle   Network: Offline   Project: None" + statusSuffix);
     };
 
     QObject::connect(buttonGroup, &QButtonGroup::idClicked, [&](int index) {

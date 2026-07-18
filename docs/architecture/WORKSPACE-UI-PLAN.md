@@ -144,4 +144,6 @@ ui/workspace-qt/
 
 It currently renders the operating frame and wires the Create pane to read-only `project`, `record`, and `listen` CLI JSON output for project and recording metadata. The Publish pane uses read-only `publish --dry-run --json` previews. The Operate pane uses read-only `host` and `identity` CLI JSON output for list, inspect, and validate.
 
+The UI accepts local root configuration through `--config` using an INI file. Without a config file, it defaults to repository examples.
+
 Explore still uses placeholder data.

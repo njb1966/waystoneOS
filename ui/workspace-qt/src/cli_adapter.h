@@ -5,6 +5,8 @@
 #include <QString>
 #include <QStringList>
 
+#include "workspace_config.h"
+
 struct CommandResult {
     int exitCode = -1;
     QByteArray standardOutput;
@@ -60,7 +62,7 @@ struct RecordingSummary {
 
 class CliAdapter {
 public:
-    explicit CliAdapter(QString repoRoot);
+    explicit CliAdapter(WorkspaceConfig config);
 
     QList<ProjectSummary> listProjects(QString *error) const;
     QString inspectProject(const QString &path) const;
@@ -77,11 +79,10 @@ public:
     QString recordingValidationState(const QString &path) const;
 
 private:
-    QString repoRoot_;
+    WorkspaceConfig config_;
 
     QString commandProgram(const QString &binaryName) const;
     CommandResult runCommand(const QString &binaryName, const QStringList &arguments) const;
     QString commandFailureDetail(const CommandResult &result,
                                  const QString &fallback) const;
-    QString audioMetadataRoot() const;
 };
