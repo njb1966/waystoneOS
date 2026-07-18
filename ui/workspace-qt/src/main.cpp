@@ -48,6 +48,69 @@ bool checkRootsOnly(const QApplication &app) {
     return app.arguments().contains("--check-roots");
 }
 
+bool smokeProjectCreateSave(const QApplication &app) {
+    return app.arguments().contains("--smoke-project-create-save");
+}
+
+QString optionValue(const QApplication &app, const QString &name) {
+    const QStringList args = app.arguments();
+    for (int index = 1; index + 1 < args.size(); ++index) {
+        if (args.at(index) == name) {
+            return args.at(index + 1);
+        }
+    }
+    return {};
+}
+
+int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app) {
+    QTextStream out(stdout);
+    QTextStream err(stderr);
+
+    const QString id = optionValue(app, "--smoke-project-id");
+    const QString name = optionValue(app, "--smoke-project-name");
+    const QString type = optionValue(app, "--smoke-project-type");
+    if (id.isEmpty() || name.isEmpty() || type.isEmpty()) {
+        err << "workspace project smoke: id, name, and type are required" << Qt::endl;
+        return 2;
+    }
+
+    const ProjectCreateResult created = adapter.createProject(id, name, type);
+    if (!created.ok) {
+        err << "workspace project smoke: create failed: " << created.error << Qt::endl;
+        return 1;
+    }
+
+    ProjectDocument document = adapter.loadProjectDocument(created.projectPath);
+    if (!document.ok) {
+        err << "workspace project smoke: load failed: " << document.error << Qt::endl;
+        return 1;
+    }
+
+    const QString editedText = "# " + name + "\n\nSaved from Workspace smoke.\n";
+    QString saveError;
+    if (!adapter.saveProjectDocument(document, editedText, &saveError)) {
+        err << "workspace project smoke: save failed: " << saveError << Qt::endl;
+        return 1;
+    }
+
+    document = adapter.loadProjectDocument(created.projectPath);
+    if (!document.ok || document.text != editedText) {
+        err << "workspace project smoke: saved content did not round-trip" << Qt::endl;
+        return 1;
+    }
+
+    const QString validation = adapter.projectValidationState(created.projectPath);
+    if (validation != "valid") {
+        err << "workspace project smoke: validation returned " << validation
+            << Qt::endl;
+        return 1;
+    }
+
+    out << "workspace project smoke: created, saved, and validated "
+        << created.projectPath << Qt::endl;
+    return 0;
+}
+
 void addMenus(QMainWindow &window) {
     const QStringList menus = {"System", "Project", "Publish", "Network",
                                "Audio", "Window", "Help"};
@@ -144,6 +207,10 @@ int main(int argc, char *argv[]) {
     }
 
     const CliAdapter adapter(workspaceConfig);
+    if (smokeProjectCreateSave(app)) {
+        return runProjectCreateSaveSmoke(adapter, app);
+    }
+
     setApplicationStyle(app);
 
     QMainWindow window;

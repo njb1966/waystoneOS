@@ -453,6 +453,7 @@ Current behavior:
 - Lets the Explore pane write persistent user root settings
 - Preflights missing configured roots before running pane CLIs
 - Provides `--check-roots` diagnostics for bad config paths and missing configured roots
+- Provides a diagnostic project create/save smoke mode for temporary workspace roots
 - Uses static placeholder resource data for Explore
 - Mutates only persistent user root settings, minimal project directories under the configured projects root, and the selected local project content index file
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
@@ -596,6 +597,7 @@ cmake --build /tmp/waystone-workspace-qt-build
 QT_QPA_PLATFORM=offscreen timeout 5s /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
 scripts/workspace-qt-smoke.sh
 scripts/cli-json-contract-smoke.sh
+scripts/workspace-qt-project-smoke.sh
 scripts/projectd-dbus-smoke.sh
 scripts/publishd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
@@ -610,7 +612,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully, verified root handling, and covered the Workspace project creation and authoring preview build. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, loaded its content index, saved edited Gemtext through the Qt CLI adapter, and validated the result. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -632,6 +634,7 @@ cmake --build /tmp/waystone-workspace-qt-build
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
+scripts/workspace-qt-project-smoke.sh
 ```
 
 ## Not Implemented Yet

@@ -102,6 +102,8 @@ To validate configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
+The binary also has a diagnostic smoke mode for project creation and content save behavior. Prefer the wrapper script below rather than invoking it by hand.
+
 Example config:
 
 ```text
@@ -127,6 +129,14 @@ scripts/workspace-qt-smoke.sh
 ```
 
 The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, user-config, missing-config fallback, and missing-root diagnostics.
+
+Focused project create/save smoke test:
+
+```bash
+scripts/workspace-qt-project-smoke.sh
+```
+
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, saves edited content through the same adapter, and validates the result without touching repository examples.
 
 CLI JSON contract smoke test:
 

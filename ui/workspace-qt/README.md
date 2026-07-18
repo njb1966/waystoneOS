@@ -111,6 +111,12 @@ Check configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
+Focused project create/save smoke check:
+
+```bash
+scripts/workspace-qt-project-smoke.sh
+```
+
 Repeatable smoke check:
 
 ```bash
