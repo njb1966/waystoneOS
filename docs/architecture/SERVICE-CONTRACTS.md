@@ -200,3 +200,5 @@ org.waystone.Audio1.ValidateRecording
 ```
 
 The first D-Bus slice should be adapter work only: daemon lifecycle, method dispatch, error mapping, and integration tests. It should not change persistent formats or add remote mutation as a side effect.
+
+The accepted first slice is documented in [DBUS-ADAPTER-PLAN.md](DBUS-ADAPTER-PLAN.md) and [ADR-0013](../decisions/0013-first-dbus-adapter-slice.md): start with read-only `waystone-projectd` methods before adding mutating project operations or other daemons.

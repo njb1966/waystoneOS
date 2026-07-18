@@ -58,6 +58,7 @@ Result after Workspace root diagnostics smoke pass: all passed on 2026-07-18.
 - No files outside this repository were edited by the assistant.
 - Sibling Waystone applications remain future add-ons only.
 - D-Bus daemon lifecycle is not implemented.
+- First D-Bus adapter slice is planned for read-only `waystone-projectd` methods.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -65,10 +66,10 @@ Result after Workspace root diagnostics smoke pass: all passed on 2026-07-18.
 
 Recommended next implementation step:
 
-1. Decide whether to add live reload for local Workspace root settings.
-2. Keep configuration file based and local-only unless D-Bus planning is explicitly approved.
-3. If deferring live reload, begin the D-Bus adapter planning slice.
+1. Select and justify the Rust D-Bus dependency for `services/projectd`.
+2. Implement read-only `org.waystone.Project1` methods: `ListProjects`, `InspectProject`, and `ValidateProject`.
+3. Add a test helper or smoke script that exercises `waystone-projectd` on a test session bus.
 
 Alternative next step:
 
-- Start the D-Bus adapter planning slice only after the local settings/config model is stable enough to identify what the daemons should own.
+- Keep D-Bus implementation deferred and continue extending the Qt Workspace CLI-backed prototype.

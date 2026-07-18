@@ -40,6 +40,7 @@ Do not use ADRs for routine implementation details, small bug fixes, or temporar
 | [0010](0010-os-first-before-add-on-app-integration.md) | Accepted | OS-first before add-on app integration |
 | [0011](0011-project-format-v0.md) | Accepted | Project format v0 |
 | [0012](0012-workspace-ui-prototype-route.md) | Accepted | Workspace UI prototype route |
+| [0013](0013-first-dbus-adapter-slice.md) | Accepted | First D-Bus adapter slice |
 
 ## Creating a New ADR
 

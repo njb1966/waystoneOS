@@ -462,6 +462,7 @@ Current state:
 - D-Bus service not implemented
 - Service contract documented in `docs/architecture/PROJECT-SERVICE.md`
 - Uses `crates/project-service/` as its internal boundary
+- First D-Bus adapter slice is planned for read-only `ListProjects`, `InspectProject`, and `ValidateProject` methods
 
 ## Host and Identity Services
 
