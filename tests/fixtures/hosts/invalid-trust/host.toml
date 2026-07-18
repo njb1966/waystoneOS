@@ -1,0 +1,10 @@
+[host]
+id = "badtrust"
+display_name = "Bad Trust"
+address = "example.invalid"
+
+[[services]]
+type = "ssh"
+port = 22
+trust = "maybe"
+

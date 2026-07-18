@@ -1,0 +1,13 @@
+[recording]
+id = "field-note"
+title = "Field Note"
+master = "audio/masters/field-note.flac"
+published = "audio/published/field-note.opus"
+duration_seconds = 0
+channels = 1
+sample_rate = 48000
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:field-note"
+mime_type = "audio/ogg; codecs=opus"

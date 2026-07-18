@@ -1,0 +1,6 @@
+# Minimal Capsule
+
+This is a minimal valid WaystoneOS capsule project.
+
+=> gemini://example.org Example Gemini link
+

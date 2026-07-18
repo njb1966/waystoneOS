@@ -1,0 +1,13 @@
+/target/
+/build/
+/cmake-build-*/
+
+# Local editor and OS metadata
+*~
+.DS_Store
+
+# Local CMake files if someone builds inside the source tree.
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile

@@ -1,0 +1,12 @@
+[identity]
+id = "leaky"
+display_name = "Leaky Identity"
+
+[[ssh_keys]]
+id = "leaky-key"
+public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexamplepublickeyonly leaky@example"
+private_key_ref = "workspace-secret:ssh/leaky-key"
+
+# This fixture intentionally contains a private-key marker for validation.
+leaked_material = "-----BEGIN OPENSSH PRIVATE KEY-----"
+

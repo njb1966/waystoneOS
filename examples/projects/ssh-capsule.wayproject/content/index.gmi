@@ -1,0 +1,4 @@
+# SSH Capsule
+
+This example demonstrates a project with a host and identity backed publish target.
+

@@ -1,0 +1,25 @@
+[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "ssh-capsule"
+name = "SSH Capsule"
+type = "capsule"
+language = "en"
+author = "WaystoneOS"
+description = "Example project with an SSH publication target"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[[publish.targets]]
+name = "production"
+method = "rsync"
+host = "offgridholdout"
+identity = "nick-pub"
+remote_path = "/srv/gemini/nick"
+url = "gemini://example.org"
+delete_policy = "confirm"
+

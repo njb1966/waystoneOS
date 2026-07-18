@@ -1,0 +1,12 @@
+[waystone]
+schema = 1
+
+[project]
+id = "invalid-path-traversal"
+name = "Invalid Path Traversal"
+type = "capsule"
+
+[content]
+root = "content"
+index = "../secret.gmi"
+

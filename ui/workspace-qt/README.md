@@ -1,0 +1,83 @@
+# Waystone Workspace Qt Prototype
+
+Status: scaffold
+
+This directory contains the first Qt 6 C++ scaffold for Waystone Workspace.
+
+It is intentionally separate from the Rust workspace. The UI renders the operating frame and uses existing CLI JSON output through a small Qt adapter layer.
+
+## Boundaries
+
+- No D-Bus dependency yet
+- No remote publication
+- No Browser, Helm, or Comm embedding
+- No domain behavior in widgets
+- No generated assets or network access
+
+Current UI data is limited to:
+
+- `project list --json`
+- `project inspect --json`
+- `project validate --json`
+- `publish --dry-run --json`
+- `host list --json`
+- `host inspect --json`
+- `host validate --json`
+- `identity list --json`
+- `identity inspect --json`
+- `identity validate --json`
+- `record list --json`
+- `record inspect --json`
+- `record validate --json`
+- `listen library --json`
+
+Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
+
+## Debian Build
+
+Expected packages:
+
+```text
+cmake
+g++
+qt6-base-dev
+```
+
+The Create, Publish, and Operate panes expect the current CLIs to be available. During development, build them first:
+
+```bash
+cargo build -p waystone-project-cli -p waystone-publish-cli -p waystone-host-cli -p waystone-identity-cli -p waystone-record-cli -p waystone-listen-cli
+```
+
+The UI looks for the matching binaries under `target/debug/` before falling back to commands on `PATH`.
+
+Build commands:
+
+```bash
+cmake -S ui/workspace-qt -B /tmp/waystone-workspace-qt-build
+cmake --build /tmp/waystone-workspace-qt-build
+```
+
+Run command from the repository root:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace
+```
+
+Or pass the repository root explicitly:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
+```
+
+Repeatable smoke check:
+
+```bash
+scripts/workspace-qt-smoke.sh
+```
+
+CLI JSON contract smoke check:
+
+```bash
+scripts/cli-json-contract-smoke.sh
+```

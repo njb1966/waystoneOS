@@ -1,0 +1,12 @@
+[package]
+name = "waystone-projectd"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "waystone-projectd"
+path = "src/main.rs"
+
+[dependencies]
+waystone-project-service = { path = "../../crates/project-service" }

@@ -1,0 +1,4 @@
+# Invalid Fixture
+
+The manifest uses an absolute content root.
+

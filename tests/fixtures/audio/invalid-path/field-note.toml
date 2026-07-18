@@ -1,0 +1,14 @@
+[recording]
+id = "bad-field-note"
+title = "Bad Field Note"
+master = "../masters/bad-field-note.flac"
+published = "../published/bad-field-note.opus"
+duration_seconds = 10
+channels = 1
+sample_rate = 48000
+
+[publication]
+feed = "../../feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:bad-field-note"
+mime_type = "audio/ogg; codecs=opus"
+

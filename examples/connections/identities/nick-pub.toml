@@ -1,0 +1,17 @@
+[identity]
+id = "nick-pub"
+display_name = "Nick Publication"
+author_name = "Nick"
+
+[[ssh_keys]]
+id = "pubnix-main"
+public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexamplepublickeyonly nick@example"
+private_key_ref = "workspace-secret:ssh/pubnix-main"
+
+[[certificates]]
+id = "gemini-client"
+type = "gemini-client"
+fingerprint = "sha256:example-gemini-client-certificate-fingerprint"
+private_key_ref = "workspace-secret:certs/gemini-client"
+expires = "2027-07-17"
+

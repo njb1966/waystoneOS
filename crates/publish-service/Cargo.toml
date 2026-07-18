@@ -1,0 +1,10 @@
+[package]
+name = "waystone-publish-service"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+waystone-publication-history = { path = "../publication-history" }
+waystone-publish-plan = { path = "../publish-plan" }
+

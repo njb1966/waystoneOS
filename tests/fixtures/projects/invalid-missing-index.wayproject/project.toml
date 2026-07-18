@@ -1,0 +1,12 @@
+[waystone]
+schema = 1
+
+[project]
+id = "invalid-missing-index"
+name = "Invalid Missing Index"
+type = "capsule"
+
+[content]
+root = "content"
+index = "index.gmi"
+

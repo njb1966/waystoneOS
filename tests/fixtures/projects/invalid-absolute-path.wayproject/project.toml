@@ -1,0 +1,12 @@
+[waystone]
+schema = 1
+
+[project]
+id = "invalid-absolute-path"
+name = "Invalid Absolute Path"
+type = "capsule"
+
+[content]
+root = "/tmp/content"
+index = "index.gmi"
+

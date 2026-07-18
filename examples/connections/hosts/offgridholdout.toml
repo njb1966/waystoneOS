@@ -1,0 +1,18 @@
+[host]
+id = "offgridholdout"
+display_name = "Offgrid Holdout"
+address = "offgridholdout.org"
+notes = "Example pubnix and publication host"
+
+[[services]]
+type = "ssh"
+port = 22
+trust = "trusted"
+fingerprint = "sha256:example-ssh-host-key-fingerprint"
+
+[[services]]
+type = "gemini"
+port = 1965
+trust = "observed"
+fingerprint = "sha256:example-gemini-certificate-fingerprint"
+

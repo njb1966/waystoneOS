@@ -1,0 +1,6 @@
+# Audio Capsule
+
+This example shows the intended project shape for an audio publication.
+
+=> ../audio/published/field-note.opus Field Note
+

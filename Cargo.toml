@@ -1,0 +1,31 @@
+[workspace]
+members = [
+    "crates/cli-output",
+    "crates/project-format",
+    "crates/project-service",
+    "crates/host-service",
+    "crates/identity-service",
+    "crates/publish-plan",
+    "crates/publish-service",
+    "crates/publication-history",
+    "crates/host-identity",
+    "crates/audio-metadata",
+    "crates/audio-service",
+    "cli/project",
+    "cli/publish",
+    "cli/host",
+    "cli/identity",
+    "cli/record",
+    "cli/listen",
+    "cli/way",
+    "services/projectd",
+    "services/hostd",
+    "services/identityd",
+    "services/audiod",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+repository = "https://example.invalid/waystone/waystone-os"

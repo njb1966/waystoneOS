@@ -1,0 +1,36 @@
+[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "audio-capsule"
+name = "Audio Capsule"
+type = "audio-series"
+language = "en"
+author = "WaystoneOS"
+description = "Example text and audio publication project"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[audio]
+masters = "audio/masters"
+published = "audio/published"
+metadata = "audio/metadata"
+master_format = "flac"
+publish_format = "opus"
+publish_bitrate = 96000
+
+[feed]
+enabled = true
+type = "atom"
+path = "feeds/feed.xml"
+title = "Audio Capsule"
+
+[[publish.targets]]
+name = "export"
+method = "removable"
+path = "publish/export"
+delete_policy = "forbid"
+

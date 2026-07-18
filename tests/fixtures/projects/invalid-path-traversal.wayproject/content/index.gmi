@@ -1,0 +1,4 @@
+# Invalid Fixture
+
+The manifest points outside the content root.
+

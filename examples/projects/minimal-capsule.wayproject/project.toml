@@ -1,0 +1,15 @@
+[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "minimal-capsule"
+name = "Minimal Capsule"
+type = "capsule"
+language = "en"
+author = "WaystoneOS"
+
+[content]
+root = "content"
+index = "index.gmi"
+
