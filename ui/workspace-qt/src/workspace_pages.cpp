@@ -4,6 +4,7 @@
 #include "workspace_config.h"
 
 #include <QAbstractItemView>
+#include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -163,6 +164,26 @@ void populateProjectTable(QTableWidget *projectsTable, QPlainTextEdit *details,
 
     projectsTable->selectRow(0);
     details->setPlainText(adapter->inspectProject(projects.at(0).path));
+}
+
+bool selectProjectByPath(QTableWidget *projectsTable, const QString &path) {
+    const QString wanted = QDir::cleanPath(path);
+    for (int row = 0; row < projectsTable->rowCount(); ++row) {
+        auto *item = projectsTable->item(row, 0);
+        if (item == nullptr) {
+            continue;
+        }
+
+        const QString itemPath =
+            QDir::cleanPath(item->data(Qt::UserRole).toString());
+        if (itemPath == wanted) {
+            projectsTable->selectRow(row);
+            projectsTable->scrollToItem(item);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void populateRecordingTable(QTableWidget *recordingsTable, QPlainTextEdit *details,
@@ -430,6 +451,40 @@ QWidget *createPage(const CliAdapter *adapter) {
     toolbarLayout->addStretch();
     layout->addWidget(toolbar);
 
+    auto *newProject = new QWidget(page);
+    auto *newProjectForm = new QFormLayout(newProject);
+    newProjectForm->setContentsMargins(0, 0, 0, 0);
+    newProjectForm->setSpacing(8);
+
+    auto *newProjectId = new QLineEdit(newProject);
+    auto *newProjectName = new QLineEdit(newProject);
+    auto *newProjectType = new QComboBox(newProject);
+    newProjectType->addItems({"capsule",
+                              "gemlog",
+                              "gopherhole",
+                              "spartan-site",
+                              "audio-series",
+                              "feed",
+                              "pubnix-home",
+                              "documentation-archive",
+                              "classroom-assignment",
+                              "mixed-publication"});
+
+    auto *createActions = new QWidget(newProject);
+    auto *createActionsLayout = new QHBoxLayout(createActions);
+    createActionsLayout->setContentsMargins(0, 0, 0, 0);
+    auto *createProject = new QPushButton("Create", createActions);
+    auto *createStatus = new QLabel("Create: idle", createActions);
+    createStatus->setWordWrap(true);
+    createActionsLayout->addWidget(createProject);
+    createActionsLayout->addWidget(createStatus, 1);
+
+    newProjectForm->addRow("ID", newProjectId);
+    newProjectForm->addRow("Name", newProjectName);
+    newProjectForm->addRow("Type", newProjectType);
+    newProjectForm->addRow("", createActions);
+    layout->addWidget(newProject);
+
     auto *splitter = new QSplitter(Qt::Vertical);
     auto currentDocument = std::make_shared<ProjectDocument>();
 
@@ -452,6 +507,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *authorToolbarLayout = new QHBoxLayout(authorToolbar);
     authorToolbarLayout->setContentsMargins(0, 0, 0, 0);
     auto *contentPath = new QLabel("No project selected", authorToolbar);
+    contentPath->setWordWrap(true);
     auto *reloadContent = new QPushButton("Reload", authorToolbar);
     auto *saveContent = new QPushButton("Save", authorToolbar);
     saveContent->setEnabled(false);
@@ -475,6 +531,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     authorLayout->addWidget(contentSplitter, 1);
 
     auto *contentStatus = new QLabel("Content: idle", authorArea);
+    contentStatus->setWordWrap(true);
     authorLayout->addWidget(contentStatus);
     splitter->addWidget(authorArea);
 
@@ -514,6 +571,32 @@ QWidget *createPage(const CliAdapter *adapter) {
         reloadContent->setEnabled(true);
     };
 
+    QObject::connect(createProject, &QPushButton::clicked, [=]() {
+        const QString id = newProjectId->text().trimmed();
+        const QString name = newProjectName->text().trimmed();
+        const QString projectType = newProjectType->currentText();
+        if (id.isEmpty() || name.isEmpty()) {
+            createStatus->setText("ID and name are required");
+            return;
+        }
+
+        const ProjectCreateResult created =
+            adapter->createProject(id, name, projectType);
+        if (!created.ok) {
+            createStatus->setText(created.error);
+            return;
+        }
+
+        createStatus->setText("Created: " + created.projectPath);
+        newProjectId->clear();
+        newProjectName->clear();
+        populateProjectTable(projectsTable, projectDetails, adapter);
+        if (selectProjectByPath(projectsTable, created.projectPath)) {
+            projectDetails->setPlainText(adapter->inspectProject(created.projectPath));
+            loadProjectContent(created.projectPath);
+        }
+    });
+
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
         populateProjectTable(projectsTable, projectDetails, adapter);
         populateRecordingTable(recordingsTable, recordingDetails, adapter);
@@ -534,7 +617,17 @@ QWidget *createPage(const CliAdapter *adapter) {
                      });
 
     QObject::connect(editor, &QPlainTextEdit::textChanged, [=]() {
-        preview->setHtml(renderGemtextPreview(editor->toPlainText()));
+        const QString text = editor->toPlainText();
+        preview->setHtml(renderGemtextPreview(text));
+        if (!currentDocument->ok) {
+            return;
+        }
+
+        if (text == currentDocument->text) {
+            contentStatus->setText("Loaded: " + currentDocument->title);
+        } else {
+            contentStatus->setText("Edited: " + currentDocument->contentPath);
+        }
     });
 
     QObject::connect(reloadContent, &QPushButton::clicked, [=]() {
@@ -552,11 +645,13 @@ QWidget *createPage(const CliAdapter *adapter) {
         }
 
         currentDocument->text = editor->toPlainText();
-        contentStatus->setText("Saved: " + currentDocument->contentPath);
+        const QString validation =
+            adapter->projectValidationState(currentDocument->projectPath);
+        contentStatus->setText("Saved: " + currentDocument->contentPath +
+                               " (" + validation + ")");
         projectDetails->setPlainText(
             adapter->inspectProject(currentDocument->projectPath) +
-            "\n\nValidation: " +
-            adapter->projectValidationState(currentDocument->projectPath));
+            "\n\nValidation: " + validation);
     });
 
     QObject::connect(recordingsTable, &QTableWidget::currentCellChanged,

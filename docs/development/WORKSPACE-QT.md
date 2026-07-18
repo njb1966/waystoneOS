@@ -20,9 +20,10 @@ Implemented:
 - Left activity navigation
 - Main stacked workspace panes
 - Bottom status bar
-- Create-pane adapter using `project` CLI JSON output for list, inspect, and validate
+- Create-pane adapter using `project` CLI JSON output for create, list, inspect, and validate
+- Create-pane project creation form for minimal projects under the configured projects root
 - Create-pane editor for the selected project's content index file
-- Local Gemtext preview for the selected project's content index file
+- Local Gemtext preview and save validation status for the selected project's content index file
 - Read-only recording adapter using `record` and `listen` CLI JSON output
 - Read-only Publish-pane adapter using `publish --dry-run --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
@@ -39,7 +40,6 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
-- Project creation from the Qt UI
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 
@@ -136,8 +136,9 @@ scripts/cli-json-contract-smoke.sh
 
 ## Next Integration Boundary
 
-The first adapter path is CLI JSON for project, recording, publish preview, host, and identity data, plus local file access for the selected project content index:
+The first adapter path is CLI JSON for project, recording, publish preview, host, and identity data, plus local file access for project creation and the selected project content index:
 
+- `project create --json`
 - `project list --json`
 - `project inspect --json`
 - `project validate --json`
@@ -152,6 +153,7 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `record inspect --json`
 - `record validate --json`
 - `listen library --json`
+- minimal project creation under the configured projects root
 - selected project content index read/write
 
 Before moving Qt to a service backend, define the next adapter scope:

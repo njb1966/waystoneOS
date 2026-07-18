@@ -438,8 +438,9 @@ Current behavior:
 - Builds as a standalone Qt 6 C++ CMake project when Qt 6 development files are installed
 - Renders the first Waystone Workspace frame
 - Provides a top menu bar, workspace selectors, left activity navigation, stacked main panes, and status bar
-- Uses the existing `project` CLI JSON output for Create-pane project list, inspect, and validate
-- Loads, edits, saves, and previews the selected project's content index file in the Create pane
+- Uses the existing `project` CLI JSON output for Create-pane create, list, inspect, and validate
+- Creates minimal projects under the configured projects root, refreshes the project list, and opens the new project in the editor
+- Loads, edits, saves, validates, and previews the selected project's content index file in the Create pane
 - Uses the existing `record` and `listen` CLI JSON output for read-only Create-pane recording list, inspect, validate, and playable state
 - Uses the existing `publish` CLI JSON output for read-only Publish-pane dry-run previews
 - Uses the existing `host` and `identity` CLI JSON output for read-only Operate-pane list, inspect, and validate
@@ -453,7 +454,7 @@ Current behavior:
 - Preflights missing configured roots before running pane CLIs
 - Provides `--check-roots` diagnostics for bad config paths and missing configured roots
 - Uses static placeholder resource data for Explore
-- Mutates only persistent user root settings and the selected local project content index file
+- Mutates only persistent user root settings, minimal project directories under the configured projects root, and the selected local project content index file
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
 ## Project Service
@@ -609,7 +610,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully, verified root handling, and covered the Workspace authoring preview build. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully, verified root handling, and covered the Workspace project creation and authoring preview build. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -655,7 +656,6 @@ cmake --build /tmp/waystone-workspace-qt-build
 - Audio recording
 - Audio playback
 - Audio trimming, normalization, or export
-- Qt project creation from the Create pane
 - Deeper Workspace actions beyond local inspect, authoring, and preview
 - Live reload after editing persistent user settings
 - Browser, Helm, or Comm integration

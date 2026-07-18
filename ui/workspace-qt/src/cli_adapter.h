@@ -31,6 +31,12 @@ struct ProjectDocument {
     QString error;
 };
 
+struct ProjectCreateResult {
+    bool ok = false;
+    QString projectPath;
+    QString error;
+};
+
 struct PublishPreview {
     bool ok = false;
     bool blocked = false;
@@ -74,6 +80,8 @@ public:
     explicit CliAdapter(WorkspaceConfig config);
 
     QList<ProjectSummary> listProjects(QString *error) const;
+    ProjectCreateResult createProject(const QString &id, const QString &name,
+                                      const QString &projectType) const;
     QString inspectProject(const QString &path) const;
     QString projectValidationState(const QString &path) const;
     ProjectDocument loadProjectDocument(const QString &path) const;

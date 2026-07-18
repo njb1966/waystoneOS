@@ -307,7 +307,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Continue user-visible Workspace workflow with Qt project creation and editor validation/status improvements.
+1. Continue user-visible Workspace workflow with focused smoke coverage for Qt project creation/editor save behavior and then local preview/link validation.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

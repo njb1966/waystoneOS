@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Workspace Gemtext authoring preview
+Status: current after Qt project creation flow
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, and the first local Workspace authoring preview slice.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, and the Qt project creation flow.
 
 ## Current Position
 
@@ -25,8 +25,10 @@ The Qt Workspace currently has:
 - Explore pane with static placeholder data
 - Explore pane active-root display for the loaded Workspace configuration
 - Create pane backed by `project`, `record`, and `listen` CLI JSON output
+- Create pane can create minimal projects under the configured projects root using `project create --json`
+- Newly created projects refresh into the project list and open in the editor
 - Create pane loads the selected project content index through `project inspect --json`
-- Create pane provides basic Gemtext editing, saving, and local preview
+- Create pane provides basic Gemtext editing, saving, validation status, and local preview
 - Publish pane backed by `publish --dry-run --json`
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
@@ -38,7 +40,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings and selected project content index files only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, and edits selected project content index files only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 ## Verification Marker
 
@@ -64,7 +66,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after Workspace Gemtext authoring preview pass: all passed on 2026-07-18.
+Result after Qt project creation flow pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -93,10 +95,10 @@ Result after Workspace Gemtext authoring preview pass: all passed on 2026-07-18.
 
 Recommended next implementation step:
 
-1. Add Qt project creation in the Create pane using the existing CLI contract, then open the new project in the editor.
+1. Add a focused Workspace/CLI smoke path for project creation and editor save behavior without touching repository examples.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Harden the local Gemtext editor with validation and clearer save/preview status before adding project creation.
+- Continue user-visible workflow with local preview/link validation and publish-target setup for newly created projects.

@@ -114,6 +114,46 @@ QList<ProjectSummary> CliAdapter::listProjects(QString *error) const {
     return projects;
 }
 
+ProjectCreateResult CliAdapter::createProject(const QString &id, const QString &name,
+                                              const QString &projectType) const {
+    ProjectCreateResult created;
+    QString error;
+    if (rootMissing(config_.projectsRoot, "projects", &error)) {
+        created.error = error;
+        return created;
+    }
+
+    const CommandResult result = runCommand(
+        "project", {"create", "--json", config_.projectsRoot, id, name, projectType});
+
+    if (!result.error.isEmpty()) {
+        created.error = result.error;
+        return created;
+    }
+
+    if (result.exitCode != 0) {
+        created.error = commandFailureDetail(result, "project create failed");
+        return created;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        created.error = "project create returned unreadable JSON";
+        return created;
+    }
+
+    created.projectPath =
+        root.value("data").toObject().value("project_path").toString();
+    if (created.projectPath.isEmpty()) {
+        created.error = "project create did not return a project path";
+        return created;
+    }
+
+    created.ok = true;
+    return created;
+}
+
 QString CliAdapter::inspectProject(const QString &path) const {
     const CommandResult result = runCommand("project", {"inspect", "--json", path});
     if (result.exitCode != 0) {
