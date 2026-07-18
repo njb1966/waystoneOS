@@ -444,6 +444,7 @@ Current behavior:
 - Reads explicit `--config`, user app config, or repository defaults in that order
 - Lets the Explore pane write persistent user root settings
 - Preflights missing configured roots before running pane CLIs
+- Provides `--check-roots` diagnostics for bad config paths and missing configured roots
 - Uses static placeholder resource data for Explore
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
@@ -573,6 +574,7 @@ cmake --build /tmp/waystone-workspace-qt-build
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
 ## Not Implemented Yet

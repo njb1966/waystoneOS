@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 
 struct WorkspaceConfig {
     QString repoRoot;
@@ -10,6 +11,8 @@ struct WorkspaceConfig {
     QString hostsRoot;
     QString identitiesRoot;
     QString audioMetadataRoot;
+
+    QStringList missingRootMessages() const;
 
     static WorkspaceConfig defaults(const QString &repoRoot);
     static WorkspaceConfig load(const QString &repoRoot, const QString &explicitConfigPath,

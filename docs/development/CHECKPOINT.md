@@ -32,6 +32,7 @@ The Qt Workspace currently has:
 - Example root configuration in `ui/workspace-qt/workspace.example.ini`
 - Config lookup order: explicit `--config`, user app config, repository defaults
 - Explore pane editing for persistent user root settings
+- `--check-roots` diagnostics for missing explicit config and missing configured roots
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
@@ -49,7 +50,7 @@ scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 ```
 
-Result after Workspace user settings editor pass: all passed on 2026-07-18.
+Result after Workspace root diagnostics smoke pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -64,9 +65,9 @@ Result after Workspace user settings editor pass: all passed on 2026-07-18.
 
 Recommended next implementation step:
 
-1. Add deeper tests or smoke checks for bad config paths and missing root directories.
-2. Keep configuration file based and local-only; do not introduce D-Bus yet.
-3. Consider live reload for settings only after the current edit/save path is stable.
+1. Decide whether to add live reload for local Workspace root settings.
+2. Keep configuration file based and local-only unless D-Bus planning is explicitly approved.
+3. If deferring live reload, begin the D-Bus adapter planning slice.
 
 Alternative next step:
 

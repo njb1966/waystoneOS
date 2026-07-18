@@ -14,6 +14,7 @@
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTextStream>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -41,6 +42,10 @@ QString configuredConfigPath(const QApplication &app) {
 
 bool allowUserConfig(const QApplication &app) {
     return !app.arguments().contains("--no-user-config");
+}
+
+bool checkRootsOnly(const QApplication &app) {
+    return app.arguments().contains("--check-roots");
 }
 
 void addMenus(QMainWindow &window) {
@@ -114,6 +119,30 @@ int main(int argc, char *argv[]) {
     const WorkspaceConfig workspaceConfig =
         WorkspaceConfig::load(repoRoot, configuredConfigPath(app), allowUserConfig(app),
                               &configWarning);
+    if (checkRootsOnly(app)) {
+        QTextStream out(stdout);
+        QTextStream err(stderr);
+        if (!configWarning.isEmpty()) {
+            err << "warning: " << configWarning << Qt::endl;
+        }
+
+        out << "config source: " << workspaceConfig.configSource << Qt::endl;
+        if (!workspaceConfig.configPath.isEmpty()) {
+            out << "config path: " << workspaceConfig.configPath << Qt::endl;
+        }
+
+        const QStringList missingRoots = workspaceConfig.missingRootMessages();
+        if (missingRoots.isEmpty()) {
+            out << "roots: ok" << Qt::endl;
+            return 0;
+        }
+
+        for (const auto &message : missingRoots) {
+            err << message << Qt::endl;
+        }
+        return 2;
+    }
+
     const CliAdapter adapter(workspaceConfig);
     setApplicationStyle(app);
 

@@ -2,6 +2,8 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QList>
+#include <QPair>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -27,6 +29,25 @@ QString configValue(const QSettings &settings, const QString &key,
 }
 
 } // namespace
+
+QStringList WorkspaceConfig::missingRootMessages() const {
+    QStringList messages;
+    const QList<QPair<QString, QString>> roots = {
+        {"projects", projectsRoot},
+        {"hosts", hostsRoot},
+        {"identities", identitiesRoot},
+        {"audio metadata", audioMetadataRoot},
+    };
+
+    for (const auto &root : roots) {
+        if (!QFileInfo::exists(root.second)) {
+            messages.append("Configured " + root.first + " root not found: " +
+                            root.second);
+        }
+    }
+
+    return messages;
+}
 
 WorkspaceConfig WorkspaceConfig::defaults(const QString &repoRoot) {
     const QString absoluteRepoRoot = QDir(repoRoot).absolutePath();

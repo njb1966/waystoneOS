@@ -101,6 +101,12 @@ Ignore user config and use repository defaults:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
 ```
 
+Check configured roots without opening the window:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
+```
+
 Repeatable smoke check:
 
 ```bash

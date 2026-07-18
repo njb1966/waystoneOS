@@ -93,6 +93,12 @@ If no `--config` is passed, the UI checks Qt's user app config location for `wor
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
 ```
 
+To validate configured roots without opening the window:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
+```
+
 Example config:
 
 ```text
@@ -117,7 +123,7 @@ Headless startup smoke test:
 scripts/workspace-qt-smoke.sh
 ```
 
-The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, and user-config startup.
+The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, user-config, missing-config fallback, and missing-root diagnostics.
 
 CLI JSON contract smoke test:
 
