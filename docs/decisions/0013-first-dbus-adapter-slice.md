@@ -23,6 +23,8 @@ The adapter will map D-Bus calls to the existing `crates/project-service` contra
 
 The first payload shape may use schema-versioned JSON strings over D-Bus. This keeps the adapter close to the existing CLI JSON contract while the service boundary stabilizes.
 
+`services/projectd` will use `zbus` for the first adapter. The dependency is pinned to `zbus` 5.13.1 because it is the newest checked `zbus` release compatible with the current Rust 1.85.0 toolchain. Newer checked releases require Rust 1.87.
+
 ## Consequences
 
 - The first IPC implementation exercises daemon lifecycle, bus ownership, method dispatch, and error mapping without adding filesystem mutation.
@@ -51,7 +53,6 @@ Immediately migrate Qt Workspace from CLI to D-Bus:
 
 ## Follow-Up
 
-- Select the Rust D-Bus dependency for `services/projectd`.
-- Implement read-only `org.waystone.Project1` methods.
-- Add integration or smoke tests that exercise the daemon on a test session bus.
-- Update service contracts after the adapter behavior is verified.
+- Decide whether `CreateProject` should be the first mutating D-Bus method.
+- Keep activation and systemd user units deferred until direct daemon behavior is stable.
+- Keep Qt Workspace on CLI adapters until D-Bus lifecycle and error behavior are stable.

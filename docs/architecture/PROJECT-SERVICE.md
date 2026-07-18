@@ -73,6 +73,14 @@ Provisional object root:
 
 The `1` suffix marks the interface generation.
 
+Current adapter status:
+
+- `ListProjects` implemented on `waystone-projectd`
+- `InspectProject` implemented on `waystone-projectd`
+- `ValidateProject` implemented on `waystone-projectd`
+- D-Bus activation files are not implemented
+- `CreateProject` over D-Bus is deferred until the read-only adapter path is stable
+
 ## Methods
 
 ### CreateProject
@@ -319,5 +327,4 @@ For version 0.1, implement first:
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 
-D-Bus activation remains a documented placeholder until the Rust service shape is stable.
-
+D-Bus activation remains a documented placeholder until the direct daemon and test-session-bus path are stable.

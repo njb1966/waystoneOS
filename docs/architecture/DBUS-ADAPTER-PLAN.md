@@ -1,6 +1,6 @@
 # WaystoneOS D-Bus Adapter Plan
 
-Status: Draft for next implementation slice
+Status: First implementation slice active
 Date: 2026-07-18
 
 This document defines the first D-Bus adapter work. It intentionally does not add new domain behavior, new persistent formats, remote mutation, credential unlock, or GUI integration.
@@ -113,14 +113,20 @@ services/projectd/
   tests/
 ```
 
-Likely crate direction:
+Current crate direction:
 
-- Add a D-Bus crate only to `services/projectd`.
+- Add D-Bus dependencies only to `services/projectd`.
 - Keep `crates/project-service` dependency-free from D-Bus.
 - Use the daemon binary for the session bus service.
 - Add integration tests that launch the daemon against a temporary session bus when practical.
 
-The preferred implementation dependency should be chosen immediately before implementation based on current Debian stable packaging and Rust ecosystem fit. The likely candidate is `zbus`, but this plan does not commit the repo to that dependency yet.
+Selected dependency:
+
+```text
+zbus 5.13.1
+```
+
+`zbus` was selected because it is Rust-native, MIT-licensed, supports service-side D-Bus interfaces, and has a blocking API suitable for the first daemon slice. The dependency is pinned to the newest checked `zbus` release compatible with the currently installed Rust 1.85.0 toolchain. Newer `zbus` releases currently require Rust 1.87.
 
 ## Verification Gates
 
@@ -132,15 +138,17 @@ cargo test
 cargo clippy --all-targets -- -D warnings
 scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
+scripts/projectd-dbus-smoke.sh
 ```
 
 Additional D-Bus verification should prove:
 
 - `waystone-projectd` can start and own `org.waystone.Project1` on a test session bus.
-- `ListProjects` returns the same project IDs as the `project list --json` CLI for repository examples.
-- `InspectProject` returns the same core identity fields as the CLI inspect path.
-- `ValidateProject` reports invalid fixtures without panicking or leaking host paths beyond expected user-supplied paths.
-- The daemon exits cleanly when the test bus is unavailable or closed.
+- `ListProjects` returns expected project IDs for repository examples.
+- `InspectProject` returns expected core identity fields.
+- `ValidateProject` reports invalid fixtures without panicking.
+- Invalid JSON requests return a structured `invalid_request` response.
+- The daemon reports startup failure cleanly when a session bus is unavailable.
 
 ## Non-Goals
 
@@ -152,7 +160,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Select and justify the Rust D-Bus dependency for `services/projectd`.
-2. Implement read-only `waystone-projectd` D-Bus methods.
-3. Add a test helper or script for exercising the daemon on a test session bus.
-4. Update service contracts after the adapter behavior is verified.
+1. Keep `projectd` D-Bus behavior read-only while the adapter pattern settles.
+2. Decide whether `CreateProject` should be the first mutating D-Bus method.
+3. Add systemd user activation only after the direct daemon and test-session-bus path are stable.
+4. Update the Qt Workspace adapter only after service lifecycle and error behavior are stable.

@@ -9,4 +9,14 @@ name = "waystone-projectd"
 path = "src/main.rs"
 
 [dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
 waystone-project-service = { path = "../../crates/project-service" }
+zbus = "=5.13.1"
+# Companion crates are pinned because newer compatible-range releases require
+# Rust 1.87; the current project toolchain is Rust 1.85.0.
+zbus_macros = "=5.13.1"
+zbus_names = "=4.3.1"
+zvariant = "=5.9.1"
+zvariant_derive = "=5.9.1"
+zvariant_utils = "=3.3.0"

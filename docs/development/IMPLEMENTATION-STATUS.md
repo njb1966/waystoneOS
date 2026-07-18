@@ -458,11 +458,13 @@ services/projectd/
 
 Current state:
 
-- Placeholder binary only
-- D-Bus service not implemented
+- Runs as a direct D-Bus session service when launched manually
+- Owns `org.waystone.Project1` at `/org/waystone/Project`
+- Implements read-only `ListProjects`, `InspectProject`, and `ValidateProject`
+- Uses `zbus` 5.13.1 pinned for Rust 1.85.0 compatibility
+- D-Bus activation and systemd user units are not implemented
 - Service contract documented in `docs/architecture/PROJECT-SERVICE.md`
 - Uses `crates/project-service/` as its internal boundary
-- First D-Bus adapter slice is planned for read-only `ListProjects`, `InspectProject`, and `ValidateProject` methods
 
 ## Host and Identity Services
 
@@ -552,9 +554,10 @@ cmake --build /tmp/waystone-workspace-qt-build
 QT_QPA_PLATFORM=offscreen timeout 5s /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
 scripts/workspace-qt-smoke.sh
 scripts/cli-json-contract-smoke.sh
+scripts/projectd-dbus-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified read-only adapter methods on a private test session bus.
 
 Useful CLI smoke checks:
 
