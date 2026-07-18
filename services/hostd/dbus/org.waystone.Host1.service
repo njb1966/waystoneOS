@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.waystone.Host1
+Exec=/usr/bin/waystone-hostd
+SystemdService=waystone-hostd.service

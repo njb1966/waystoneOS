@@ -1,0 +1,11 @@
+[Unit]
+Description=Waystone Identity Service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/waystone-identityd
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

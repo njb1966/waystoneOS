@@ -1,0 +1,11 @@
+[Unit]
+Description=Waystone Host Service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/waystone-hostd
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

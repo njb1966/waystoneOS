@@ -5,7 +5,7 @@ Date: 2026-07-18
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` remains a placeholder. Only `waystone-projectd` has repo-local activation artifacts; no activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. These three daemons have repo-local activation artifacts. `waystone-audiod` remains a placeholder. No activation files are installed outside this repository.
 
 ## Contract Rules
 

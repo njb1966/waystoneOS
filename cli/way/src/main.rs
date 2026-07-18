@@ -36,9 +36,9 @@ fn print_help() {
     println!("  record    Inspect and validate recording metadata");
     println!("  listen    List playable recordings from a project");
     println!();
-    println!("Service placeholders:");
-    println!("  waystone-projectd");
-    println!("  waystone-hostd");
-    println!("  waystone-identityd");
-    println!("  waystone-audiod");
+    println!("Service binaries:");
+    println!("  waystone-projectd    Project D-Bus service");
+    println!("  waystone-hostd       Host D-Bus service");
+    println!("  waystone-identityd   Identity D-Bus service");
+    println!("  waystone-audiod      Audio service placeholder");
 }

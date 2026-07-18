@@ -126,7 +126,7 @@ Current behavior:
 - Wraps host metadata operations behind request/response structs
 - Provides a service boundary for list/inspect/validate
 - Exposes list/inspect/validate through `waystone-hostd` D-Bus adapter
-- Does not implement D-Bus activation artifacts yet
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
 
 Current tests cover:
 
@@ -145,7 +145,7 @@ Current behavior:
 - Wraps identity metadata operations behind request/response structs
 - Provides a service boundary for list/inspect/validate
 - Exposes list/inspect/validate through `waystone-identityd` D-Bus adapter
-- Does not implement D-Bus activation artifacts yet
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
 
 Current tests cover:
 
@@ -417,7 +417,7 @@ way [help|--help]
 Current behavior:
 
 - Lists current core commands
-- Lists current placeholder service binaries
+- Lists current service binaries and the remaining audio placeholder
 - Returns exit code `2` for unsupported arguments
 - Does not dispatch to subcommands yet
 
@@ -487,7 +487,9 @@ Current state:
 - `waystone-identityd` owns `org.waystone.Identity1` at `/org/waystone/Identity`
 - Implement list, inspect, validate, and structured invalid-request responses
 - Request single-owner bus name behavior; duplicate daemon instances fail quickly
-- Do not have repo-local activation artifacts yet
+- Provide repo-local D-Bus service and systemd user unit activation artifacts
+- D-Bus autostart is smoke-tested through generated temporary service files
+- Systemd user unit syntax is smoke-tested through generated temporary daemon paths
 - Metadata logic remains in `crates/host-identity/`
 - `hostd` uses `crates/host-service/` as its internal boundary
 - `identityd` uses `crates/identity-service/` as its internal boundary
@@ -565,10 +567,12 @@ scripts/cli-json-contract-smoke.sh
 scripts/projectd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
+scripts/host-identity-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
+scripts/host-identity-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The activation smoke verified projectd D-Bus service-file autostart, and the systemd smoke verified projectd unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The activation smokes verified projectd and host/identity D-Bus service-file autostart. The systemd smokes verified projectd and host/identity unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 

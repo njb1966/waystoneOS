@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after host and identity D-Bus adapters
+Status: current after host and identity activation artifacts
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, and the initial project, host, and identity D-Bus adapter slices.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, and the initial project, host, and identity D-Bus adapter and activation-artifact slices.
 
 ## Current Position
 
@@ -52,10 +52,12 @@ scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
+scripts/host-identity-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
+scripts/host-identity-systemd-unit-smoke.sh
 ```
 
-Result after `waystone-hostd` and `waystone-identityd` D-Bus adapter pass: all passed on 2026-07-18.
+Result after `waystone-hostd` and `waystone-identityd` activation artifact pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -68,9 +70,9 @@ Result after `waystone-hostd` and `waystone-identityd` D-Bus adapter pass: all p
 - `waystone-hostd` direct D-Bus serving is implemented for host list, inspect, and validate.
 - `waystone-identityd` direct D-Bus serving is implemented for identity list, inspect, and validate.
 - `waystone-hostd` and `waystone-identityd` fail cleanly without a session bus and reject duplicate bus ownership.
-- D-Bus autostart is verified on a private test session bus with a generated temporary service file.
+- `waystone-hostd` and `waystone-identityd` D-Bus service files and systemd user units are present in the repo.
+- D-Bus autostart is verified on a private test session bus with generated temporary service files.
 - Activation files have not been installed into user or system service directories.
-- `waystone-hostd` and `waystone-identityd` do not yet have activation artifacts.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -78,7 +80,7 @@ Result after `waystone-hostd` and `waystone-identityd` D-Bus adapter pass: all p
 
 Recommended next implementation step:
 
-1. Decide whether `waystone-hostd` and `waystone-identityd` should get repo-local D-Bus service files and systemd user units next.
+1. Decide whether `waystone-audiod` should get the next read-only D-Bus adapter.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 

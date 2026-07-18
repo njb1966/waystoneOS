@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.waystone.Identity1
+Exec=/usr/bin/waystone-identityd
+SystemdService=waystone-identityd.service

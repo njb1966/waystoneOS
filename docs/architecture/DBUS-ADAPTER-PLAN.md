@@ -197,7 +197,9 @@ scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
 scripts/host-identity-dbus-smoke.sh
 scripts/projectd-dbus-activation-smoke.sh
+scripts/host-identity-dbus-activation-smoke.sh
 scripts/projectd-systemd-unit-smoke.sh
+scripts/host-identity-systemd-unit-smoke.sh
 ```
 
 Additional D-Bus verification should prove:
@@ -214,6 +216,8 @@ Additional D-Bus verification should prove:
 - The checked-in systemd user unit verifies after substituting a temporary daemon path.
 - `waystone-hostd` can start, own `org.waystone.Host1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.
 - `waystone-identityd` can start, own `org.waystone.Identity1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.
+- Host and identity D-Bus service-file autostart works on a private test session bus using generated temporary service files.
+- The checked-in host and identity systemd user units verify after substituting temporary daemon paths.
 
 ## Non-Goals
 
@@ -224,7 +228,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Decide whether to add activation artifacts for `waystone-hostd` and `waystone-identityd`.
+1. Decide whether `waystone-audiod` should get the next read-only D-Bus adapter.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
-3. Add install/package automation only when the repo has a broader packaging layout.
+3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, and cross-service calls deferred.
