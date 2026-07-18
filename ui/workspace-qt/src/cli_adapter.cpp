@@ -42,11 +42,26 @@ QString resolutionText(const QJsonObject &object) {
     return QString("%1 (%2) - %3").arg(id, status, detail);
 }
 
+bool rootMissing(const QString &path, const QString &label, QString *error) {
+    if (QFileInfo::exists(path)) {
+        return false;
+    }
+
+    if (error != nullptr) {
+        *error = "Configured " + label + " root not found: " + path;
+    }
+    return true;
+}
+
 } // namespace
 
 CliAdapter::CliAdapter(WorkspaceConfig config) : config_(std::move(config)) {}
 
 QList<ProjectSummary> CliAdapter::listProjects(QString *error) const {
+    if (rootMissing(config_.projectsRoot, "projects", error)) {
+        return {};
+    }
+
     const CommandResult result =
         runCommand("project", {"list", "--json", config_.projectsRoot});
 
@@ -181,6 +196,10 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
 }
 
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
+    if (rootMissing(config_.hostsRoot, "hosts", error)) {
+        return {};
+    }
+
     const CommandResult result = runCommand(
         "host", {"list", "--json", config_.hostsRoot});
 
@@ -261,6 +280,10 @@ QString CliAdapter::hostValidationState(const QString &path) const {
 }
 
 QList<IdentitySummary> CliAdapter::listIdentities(QString *error) const {
+    if (rootMissing(config_.identitiesRoot, "identities", error)) {
+        return {};
+    }
+
     const CommandResult result =
         runCommand("identity", {"list", "--json", config_.identitiesRoot});
 
@@ -340,6 +363,10 @@ QString CliAdapter::identityValidationState(const QString &path) const {
 }
 
 QList<RecordingSummary> CliAdapter::listRecordings(QString *error) const {
+    if (rootMissing(config_.audioMetadataRoot, "audio metadata", error)) {
+        return {};
+    }
+
     const CommandResult result =
         runCommand("record", {"list", "--json", config_.audioMetadataRoot});
 

@@ -27,6 +27,7 @@ Implemented:
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
 - Explore pane active-root display for the loaded Workspace configuration
+- Missing root preflight errors shown in affected panes
 - Static placeholder resource data for Explore only
 
 Not implemented:
@@ -85,6 +86,12 @@ If using explicit data roots, pass an INI file:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
 ```
 
+If no `--config` is passed, the UI checks Qt's user app config location for `workspace.ini`. Use this option to ignore user config and force repository defaults:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
+```
+
 Example config:
 
 ```text
@@ -107,7 +114,7 @@ Headless startup smoke test:
 scripts/workspace-qt-smoke.sh
 ```
 
-The smoke test uses Qt's `offscreen` platform and verifies both default-root startup and explicit-config startup.
+The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, and user-config startup.
 
 CLI JSON contract smoke test:
 

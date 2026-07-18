@@ -39,6 +39,10 @@ QString configuredConfigPath(const QApplication &app) {
     return {};
 }
 
+bool allowUserConfig(const QApplication &app) {
+    return !app.arguments().contains("--no-user-config");
+}
+
 void addMenus(QMainWindow &window) {
     const QStringList menus = {"System", "Project", "Publish", "Network",
                                "Audio", "Window", "Help"};
@@ -103,11 +107,13 @@ void setApplicationStyle(QApplication &app) {
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+    app.setOrganizationName("WaystoneOS");
     app.setApplicationName("Waystone Workspace");
     const QString repoRoot = configuredRepoRoot(app);
     QString configWarning;
     const WorkspaceConfig workspaceConfig =
-        WorkspaceConfig::load(repoRoot, configuredConfigPath(app), &configWarning);
+        WorkspaceConfig::load(repoRoot, configuredConfigPath(app), allowUserConfig(app),
+                              &configWarning);
     const CliAdapter adapter(workspaceConfig);
     setApplicationStyle(app);
 

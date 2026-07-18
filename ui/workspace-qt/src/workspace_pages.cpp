@@ -4,6 +4,7 @@
 #include "workspace_config.h"
 
 #include <QAbstractItemView>
+#include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -49,6 +50,10 @@ QTableWidget *table(const QStringList &headers, const QList<QStringList> &rows) 
     }
 
     return table;
+}
+
+QString rootStatus(const QString &path) {
+    return QFileInfo::exists(path) ? "available" : "missing";
 }
 
 void populateProjectTable(QTableWidget *projectsTable, QPlainTextEdit *details,
@@ -271,12 +276,16 @@ QWidget *explorePage(const WorkspaceConfig &config) {
                              {"Saved capsule", "gemini", "empty"},
                              {"Offline notes", "file", "available"}}));
     layout->addWidget(sectionLabel("Active Roots"));
-    layout->addWidget(table({"Root", "Path"},
-                            {{"Repository", config.repoRoot},
-                             {"Projects", config.projectsRoot},
-                             {"Hosts", config.hostsRoot},
-                             {"Identities", config.identitiesRoot},
-                             {"Audio metadata", config.audioMetadataRoot}}));
+    layout->addWidget(table({"Root", "Status", "Path"},
+                            {{"Config source", config.configSource, config.configPath},
+                             {"Repository", rootStatus(config.repoRoot), config.repoRoot},
+                             {"Projects", rootStatus(config.projectsRoot),
+                              config.projectsRoot},
+                             {"Hosts", rootStatus(config.hostsRoot), config.hostsRoot},
+                             {"Identities", rootStatus(config.identitiesRoot),
+                              config.identitiesRoot},
+                             {"Audio metadata", rootStatus(config.audioMetadataRoot),
+                              config.audioMetadataRoot}}));
     layout->addStretch();
     return page;
 }

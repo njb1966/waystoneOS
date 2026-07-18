@@ -441,6 +441,8 @@ Current behavior:
 - Keeps local Workspace root configuration in `ui/workspace-qt/src/workspace_config.*`
 - Provides example root configuration in `ui/workspace-qt/workspace.example.ini`
 - Shows active configured roots in the Explore pane
+- Reads explicit `--config`, user app config, or repository defaults in that order
+- Preflights missing configured roots before running pane CLIs
 - Uses static placeholder resource data for Explore
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
@@ -569,6 +571,7 @@ cmake -S ui/workspace-qt -B /tmp/waystone-workspace-qt-build
 cmake --build /tmp/waystone-workspace-qt-build
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
 ```
 
 ## Not Implemented Yet
@@ -593,5 +596,5 @@ cmake --build /tmp/waystone-workspace-qt-build
 - Audio playback
 - Audio trimming, normalization, or export
 - Deeper Workspace actions beyond read-only inspect and preview
-- Persistent user settings location outside explicit `--config`
+- UI editing for persistent user settings
 - Browser, Helm, or Comm integration

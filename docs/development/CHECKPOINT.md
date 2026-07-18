@@ -30,6 +30,7 @@ The Qt Workspace currently has:
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
 - Local root configuration in `ui/workspace-qt/src/workspace_config.*`
 - Example root configuration in `ui/workspace-qt/workspace.example.ini`
+- Config lookup order: explicit `--config`, user app config, repository defaults
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
@@ -56,16 +57,15 @@ Result after Workspace root configuration pass: all passed on 2026-07-18.
 - Sibling Waystone applications remain future add-ons only.
 - D-Bus daemon lifecycle is not implemented.
 - Remote publication execution is not implemented.
-- Qt Workspace data roots default to repository examples and can be overridden with `--config`.
+- Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
 ## Next Work Queue
 
 Recommended next implementation step:
 
-1. Add a UI surface for viewing the active configured roots.
-2. Add a persistent user settings location outside explicit `--config`.
-3. Keep configuration file based and local-only; do not introduce D-Bus yet.
-4. Add deeper tests or smoke checks for bad config paths and missing root directories.
+1. Add UI editing for persistent user settings.
+2. Keep configuration file based and local-only; do not introduce D-Bus yet.
+3. Add deeper tests or smoke checks for bad config paths and missing root directories.
 
 Alternative next step:
 

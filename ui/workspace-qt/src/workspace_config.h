@@ -4,12 +4,15 @@
 
 struct WorkspaceConfig {
     QString repoRoot;
+    QString configPath;
+    QString configSource;
     QString projectsRoot;
     QString hostsRoot;
     QString identitiesRoot;
     QString audioMetadataRoot;
 
     static WorkspaceConfig defaults(const QString &repoRoot);
-    static WorkspaceConfig load(const QString &repoRoot, const QString &configPath,
-                                QString *warning);
+    static WorkspaceConfig load(const QString &repoRoot, const QString &explicitConfigPath,
+                                bool allowUserConfig, QString *warning);
+    static QString userConfigPath();
 };

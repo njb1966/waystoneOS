@@ -42,7 +42,9 @@ By default, the UI reads from repository examples:
 - `examples/connections/identities`
 - `examples/projects/audio-capsule.wayproject/audio/metadata`
 
-An INI file can override those roots. See:
+An INI file can override those roots. Explicit `--config` wins. If no explicit config is passed, the UI checks Qt's user app config location for `workspace.ini`; if that file is absent, repository defaults are used.
+
+Example config:
 
 ```text
 ui/workspace-qt/workspace.example.ini
@@ -89,6 +91,12 @@ Run with explicit workspace roots:
 
 ```bash
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --config /path/to/workspace.ini
+```
+
+Ignore user config and use repository defaults:
+
+```bash
+/tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --no-user-config
 ```
 
 Repeatable smoke check:
