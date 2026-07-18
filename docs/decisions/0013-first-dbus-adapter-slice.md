@@ -13,11 +13,13 @@ The project needs a first D-Bus adapter path, but the adapter must not accidenta
 
 The first D-Bus adapter slice will target `waystone-projectd` only.
 
-The first method set will be read-only:
+The first method set starts with read-only project access:
 
 - `ListProjects`
 - `InspectProject`
 - `ValidateProject`
+
+After the read-only adapter and smoke test were stable, `CreateProject` was added as the first mutating D-Bus method. It delegates to the existing `ProjectService` create behavior and remains limited to caller-supplied parent paths.
 
 The adapter will map D-Bus calls to the existing `crates/project-service` contract. The service crate remains free of D-Bus dependencies and remains the owner of project behavior.
 
@@ -28,7 +30,7 @@ The first payload shape may use schema-versioned JSON strings over D-Bus. This k
 ## Consequences
 
 - The first IPC implementation exercises daemon lifecycle, bus ownership, method dispatch, and error mapping without adding filesystem mutation.
-- `CreateProject` remains available through existing code paths but is deferred from D-Bus until the read-only adapter is proven.
+- `CreateProject` is the first D-Bus mutation and inherits existing overwrite refusal and project ID validation from the service crate.
 - Host, identity, audio, and publish daemons wait for the project adapter pattern.
 - The Qt Workspace continues to use CLI adapters until D-Bus behavior and tests are stable.
 - D-Bus typed structs may replace or supplement JSON payloads later if client needs justify the complexity.
@@ -53,6 +55,6 @@ Immediately migrate Qt Workspace from CLI to D-Bus:
 
 ## Follow-Up
 
-- Decide whether `CreateProject` should be the first mutating D-Bus method.
 - Keep activation and systemd user units deferred until direct daemon behavior is stable.
 - Keep Qt Workspace on CLI adapters until D-Bus lifecycle and error behavior are stable.
+- Add tighter lifecycle/error tests for unavailable session bus and duplicate bus ownership.

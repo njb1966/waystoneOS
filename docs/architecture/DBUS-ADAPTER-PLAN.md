@@ -1,6 +1,6 @@
 # WaystoneOS D-Bus Adapter Plan
 
-Status: First implementation slice active
+Status: Project create adapter active
 Date: 2026-07-18
 
 This document defines the first D-Bus adapter work. It intentionally does not add new domain behavior, new persistent formats, remote mutation, credential unlock, or GUI integration.
@@ -32,17 +32,17 @@ org.waystone.Project1
 /org/waystone/Project
 ```
 
-Initial methods:
+Implemented methods:
 
 ```text
+CreateProject
 ListProjects
 InspectProject
 ValidateProject
 ```
 
-Deferred from the first D-Bus pass:
+Still deferred:
 
-- `CreateProject`
 - Project migration, repair, archive, and export
 - GUI migration from CLI adapter to D-Bus
 - D-Bus activation files
@@ -50,7 +50,7 @@ Deferred from the first D-Bus pass:
 - Authorization prompts
 - Cross-service calls
 
-`CreateProject` already exists in the service crate, but it mutates the filesystem. It should be added only after the read-only adapter path, error mapping, and integration test pattern are stable.
+`CreateProject` mutates the filesystem, but only through the existing `ProjectService` behavior and caller-supplied parent path. It must continue to refuse overwrites and invalid project IDs through the service crate.
 
 ## Adapter Rules
 
@@ -144,6 +144,7 @@ scripts/projectd-dbus-smoke.sh
 Additional D-Bus verification should prove:
 
 - `waystone-projectd` can start and own `org.waystone.Project1` on a test session bus.
+- `CreateProject` creates a valid minimal project in a caller-supplied temporary parent.
 - `ListProjects` returns expected project IDs for repository examples.
 - `InspectProject` returns expected core identity fields.
 - `ValidateProject` reports invalid fixtures without panicking.
@@ -160,7 +161,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Keep `projectd` D-Bus behavior read-only while the adapter pattern settles.
-2. Decide whether `CreateProject` should be the first mutating D-Bus method.
-3. Add systemd user activation only after the direct daemon and test-session-bus path are stable.
-4. Update the Qt Workspace adapter only after service lifecycle and error behavior are stable.
+1. Add tighter lifecycle/error tests for unavailable session bus and duplicate bus ownership.
+2. Add systemd user activation only after the direct daemon and test-session-bus path are stable.
+3. Update the Qt Workspace adapter only after service lifecycle and error behavior are stable.
+4. Keep project migration, repair, archive, export, and cross-service calls deferred.

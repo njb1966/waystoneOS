@@ -5,7 +5,7 @@ Date: 2026-07-17
 
 This document records the service contracts that exist now and the D-Bus names they are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` has the first read-only D-Bus adapter for project listing, inspection, and validation. The other daemon binaries are placeholders. No D-Bus activation, authorization layer, or systemd integration exists yet.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` has the first D-Bus adapter for project creation, listing, inspection, and validation. The other daemon binaries are placeholders. No D-Bus activation, authorization layer, or systemd integration exists yet.
 
 ## Contract Rules
 
@@ -21,7 +21,7 @@ The current implementation uses Rust crates with request and response structs. `
 
 | Domain | Current crate | Placeholder daemon | Future D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
-| Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for list, inspect, validate |
+| Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
 | Publishing | `crates/publish-service` | not scaffolded yet | `org.waystone.Publish1` | preview dry-run, planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate |

@@ -2,7 +2,8 @@ use serde::Deserialize;
 use serde_json::json;
 use std::path::PathBuf;
 use waystone_project_service::{
-    InspectProjectRequest, ListProjectsRequest, ProjectService, ValidateProjectRequest,
+    CreateProjectRequest, InspectProjectRequest, ListProjectsRequest, ProjectService,
+    ValidateProjectRequest,
 };
 use zbus::{blocking::connection, interface};
 
@@ -24,8 +25,43 @@ struct PathRequest {
     path: PathBuf,
 }
 
+#[derive(Debug, Deserialize)]
+struct CreateRequest {
+    parent: PathBuf,
+    id: String,
+    name: String,
+    #[serde(rename = "type")]
+    project_type: String,
+    content_index: String,
+    language: Option<String>,
+    author: Option<String>,
+}
+
 #[interface(name = "org.waystone.Project1")]
 impl ProjectDbus {
+    fn create_project(&self, request: &str) -> String {
+        let request = match parse_create_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+
+        match self.service.create_project(CreateProjectRequest {
+            parent: request.parent,
+            id: request.id,
+            name: request.name,
+            project_type: request.project_type,
+            content_index: request.content_index,
+            language: request.language,
+            author: request.author,
+        }) {
+            Ok(created) => success_response(json!({
+                "project_path": created.project_path,
+                "project_schema": created.schema,
+            })),
+            Err(error) => error_response("project_create_failed", &error.to_string()),
+        }
+    }
+
     fn list_projects(&self, request: &str) -> String {
         let request = match parse_root_request(request) {
             Ok(request) => request,
@@ -120,6 +156,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         std::thread::park();
     }
+}
+
+fn parse_create_request(request: &str) -> Result<CreateRequest, String> {
+    serde_json::from_str(request).map_err(|error| error.to_string())
 }
 
 fn parse_root_request(request: &str) -> Result<RootRequest, String> {

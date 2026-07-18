@@ -75,11 +75,12 @@ The `1` suffix marks the interface generation.
 
 Current adapter status:
 
+- `CreateProject` implemented on `waystone-projectd`
 - `ListProjects` implemented on `waystone-projectd`
 - `InspectProject` implemented on `waystone-projectd`
 - `ValidateProject` implemented on `waystone-projectd`
 - D-Bus activation files are not implemented
-- `CreateProject` over D-Bus is deferred until the read-only adapter path is stable
+- Project migration, repair, archive, and export over D-Bus are not implemented
 
 ## Methods
 

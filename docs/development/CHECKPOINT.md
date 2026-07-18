@@ -51,14 +51,14 @@ scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
 ```
 
-Result after first `waystone-projectd` D-Bus adapter pass: all passed on 2026-07-18.
+Result after first mutating `waystone-projectd` D-Bus method pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
 - No files outside this repository were edited by the assistant.
 - Sibling Waystone applications remain future add-ons only.
-- `waystone-projectd` direct D-Bus serving is implemented for read-only project methods.
+- `waystone-projectd` direct D-Bus serving is implemented for project create, list, inspect, and validate.
 - D-Bus activation and systemd user units are not implemented.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
@@ -67,7 +67,7 @@ Result after first `waystone-projectd` D-Bus adapter pass: all passed on 2026-07
 
 Recommended next implementation step:
 
-1. Decide whether to add `CreateProject` as the first mutating D-Bus method.
+1. Add tighter lifecycle/error tests for unavailable session bus and duplicate bus ownership.
 2. Keep systemd activation deferred until direct daemon behavior stays stable.
 3. Keep Qt Workspace on CLI adapters until D-Bus lifecycle and error behavior are stable.
 

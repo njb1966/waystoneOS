@@ -3,7 +3,11 @@ set -eu
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 daemon_log="${WAYSTONE_PROJECTD_DBUS_LOG:-/tmp/waystone-projectd-dbus-smoke.log}"
+create_parent="${WAYSTONE_PROJECTD_DBUS_CREATE_ROOT:-/tmp/waystone-projectd-dbus-smoke-$$}"
 cd "$repo_root"
+
+mkdir -p "$create_parent"
+export WAYSTONE_PROJECTD_DBUS_CREATE_PARENT="$create_parent"
 
 cargo build -p waystone-projectd
 
@@ -94,5 +98,36 @@ case "$bad_request_output" in
     ;;
 esac
 
-echo "projectd D-Bus smoke: read-only adapter methods succeeded"
+create_output="$(busctl --user call \
+  org.waystone.Project1 \
+  /org/waystone/Project \
+  org.waystone.Project1 \
+  CreateProject \
+  s "{\"parent\":\"$WAYSTONE_PROJECTD_DBUS_CREATE_PARENT\",\"id\":\"dbus-capsule\",\"name\":\"D-Bus Capsule\",\"type\":\"capsule\",\"content_index\":\"index.gmi\",\"language\":\"en\"}")"
+case "$create_output" in
+  *dbus-capsule.wayproject*project_schema*) ;;
+  *)
+    echo "projectd D-Bus smoke: CreateProject did not report created project"
+    echo "$create_output"
+    exit 1
+    ;;
+esac
+
+created_project="$WAYSTONE_PROJECTD_DBUS_CREATE_PARENT/dbus-capsule.wayproject"
+created_inspect_output="$(busctl --user call \
+  org.waystone.Project1 \
+  /org/waystone/Project \
+  org.waystone.Project1 \
+  InspectProject \
+  s "{\"path\":\"$created_project\"}")"
+case "$created_inspect_output" in
+  *dbus-capsule*D-Bus\ Capsule*) ;;
+  *)
+    echo "projectd D-Bus smoke: created project could not be inspected"
+    echo "$created_inspect_output"
+    exit 1
+    ;;
+esac
+
+echo "projectd D-Bus smoke: project adapter methods succeeded"
 ' "$daemon_log"
