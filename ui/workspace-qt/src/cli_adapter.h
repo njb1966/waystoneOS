@@ -22,6 +22,15 @@ struct ProjectSummary {
     QString validation;
 };
 
+struct ProjectDocument {
+    bool ok = false;
+    QString projectPath;
+    QString contentPath;
+    QString title;
+    QString text;
+    QString error;
+};
+
 struct PublishPreview {
     bool ok = false;
     bool blocked = false;
@@ -67,6 +76,9 @@ public:
     QList<ProjectSummary> listProjects(QString *error) const;
     QString inspectProject(const QString &path) const;
     QString projectValidationState(const QString &path) const;
+    ProjectDocument loadProjectDocument(const QString &path) const;
+    bool saveProjectDocument(const ProjectDocument &document, const QString &text,
+                             QString *error) const;
     PublishPreview previewPublication(const QString &path, const QString &target) const;
     QList<HostSummary> listHosts(QString *error) const;
     QString inspectHost(const QString &path) const;

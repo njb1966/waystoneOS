@@ -1,20 +1,20 @@
 # WaystoneOS Checkpoint
 
-Status: current after publishd D-Bus activation artifacts
+Status: current after Workspace Gemtext authoring preview
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, and the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, and the first local Workspace authoring preview slice.
 
 ## Current Position
 
 WaystoneOS is in early OS implementation after the Phase 0 charter and architecture decision register.
 
-The current system is a local-first, read-only development preview made of:
+The current system is a local-first development preview made of:
 
 - Rust domain crates for project format, publish planning, host/identity metadata, audio metadata, services, publication history, and CLI output helpers
 - Native CLIs for project, publish, host, identity, record, listen, and way command discovery
 - D-Bus service binaries for project, publish, host, identity, and audio service boundaries
-- Qt 6 C++ Workspace scaffold using read-only CLI JSON adapters
+- Qt 6 C++ Workspace prototype using CLI JSON adapters and local project content editing
 - Examples and invalid fixtures for project, publish, host, identity, and audio metadata behavior
 - Smoke scripts for Qt startup and CLI JSON contract fields
 
@@ -25,6 +25,8 @@ The Qt Workspace currently has:
 - Explore pane with static placeholder data
 - Explore pane active-root display for the loaded Workspace configuration
 - Create pane backed by `project`, `record`, and `listen` CLI JSON output
+- Create pane loads the selected project content index through `project inspect --json`
+- Create pane provides basic Gemtext editing, saving, and local preview
 - Publish pane backed by `publish --dry-run --json`
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
@@ -36,7 +38,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings and selected project content index files only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 ## Verification Marker
 
@@ -62,7 +64,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after `waystone-publishd` D-Bus adapter and activation artifact pass: all passed on 2026-07-18.
+Result after Workspace Gemtext authoring preview pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -91,10 +93,10 @@ Result after `waystone-publishd` D-Bus adapter and activation artifact pass: all
 
 Recommended next implementation step:
 
-1. Pivot back to user-visible workflow: project GUI connection, text/Gemtext authoring, and local preview.
+1. Add Qt project creation in the Create pane using the existing CLI contract, then open the new project in the editor.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Keep D-Bus implementation deferred and continue extending the Qt Workspace CLI-backed prototype.
+- Harden the local Gemtext editor with validation and clearer save/preview status before adding project creation.

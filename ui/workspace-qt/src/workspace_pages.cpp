@@ -18,8 +18,11 @@
 #include <QSplitter>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QWidget>
+
+#include <memory>
 
 namespace {
 
@@ -57,6 +60,58 @@ QTableWidget *table(const QStringList &headers, const QList<QStringList> &rows) 
 
 QString rootStatus(const QString &path) {
     return QFileInfo::exists(path) ? "available" : "missing";
+}
+
+QString renderGemtextPreview(const QString &text) {
+    QString html =
+        "<html><body style=\"font-family: sans-serif; font-size: 12pt; color: #17202a;\">";
+    bool preformatted = false;
+    const QStringList lines = text.split('\n');
+
+    for (const QString &line : lines) {
+        const QString escaped = line.toHtmlEscaped();
+        if (line.startsWith("```")) {
+            if (preformatted) {
+                html += "</pre>";
+            } else {
+                html += "<pre style=\"background:#edf0e9; border:1px solid #9da69a; padding:6px;\">";
+            }
+            preformatted = !preformatted;
+            continue;
+        }
+
+        if (preformatted) {
+            html += escaped + "\n";
+            continue;
+        }
+
+        if (line.trimmed().isEmpty()) {
+            html += "<br>";
+        } else if (line.startsWith("### ")) {
+            html += "<h3>" + line.mid(4).toHtmlEscaped() + "</h3>";
+        } else if (line.startsWith("## ")) {
+            html += "<h2>" + line.mid(3).toHtmlEscaped() + "</h2>";
+        } else if (line.startsWith("# ")) {
+            html += "<h1>" + line.mid(2).toHtmlEscaped() + "</h1>";
+        } else if (line.startsWith("=>")) {
+            html += "<p style=\"font-family: monospace;\">=> " +
+                    line.mid(2).trimmed().toHtmlEscaped() + "</p>";
+        } else if (line.startsWith("* ")) {
+            html += "<p>&bull; " + line.mid(2).toHtmlEscaped() + "</p>";
+        } else if (line.startsWith(">")) {
+            html += "<blockquote>" + line.mid(1).trimmed().toHtmlEscaped() +
+                    "</blockquote>";
+        } else {
+            html += "<p>" + escaped + "</p>";
+        }
+    }
+
+    if (preformatted) {
+        html += "</pre>";
+    }
+
+    html += "</body></html>";
+    return html;
 }
 
 QWidget *rootEditorRow(QWidget *parent, const QString &label, QLineEdit *edit) {
@@ -376,6 +431,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     layout->addWidget(toolbar);
 
     auto *splitter = new QSplitter(Qt::Vertical);
+    auto currentDocument = std::make_shared<ProjectDocument>();
 
     auto *projectArea = new QWidget;
     auto *projectLayout = new QVBoxLayout(projectArea);
@@ -387,6 +443,40 @@ QWidget *createPage(const CliAdapter *adapter) {
     projectDetails->setReadOnly(true);
     projectLayout->addWidget(projectDetails);
     splitter->addWidget(projectArea);
+
+    auto *authorArea = new QWidget;
+    auto *authorLayout = new QVBoxLayout(authorArea);
+    authorLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto *authorToolbar = new QWidget(authorArea);
+    auto *authorToolbarLayout = new QHBoxLayout(authorToolbar);
+    authorToolbarLayout->setContentsMargins(0, 0, 0, 0);
+    auto *contentPath = new QLabel("No project selected", authorToolbar);
+    auto *reloadContent = new QPushButton("Reload", authorToolbar);
+    auto *saveContent = new QPushButton("Save", authorToolbar);
+    saveContent->setEnabled(false);
+    reloadContent->setEnabled(false);
+    authorToolbarLayout->addWidget(new QLabel("Project Content", authorToolbar));
+    authorToolbarLayout->addWidget(contentPath, 1);
+    authorToolbarLayout->addWidget(reloadContent);
+    authorToolbarLayout->addWidget(saveContent);
+    authorLayout->addWidget(authorToolbar);
+
+    auto *contentSplitter = new QSplitter(Qt::Horizontal, authorArea);
+    auto *editor = new QPlainTextEdit(contentSplitter);
+    editor->setPlaceholderText("Select a project with a content index");
+    auto *preview = new QTextBrowser(contentSplitter);
+    preview->setOpenExternalLinks(false);
+    preview->setHtml(renderGemtextPreview(""));
+    contentSplitter->addWidget(editor);
+    contentSplitter->addWidget(preview);
+    contentSplitter->setStretchFactor(0, 1);
+    contentSplitter->setStretchFactor(1, 1);
+    authorLayout->addWidget(contentSplitter, 1);
+
+    auto *contentStatus = new QLabel("Content: idle", authorArea);
+    authorLayout->addWidget(contentStatus);
+    splitter->addWidget(authorArea);
 
     auto *recordingArea = new QWidget;
     auto *recordingLayout = new QVBoxLayout(recordingArea);
@@ -400,8 +490,29 @@ QWidget *createPage(const CliAdapter *adapter) {
     recordingLayout->addWidget(recordingDetails);
     splitter->addWidget(recordingArea);
     splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 1);
+    splitter->setStretchFactor(1, 2);
+    splitter->setStretchFactor(2, 1);
     layout->addWidget(splitter, 1);
+
+    auto loadProjectContent = [=](const QString &path) {
+        *currentDocument = adapter->loadProjectDocument(path);
+        if (!currentDocument->ok) {
+            contentPath->setText("No content loaded");
+            contentStatus->setText(currentDocument->error);
+            editor->clear();
+            preview->setHtml(renderGemtextPreview(""));
+            saveContent->setEnabled(false);
+            reloadContent->setEnabled(false);
+            return;
+        }
+
+        contentPath->setText(currentDocument->contentPath);
+        contentStatus->setText("Loaded: " + currentDocument->title);
+        editor->setPlainText(currentDocument->text);
+        preview->setHtml(renderGemtextPreview(currentDocument->text));
+        saveContent->setEnabled(true);
+        reloadContent->setEnabled(true);
+    };
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
         populateProjectTable(projectsTable, projectDetails, adapter);
@@ -419,7 +530,34 @@ QWidget *createPage(const CliAdapter *adapter) {
                          }
                          const QString path = item->data(Qt::UserRole).toString();
                          projectDetails->setPlainText(adapter->inspectProject(path));
+                         loadProjectContent(path);
                      });
+
+    QObject::connect(editor, &QPlainTextEdit::textChanged, [=]() {
+        preview->setHtml(renderGemtextPreview(editor->toPlainText()));
+    });
+
+    QObject::connect(reloadContent, &QPushButton::clicked, [=]() {
+        if (!currentDocument->projectPath.isEmpty()) {
+            loadProjectContent(currentDocument->projectPath);
+        }
+    });
+
+    QObject::connect(saveContent, &QPushButton::clicked, [=]() {
+        QString error;
+        if (!adapter->saveProjectDocument(*currentDocument, editor->toPlainText(),
+                                          &error)) {
+            contentStatus->setText(error);
+            return;
+        }
+
+        currentDocument->text = editor->toPlainText();
+        contentStatus->setText("Saved: " + currentDocument->contentPath);
+        projectDetails->setPlainText(
+            adapter->inspectProject(currentDocument->projectPath) +
+            "\n\nValidation: " +
+            adapter->projectValidationState(currentDocument->projectPath));
+    });
 
     QObject::connect(recordingsTable, &QTableWidget::currentCellChanged,
                      [=](int row, int, int, int) {

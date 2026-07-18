@@ -1,6 +1,8 @@
 #include "cli_adapter.h"
 
+#include <QByteArray>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -51,6 +53,14 @@ bool rootMissing(const QString &path, const QString &label, QString *error) {
         *error = "Configured " + label + " root not found: " + path;
     }
     return true;
+}
+
+QString absoluteWorkspacePath(const WorkspaceConfig &config, const QString &path) {
+    const QFileInfo info(path);
+    if (info.isAbsolute()) {
+        return QDir::cleanPath(path);
+    }
+    return QDir(config.repoRoot).absoluteFilePath(path);
 }
 
 } // namespace
@@ -141,6 +151,71 @@ QString CliAdapter::projectValidationState(const QString &path) const {
 
     const QJsonObject data = root.value("data").toObject();
     return data.value("valid").toBool(false) ? "valid" : "invalid";
+}
+
+ProjectDocument CliAdapter::loadProjectDocument(const QString &path) const {
+    ProjectDocument document;
+    document.projectPath = absoluteWorkspacePath(config_, path);
+
+    const CommandResult result =
+        runCommand("project", {"inspect", "--json", document.projectPath});
+    if (result.exitCode != 0) {
+        document.error = "Project inspection failed\n" +
+                         commandFailureDetail(result, "project inspect failed");
+        return document;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        document.error = "Project inspection returned unreadable JSON";
+        return document;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    const QString contentRoot = data.value("content_root").toString();
+    const QString contentIndex = data.value("content_index").toString();
+    document.title = data.value("name").toString();
+    document.contentPath =
+        QDir(QDir(document.projectPath).filePath(contentRoot)).filePath(contentIndex);
+
+    QFile file(document.contentPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        document.error = "Content file could not be opened: " + document.contentPath;
+        return document;
+    }
+
+    document.text = QString::fromUtf8(file.readAll());
+    document.ok = true;
+    return document;
+}
+
+bool CliAdapter::saveProjectDocument(const ProjectDocument &document,
+                                     const QString &text, QString *error) const {
+    if (!document.ok || document.contentPath.isEmpty()) {
+        if (error != nullptr) {
+            *error = "No project content file is loaded";
+        }
+        return false;
+    }
+
+    QFile file(document.contentPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        if (error != nullptr) {
+            *error = "Content file could not be written: " + document.contentPath;
+        }
+        return false;
+    }
+
+    const QByteArray bytes = text.toUtf8();
+    if (file.write(bytes) != bytes.size()) {
+        if (error != nullptr) {
+            *error = "Content write failed: " + document.contentPath;
+        }
+        return false;
+    }
+
+    return true;
 }
 
 PublishPreview CliAdapter::previewPublication(const QString &path,

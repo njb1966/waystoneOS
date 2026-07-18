@@ -1,6 +1,6 @@
 # Waystone Workspace Qt Prototype
 
-Status: scaffold
+Status: local authoring prototype
 
 This directory contains the first Qt 6 C++ scaffold for Waystone Workspace.
 
@@ -17,7 +17,7 @@ It is intentionally separate from the Rust workspace. The UI renders the operati
 Current UI data is limited to:
 
 - `project list --json`
-- `project inspect --json`
+- `project inspect --json` for project metadata and selected content index location
 - `project validate --json`
 - `publish --dry-run --json`
 - `host list --json`
@@ -30,6 +30,8 @@ Current UI data is limited to:
 - `record inspect --json`
 - `record validate --json`
 - `listen library --json`
+- local reads and writes of the selected project's content index file
+- local Gemtext preview rendering in the Create pane
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 

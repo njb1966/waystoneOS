@@ -1,6 +1,6 @@
 # Waystone Workspace Qt Development
 
-Status: scaffold
+Status: local authoring prototype
 Date: 2026-07-18
 
 The first Waystone Workspace UI source lives in:
@@ -20,7 +20,9 @@ Implemented:
 - Left activity navigation
 - Main stacked workspace panes
 - Bottom status bar
-- Read-only Create-pane adapter using `project` CLI JSON output
+- Create-pane adapter using `project` CLI JSON output for list, inspect, and validate
+- Create-pane editor for the selected project's content index file
+- Local Gemtext preview for the selected project's content index file
 - Read-only recording adapter using `record` and `listen` CLI JSON output
 - Read-only Publish-pane adapter using `publish --dry-run --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
@@ -37,6 +39,7 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
+- Project creation from the Qt UI
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 
@@ -133,7 +136,7 @@ scripts/cli-json-contract-smoke.sh
 
 ## Next Integration Boundary
 
-The first adapter path is CLI JSON for project, recording, publish preview, host, and identity data:
+The first adapter path is CLI JSON for project, recording, publish preview, host, and identity data, plus local file access for the selected project content index:
 
 - `project list --json`
 - `project inspect --json`
@@ -149,8 +152,9 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `record inspect --json`
 - `record validate --json`
 - `listen library --json`
+- selected project content index read/write
 
-Before deeper widgets read real data, define the next adapter scope:
+Before moving Qt to a service backend, define the next adapter scope:
 
 - C ABI/service adapter for tighter Rust crate reuse, or
 - D-Bus adapter after daemon contracts exist.

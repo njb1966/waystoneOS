@@ -90,7 +90,7 @@ void setApplicationStyle(QApplication &app) {
             background: #284b63;
             color: #ffffff;
         }
-        QTableWidget, QPlainTextEdit {
+        QTableWidget, QPlainTextEdit, QTextBrowser {
             background: #ffffff;
             border: 1px solid #9da69a;
             selection-background-color: #284b63;
