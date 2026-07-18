@@ -79,7 +79,8 @@ Current adapter status:
 - `ListProjects` implemented on `waystone-projectd`
 - `InspectProject` implemented on `waystone-projectd`
 - `ValidateProject` implemented on `waystone-projectd`
-- D-Bus activation files are not implemented
+- D-Bus service file and systemd user unit are present under `services/projectd/`
+- D-Bus autostart is smoke-tested with a generated temporary service file
 - Project migration, repair, archive, and export over D-Bus are not implemented
 
 ## Methods

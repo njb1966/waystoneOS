@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.waystone.Project1
+Exec=/usr/bin/waystone-projectd
+SystemdService=waystone-projectd.service

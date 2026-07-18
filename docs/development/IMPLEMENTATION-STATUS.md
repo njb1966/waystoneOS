@@ -462,8 +462,10 @@ Current state:
 - Owns `org.waystone.Project1` at `/org/waystone/Project`
 - Implements `CreateProject`, `ListProjects`, `InspectProject`, and `ValidateProject`
 - Requests single-owner bus name behavior; duplicate daemon instances fail quickly
+- Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Uses `zbus` 5.13.1 pinned for Rust 1.85.0 compatibility
-- D-Bus activation and systemd user units are not implemented
+- D-Bus autostart is smoke-tested through a generated temporary service file
+- Systemd user unit syntax is smoke-tested through a generated temporary daemon path
 - Service contract documented in `docs/architecture/PROJECT-SERVICE.md`
 - Uses `crates/project-service/` as its internal boundary
 
@@ -556,9 +558,11 @@ QT_QPA_PLATFORM=offscreen timeout 5s /tmp/waystone-workspace-qt-build/waystone-w
 scripts/workspace-qt-smoke.sh
 scripts/cli-json-contract-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/projectd-dbus-activation-smoke.sh
+scripts/projectd-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and confirmed that it remained in the Qt event loop until timeout. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smoke verified D-Bus service-file autostart, and the systemd smoke verified unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -584,8 +588,8 @@ cmake --build /tmp/waystone-workspace-qt-build
 
 ## Not Implemented Yet
 
-- D-Bus activation
-- Long-running `waystone-projectd`
+- Installed D-Bus activation
+- Installed long-running `waystone-projectd`
 - Long-running `waystone-hostd`
 - Long-running `waystone-identityd`
 - Long-running `waystone-audiod`

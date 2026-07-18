@@ -1,0 +1,11 @@
+[Unit]
+Description=Waystone Project Service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/waystone-projectd
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

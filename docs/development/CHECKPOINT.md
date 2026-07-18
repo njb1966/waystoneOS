@@ -49,9 +49,11 @@ cargo clippy --all-targets -- -D warnings
 scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/projectd-dbus-activation-smoke.sh
+scripts/projectd-systemd-unit-smoke.sh
 ```
 
-Result after `waystone-projectd` D-Bus lifecycle/error smoke pass: all passed on 2026-07-18.
+Result after `waystone-projectd` activation artifact pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -60,7 +62,9 @@ Result after `waystone-projectd` D-Bus lifecycle/error smoke pass: all passed on
 - Sibling Waystone applications remain future add-ons only.
 - `waystone-projectd` direct D-Bus serving is implemented for project create, list, inspect, and validate.
 - `waystone-projectd` fails cleanly without a session bus and rejects duplicate bus ownership.
-- D-Bus activation and systemd user units are not implemented.
+- `waystone-projectd` D-Bus service file and systemd user unit are present in the repo.
+- D-Bus autostart is verified on a private test session bus with a generated temporary service file.
+- Activation files have not been installed into user or system service directories.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -68,9 +72,9 @@ Result after `waystone-projectd` D-Bus lifecycle/error smoke pass: all passed on
 
 Recommended next implementation step:
 
-1. Decide whether to add systemd user activation for `waystone-projectd`.
-2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable.
-3. Consider host and identity D-Bus adapters as the next service expansion.
+1. Decide whether host and identity should get the next D-Bus adapters.
+2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
+3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 

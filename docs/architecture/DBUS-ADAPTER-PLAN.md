@@ -45,8 +45,7 @@ Still deferred:
 
 - Project migration, repair, archive, and export
 - GUI migration from CLI adapter to D-Bus
-- D-Bus activation files
-- systemd user units
+- Installing activation files into user or system service directories
 - Authorization prompts
 - Cross-service calls
 
@@ -140,6 +139,8 @@ cargo clippy --all-targets -- -D warnings
 scripts/cli-json-contract-smoke.sh
 scripts/workspace-qt-smoke.sh
 scripts/projectd-dbus-smoke.sh
+scripts/projectd-dbus-activation-smoke.sh
+scripts/projectd-systemd-unit-smoke.sh
 ```
 
 Additional D-Bus verification should prove:
@@ -152,6 +153,8 @@ Additional D-Bus verification should prove:
 - Invalid JSON requests return a structured `invalid_request` response.
 - The daemon reports startup failure cleanly when a session bus is unavailable.
 - A duplicate daemon instance on the same session bus fails quickly instead of taking over the name.
+- D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
+- The checked-in systemd user unit verifies after substituting a temporary daemon path.
 
 ## Non-Goals
 
@@ -162,7 +165,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Add systemd user activation only after the direct daemon and test-session-bus path are stable.
-2. Update the Qt Workspace adapter only after service lifecycle and error behavior are stable.
-3. Consider whether host and identity should get the next D-Bus adapters.
+1. Decide whether to add host and identity D-Bus adapters next.
+2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
+3. Add install/package automation only when the repo has a broader packaging layout.
 4. Keep project migration, repair, archive, export, and cross-service calls deferred.
