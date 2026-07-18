@@ -216,8 +216,9 @@ ProjectDocument CliAdapter::loadProjectDocument(const QString &path) const {
     const QString contentRoot = data.value("content_root").toString();
     const QString contentIndex = data.value("content_index").toString();
     document.title = data.value("name").toString();
-    document.contentPath =
-        QDir(QDir(document.projectPath).filePath(contentRoot)).filePath(contentIndex);
+    document.contentRootPath =
+        QDir(document.projectPath).absoluteFilePath(contentRoot);
+    document.contentPath = QDir(document.contentRootPath).filePath(contentIndex);
 
     QFile file(document.contentPath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {

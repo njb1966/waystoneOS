@@ -25,6 +25,7 @@ struct ProjectSummary {
 struct ProjectDocument {
     bool ok = false;
     QString projectPath;
+    QString contentRootPath;
     QString contentPath;
     QString title;
     QString text;

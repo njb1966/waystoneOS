@@ -34,6 +34,7 @@ Current UI data is limited to:
 - local creation of minimal projects under the configured projects root
 - local reads and writes of the selected project's content index file
 - local Gemtext preview rendering in the Create pane
+- local Gemtext link validation for external, missing, invalid, and content-root-local links
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 

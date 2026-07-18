@@ -16,10 +16,12 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QSplitter>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextBrowser>
+#include <QUrl>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -113,6 +115,127 @@ QString renderGemtextPreview(const QString &text) {
 
     html += "</body></html>";
     return html;
+}
+
+QString gemtextLinkTarget(const QString &line) {
+    if (!line.startsWith("=>")) {
+        return {};
+    }
+
+    const QString rest = line.mid(2).trimmed();
+    if (rest.isEmpty()) {
+        return {};
+    }
+
+    const int whitespace = rest.indexOf(QRegularExpression("\\s"));
+    if (whitespace < 0) {
+        return rest;
+    }
+
+    return rest.left(whitespace);
+}
+
+QString localTargetWithoutFragmentOrQuery(const QString &target) {
+    int end = target.size();
+    const int fragment = target.indexOf('#');
+    if (fragment >= 0) {
+        end = qMin(end, fragment);
+    }
+
+    const int query = target.indexOf('?');
+    if (query >= 0) {
+        end = qMin(end, query);
+    }
+
+    return target.left(end);
+}
+
+bool pathIsInsideRoot(const QString &path, const QString &root) {
+    const QString cleanPath = QDir::cleanPath(path);
+    const QString cleanRoot = QDir::cleanPath(root);
+    return cleanPath == cleanRoot || cleanPath.startsWith(cleanRoot + "/");
+}
+
+QString renderGemtextLinkValidation(const ProjectDocument &document,
+                                    const QString &text) {
+    if (!document.ok || document.contentRootPath.isEmpty() ||
+        document.contentPath.isEmpty()) {
+        return "Links: no project content loaded";
+    }
+
+    int localOk = 0;
+    int external = 0;
+    int missing = 0;
+    int invalid = 0;
+    bool preformatted = false;
+    QStringList details;
+    const QString contentRoot = QDir::cleanPath(document.contentRootPath);
+    const QDir contentDirectory = QFileInfo(document.contentPath).dir();
+    const QStringList lines = text.split('\n');
+
+    for (int index = 0; index < lines.size(); ++index) {
+        const QString line = lines.at(index);
+        if (line.startsWith("```")) {
+            preformatted = !preformatted;
+            continue;
+        }
+        if (preformatted || !line.startsWith("=>")) {
+            continue;
+        }
+
+        const int lineNumber = index + 1;
+        const QString target = gemtextLinkTarget(line);
+        if (target.isEmpty()) {
+            ++invalid;
+            details.append(QString("Line %1: invalid empty link").arg(lineNumber));
+            continue;
+        }
+
+        const QUrl url(target);
+        if (url.isValid() && !url.isRelative()) {
+            ++external;
+            details.append(QString("Line %1: external %2").arg(lineNumber).arg(target));
+            continue;
+        }
+
+        const QString localTarget = localTargetWithoutFragmentOrQuery(target);
+        QString resolvedPath;
+        if (localTarget.isEmpty()) {
+            resolvedPath = document.contentPath;
+        } else if (localTarget.startsWith('/')) {
+            resolvedPath = QDir(contentRoot).absoluteFilePath(localTarget.mid(1));
+        } else {
+            resolvedPath = contentDirectory.absoluteFilePath(localTarget);
+        }
+        resolvedPath = QDir::cleanPath(resolvedPath);
+
+        if (!pathIsInsideRoot(resolvedPath, contentRoot)) {
+            ++invalid;
+            details.append(QString("Line %1: outside content root %2")
+                               .arg(lineNumber)
+                               .arg(target));
+            continue;
+        }
+
+        if (QFileInfo::exists(resolvedPath)) {
+            ++localOk;
+            details.append(QString("Line %1: ok %2").arg(lineNumber).arg(target));
+        } else {
+            ++missing;
+            details.append(QString("Line %1: missing %2").arg(lineNumber).arg(target));
+        }
+    }
+
+    if (details.isEmpty()) {
+        return "Links: none";
+    }
+
+    return QString("Links: %1 ok, %2 external, %3 missing, %4 invalid\n%5")
+        .arg(localOk)
+        .arg(external)
+        .arg(missing)
+        .arg(invalid)
+        .arg(details.join('\n'));
 }
 
 QWidget *rootEditorRow(QWidget *parent, const QString &label, QLineEdit *edit) {
@@ -533,6 +656,11 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *contentStatus = new QLabel("Content: idle", authorArea);
     contentStatus->setWordWrap(true);
     authorLayout->addWidget(contentStatus);
+    auto *linkDetails = new QPlainTextEdit(authorArea);
+    linkDetails->setReadOnly(true);
+    linkDetails->setMaximumHeight(96);
+    linkDetails->setPlainText("Links: no project content loaded");
+    authorLayout->addWidget(linkDetails);
     splitter->addWidget(authorArea);
 
     auto *recordingArea = new QWidget;
@@ -558,6 +686,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             contentStatus->setText(currentDocument->error);
             editor->clear();
             preview->setHtml(renderGemtextPreview(""));
+            linkDetails->setPlainText("Links: no project content loaded");
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
             return;
@@ -567,6 +696,8 @@ QWidget *createPage(const CliAdapter *adapter) {
         contentStatus->setText("Loaded: " + currentDocument->title);
         editor->setPlainText(currentDocument->text);
         preview->setHtml(renderGemtextPreview(currentDocument->text));
+        linkDetails->setPlainText(
+            renderGemtextLinkValidation(*currentDocument, currentDocument->text));
         saveContent->setEnabled(true);
         reloadContent->setEnabled(true);
     };
@@ -619,6 +750,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     QObject::connect(editor, &QPlainTextEdit::textChanged, [=]() {
         const QString text = editor->toPlainText();
         preview->setHtml(renderGemtextPreview(text));
+        linkDetails->setPlainText(renderGemtextLinkValidation(*currentDocument, text));
         if (!currentDocument->ok) {
             return;
         }

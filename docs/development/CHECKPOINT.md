@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Qt project create/save smoke coverage
+Status: current after local Gemtext link validation
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, and focused Qt project create/save smoke coverage.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, and local Gemtext link validation.
 
 ## Current Position
 
@@ -28,7 +28,7 @@ The Qt Workspace currently has:
 - Create pane can create minimal projects under the configured projects root using `project create --json`
 - Newly created projects refresh into the project list and open in the editor
 - Create pane loads the selected project content index through `project inspect --json`
-- Create pane provides basic Gemtext editing, saving, validation status, and local preview
+- Create pane provides basic Gemtext editing, saving, validation status, local preview, and local link validation
 - Publish pane backed by `publish --dry-run --json`
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
@@ -68,7 +68,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after Qt project create/save smoke coverage pass: all passed on 2026-07-18.
+Result after local Gemtext link validation pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -97,10 +97,10 @@ Result after Qt project create/save smoke coverage pass: all passed on 2026-07-1
 
 Recommended next implementation step:
 
-1. Continue user-visible workflow with local preview/link validation.
+1. Add publish-target setup for newly created projects.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Add publish-target setup for newly created projects before deeper preview behavior.
+- Add deeper editor diagnostics or a dedicated content-file list before publish-target setup.
