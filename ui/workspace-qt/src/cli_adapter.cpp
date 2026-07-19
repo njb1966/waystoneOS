@@ -366,9 +366,9 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
     return preview;
 }
 
-QString CliAdapter::plannedPublicationHistory(const QString &path, const QString &target,
-                                              const QString &date,
-                                              QString *error) const {
+PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,
+                                                            const QString &target,
+                                                            const QString &date) const {
     const CommandResult result = runCommand(
         "publish",
         {"--planned-history",
@@ -384,30 +384,42 @@ QString CliAdapter::plannedPublicationHistory(const QString &path, const QString
          config_.identitiesRoot,
          "--json"});
 
+    PlannedHistoryPreview preview;
     if (!result.error.isEmpty()) {
-        if (error != nullptr) {
-            *error = result.error;
-        }
-        return {};
+        preview.error = result.error;
+        return preview;
     }
 
     if (result.exitCode != 0) {
-        if (error != nullptr) {
-            *error = commandFailureDetail(result, "publish planned-history failed");
-        }
-        return {};
+        preview.error = commandFailureDetail(result, "publish planned-history failed");
+        return preview;
     }
 
     QString parseError;
     const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
     if (!parseError.isEmpty()) {
-        if (error != nullptr) {
-            *error = "publish planned-history returned unreadable JSON";
-        }
-        return {};
+        preview.error = "publish planned-history returned unreadable JSON";
+        return preview;
     }
 
-    return root.value("data").toObject().value("record_toml").toString();
+    const QJsonObject data = root.value("data").toObject();
+    preview.ok = true;
+    preview.project = data.value("project").toString();
+    preview.target = data.value("target").toString();
+    preview.transferResult = data.value("transfer_result").toString();
+    preview.verificationResult = data.value("verification_result").toString();
+    preview.recordToml = data.value("record_toml").toString();
+
+    const QJsonArray files = data.value("files").toArray();
+    for (const auto &item : files) {
+        const QJsonObject object = item.toObject();
+        PlannedHistoryFile file;
+        file.path = object.value("path").toString();
+        file.action = object.value("action").toString();
+        preview.files.append(file);
+    }
+
+    return preview;
 }
 
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {

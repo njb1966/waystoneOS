@@ -123,11 +123,12 @@ fn planned_history(args: &[&str], json: bool) -> i32 {
             let toml = record.to_toml();
             if json {
                 println!(
-                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"transfer_result\":\"{}\",\"verification_result\":\"{}\",\"record_toml\":\"{}\"}}}}",
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"transfer_result\":\"{}\",\"verification_result\":\"{}\",\"files\":[{}],\"record_toml\":\"{}\"}}}}",
                     escape_json(&record.project_id),
                     escape_json(&record.target),
                     escape_json(&record.transfer_result),
                     escape_json(&record.verification_result),
+                    json_history_files(&record),
                     escape_json(&toml)
                 );
             } else {
@@ -137,6 +138,21 @@ fn planned_history(args: &[&str], json: bool) -> i32 {
         }
         Err(error) => print_command_error("publish", "planned_history", &error.to_string(), json),
     }
+}
+
+fn json_history_files(record: &PublicationHistoryRecord) -> String {
+    record
+        .files
+        .iter()
+        .map(|file| {
+            format!(
+                "{{\"path\":\"{}\",\"action\":\"{}\"}}",
+                escape_json(&file.path),
+                escape_json(&file.action)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn print_help() {

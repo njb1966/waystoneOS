@@ -61,6 +61,22 @@ struct PublishPreview {
     QString error;
 };
 
+struct PlannedHistoryFile {
+    QString path;
+    QString action;
+};
+
+struct PlannedHistoryPreview {
+    bool ok = false;
+    QString project;
+    QString target;
+    QString transferResult;
+    QString verificationResult;
+    QList<PlannedHistoryFile> files;
+    QString recordToml;
+    QString error;
+};
+
 struct HostSummary {
     QString id;
     QString displayName;
@@ -101,8 +117,9 @@ public:
     bool saveProjectDocument(const ProjectDocument &document, const QString &text,
                              QString *error) const;
     PublishPreview previewPublication(const QString &path, const QString &target) const;
-    QString plannedPublicationHistory(const QString &path, const QString &target,
-                                      const QString &date, QString *error) const;
+    PlannedHistoryPreview plannedPublicationHistory(const QString &path,
+                                                    const QString &target,
+                                                    const QString &date) const;
     QList<HostSummary> listHosts(QString *error) const;
     QString inspectHost(const QString &path) const;
     QString hostValidationState(const QString &path) const;

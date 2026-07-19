@@ -57,6 +57,8 @@ fn planned_history_json_reports_inspectable_record() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("\"transfer_result\":\"planned\""));
     assert!(stdout.contains("\"verification_result\":\"not-run\""));
+    assert!(stdout.contains("\"files\":["));
+    assert!(stdout.contains("\"action\":\"planned-upload\""));
     assert!(stdout.contains("[publication]\\n"));
     assert!(stdout.contains("planned-upload"));
     assert!(stdout.contains("content/index.gmi"));

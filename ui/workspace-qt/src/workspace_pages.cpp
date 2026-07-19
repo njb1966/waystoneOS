@@ -15,6 +15,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMap>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -423,6 +424,42 @@ QString renderPublishPreview(const PublishPreview &preview) {
     } else {
         for (const auto &confirmation : preview.confirmations) {
             text += "  " + confirmation + "\n";
+        }
+    }
+
+    return text;
+}
+
+QString renderPlannedHistorySummary(const PlannedHistoryPreview &history) {
+    if (!history.ok) {
+        return "Planned history failed\n" + history.error;
+    }
+
+    QMap<QString, int> actionCounts;
+    for (const auto &file : history.files) {
+        actionCounts[file.action] += 1;
+    }
+
+    QString text;
+    text += "Project: " + history.project + "\n";
+    text += "Target: " + history.target + "\n";
+    text += "Transfer: " + history.transferResult + "\n";
+    text += "Verification: " + history.verificationResult + "\n\n";
+    text += "File actions:\n";
+    if (actionCounts.isEmpty()) {
+        text += "  none\n";
+    } else {
+        for (auto item = actionCounts.cbegin(); item != actionCounts.cend(); ++item) {
+            text += QString("  %1: %2\n").arg(item.key()).arg(item.value());
+        }
+    }
+
+    text += "\nFiles:\n";
+    if (history.files.isEmpty()) {
+        text += "  none\n";
+    } else {
+        for (const auto &file : history.files) {
+            text += QString("  %1  %2\n").arg(file.action, file.path);
         }
     }
 
@@ -968,7 +1005,13 @@ QWidget *publishPage(const CliAdapter *adapter) {
     auto *historyArea = new QWidget(previewSplitter);
     auto *historyLayout = new QVBoxLayout(historyArea);
     historyLayout->setContentsMargins(0, 0, 0, 0);
-    historyLayout->addWidget(new QLabel("Planned History", historyArea));
+    historyLayout->addWidget(new QLabel("History Summary", historyArea));
+    auto *historySummary = new QPlainTextEdit(historyArea);
+    historySummary->setObjectName("publishHistorySummary");
+    historySummary->setReadOnly(true);
+    historySummary->setMaximumHeight(160);
+    historyLayout->addWidget(historySummary);
+    historyLayout->addWidget(new QLabel("Planned History Record", historyArea));
     auto *history = new QPlainTextEdit(historyArea);
     history->setObjectName("publishPlannedHistory");
     history->setReadOnly(true);
@@ -983,6 +1026,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (row < 0) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             return;
         }
@@ -990,6 +1034,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (item == nullptr) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             return;
         }
@@ -998,6 +1043,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (targetName.isEmpty()) {
             previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
+            historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             return;
         }
@@ -1005,18 +1051,19 @@ QWidget *publishPage(const CliAdapter *adapter) {
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
         if (!preview.ok) {
+            historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             return;
         }
 
-        QString historyError;
-        const QString record = adapter->plannedPublicationHistory(
-            path, targetName, plannedHistoryDate(), &historyError);
-        if (!historyError.isEmpty()) {
-            history->setPlainText("Planned history failed\n" + historyError);
+        const PlannedHistoryPreview plannedHistory =
+            adapter->plannedPublicationHistory(path, targetName, plannedHistoryDate());
+        historySummary->setPlainText(renderPlannedHistorySummary(plannedHistory));
+        if (!plannedHistory.ok) {
+            history->setPlainText("No planned history");
             return;
         }
-        history->setPlainText(record);
+        history->setPlainText(plannedHistory.recordToml);
     };
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
@@ -1034,6 +1081,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          if (row < 0) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             historySummary->setPlainText("No planned history");
                              history->setPlainText("No planned history");
                              return;
                          }
@@ -1041,6 +1089,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          if (item == nullptr) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             historySummary->setPlainText("No planned history");
                              history->setPlainText("No planned history");
                              return;
                          }
@@ -1052,6 +1101,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              previewStatus->setText("Preview: failed");
                              plan->setPlainText("Publish target inspection failed\n" +
                                                 targetError);
+                             historySummary->setPlainText("No planned history");
                              history->setPlainText("No planned history");
                              return;
                          }

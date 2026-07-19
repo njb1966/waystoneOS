@@ -61,10 +61,13 @@ planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,
     "--target", "export", "--date", "2026-07-18T00:00:00Z", "--json"
 ])
-require({"project", "target", "transfer_result", "verification_result", "record_toml"}
+require({"project", "target", "transfer_result", "verification_result", "files", "record_toml"}
         <= planned_history["data"].keys(), "publish planned-history contract changed")
 require(planned_history["data"]["transfer_result"] == "planned",
         "publish planned-history transfer result changed")
+require(planned_history["data"]["files"] and
+        {"path", "action"} <= planned_history["data"]["files"][0].keys(),
+        "publish planned-history file contract changed")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]
