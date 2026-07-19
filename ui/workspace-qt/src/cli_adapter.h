@@ -133,6 +133,18 @@ struct RecordingSummary {
     QString playable;
 };
 
+struct RecordingAttachResult {
+    bool ok = false;
+    QString id;
+    QString title;
+    QString metadataPath;
+    QString metadataRelativePath;
+    QString master;
+    QString published;
+    QString feed;
+    QString error;
+};
+
 class CliAdapter {
 public:
     explicit CliAdapter(WorkspaceConfig config);
@@ -166,6 +178,14 @@ public:
     QString inspectIdentity(const QString &path) const;
     QString identityValidationState(const QString &path) const;
     QList<RecordingSummary> listRecordings(QString *error) const;
+    RecordingAttachResult attachRecording(const QString &projectPath,
+                                          const QString &id,
+                                          const QString &title,
+                                          const QString &master,
+                                          const QString &published,
+                                          const QString &feed,
+                                          const QString &entryId,
+                                          const QString &mimeType) const;
     QString inspectRecording(const QString &path) const;
     QString recordingValidationState(const QString &path) const;
 

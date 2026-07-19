@@ -33,6 +33,7 @@ Current UI data is limited to:
 - `identity inspect --json`
 - `identity validate --json`
 - `record list --json`
+- `record attach --json`
 - `record inspect --json`
 - `record validate --json`
 - `listen library --json`
@@ -40,6 +41,7 @@ Current UI data is limited to:
 - local removable publish-target metadata setup
 - local reads and writes of the selected project's content index file
 - local content-root file listing, filtering, and selected-file detail for the selected project
+- local audio metadata sidecar attachment for existing project-local master and publication-copy files
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links
 - local Publish-pane project filtering, target selection, ready/blocked preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering
@@ -120,7 +122,7 @@ Check configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
-Focused project create/save and Publish-pane target/status smoke check:
+Focused project create/save, recording attachment, and Publish-pane target/status smoke check:
 
 ```bash
 scripts/workspace-qt-project-smoke.sh

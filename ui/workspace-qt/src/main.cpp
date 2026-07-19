@@ -63,6 +63,10 @@ bool smokePublishTargetStatus(const QApplication &app) {
     return app.arguments().contains("--smoke-publish-target-status");
 }
 
+bool smokeRecordingAttach(const QApplication &app) {
+    return app.arguments().contains("--smoke-recording-attach");
+}
+
 QString optionValue(const QApplication &app, const QString &name) {
     const QStringList args = app.arguments();
     for (int index = 1; index + 1 < args.size(); ++index) {
@@ -92,6 +96,49 @@ bool appendBlockedPublishTarget(const QString &projectPath, QString *error) {
     stream << "remote_path = \"/srv/gemini/smoke\"\n";
     stream << "url = \"gemini://example.invalid\"\n";
     stream << "delete_policy = \"confirm\"\n";
+    return true;
+}
+
+bool appendAudioProjectSections(const QString &projectPath, QString *error) {
+    QFile manifest(QDir(projectPath).filePath("project.toml"));
+    if (!manifest.open(QIODevice::Append | QIODevice::Text)) {
+        if (error != nullptr) {
+            *error = "could not open project manifest for audio append";
+        }
+        return false;
+    }
+
+    QTextStream stream(&manifest);
+    stream << "\n";
+    stream << "[audio]\n";
+    stream << "masters = \"audio/masters\"\n";
+    stream << "published = \"audio/published\"\n";
+    stream << "metadata = \"audio/metadata\"\n";
+    stream << "master_format = \"flac\"\n";
+    stream << "publish_format = \"opus\"\n";
+    stream << "publish_bitrate = 96000\n\n";
+    stream << "[feed]\n";
+    stream << "enabled = true\n";
+    stream << "type = \"atom\"\n";
+    stream << "path = \"feeds/feed.xml\"\n";
+    stream << "title = \"Workspace Audio Smoke\"\n";
+    return true;
+}
+
+bool writeFile(const QString &path, const QByteArray &content, QString *error) {
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        if (error != nullptr) {
+            *error = "could not write file: " + path;
+        }
+        return false;
+    }
+    if (file.write(content) != content.size()) {
+        if (error != nullptr) {
+            *error = "short write: " + path;
+        }
+        return false;
+    }
     return true;
 }
 
@@ -220,6 +267,117 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
 
     out << "workspace project smoke: created, targeted, saved, and validated "
         << created.projectPath << Qt::endl;
+    return 0;
+}
+
+int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) {
+    QTextStream out(stdout);
+    QTextStream err(stderr);
+
+    const QString id = optionValue(app, "--smoke-project-id");
+    const QString name = optionValue(app, "--smoke-project-name");
+    const QString type = optionValue(app, "--smoke-project-type");
+    if (id.isEmpty() || name.isEmpty() || type.isEmpty()) {
+        err << "workspace recording smoke: id, name, and type are required"
+            << Qt::endl;
+        return 2;
+    }
+
+    const ProjectCreateResult created = adapter.createProject(id, name, type);
+    if (!created.ok) {
+        err << "workspace recording smoke: create failed: " << created.error
+            << Qt::endl;
+        return 1;
+    }
+
+    QString setupError;
+    if (!appendAudioProjectSections(created.projectPath, &setupError)) {
+        err << "workspace recording smoke: audio manifest setup failed: "
+            << setupError << Qt::endl;
+        return 1;
+    }
+
+    QDir projectDir(created.projectPath);
+    if (!projectDir.mkpath("audio/masters") ||
+        !projectDir.mkpath("audio/published") ||
+        !projectDir.mkpath("feeds")) {
+        err << "workspace recording smoke: audio directories could not be created"
+            << Qt::endl;
+        return 1;
+    }
+
+    if (!writeFile(projectDir.filePath("audio/masters/field-note.flac"), "master",
+                   &setupError) ||
+        !writeFile(projectDir.filePath("audio/published/field-note.opus"),
+                   "published", &setupError)) {
+        err << "workspace recording smoke: audio file setup failed: " << setupError
+            << Qt::endl;
+        return 1;
+    }
+
+    QWidget *page = createPage(&adapter);
+    QApplication::processEvents();
+
+    auto *projects = page->findChild<QTableWidget *>("createProjectsTable");
+    auto *recordingId = page->findChild<QLineEdit *>("createRecordingId");
+    auto *recordingTitle = page->findChild<QLineEdit *>("createRecordingTitle");
+    auto *recordingMaster = page->findChild<QLineEdit *>("createRecordingMaster");
+    auto *recordingPublished =
+        page->findChild<QLineEdit *>("createRecordingPublished");
+    auto *recordingFeed = page->findChild<QLineEdit *>("createRecordingFeed");
+    auto *recordingEntryId = page->findChild<QLineEdit *>("createRecordingEntryId");
+    auto *recordingMime = page->findChild<QLineEdit *>("createRecordingMimeType");
+    auto *attach = page->findChild<QPushButton *>("createAttachRecording");
+    auto *status = page->findChild<QLabel *>("createRecordingAttachStatus");
+    auto *details = page->findChild<QPlainTextEdit *>("createRecordingDetails");
+    if (projects == nullptr || recordingId == nullptr ||
+        recordingTitle == nullptr || recordingMaster == nullptr ||
+        recordingPublished == nullptr || recordingFeed == nullptr ||
+        recordingEntryId == nullptr || recordingMime == nullptr ||
+        attach == nullptr || status == nullptr || details == nullptr) {
+        err << "workspace recording smoke: recording widgets were not discoverable"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    const int projectRow = tableRowWithText(projects, 3, created.projectPath);
+    if (projectRow < 0) {
+        err << "workspace recording smoke: created project was not listed"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    projects->selectRow(projectRow);
+    QApplication::processEvents();
+
+    recordingId->setText("field-note");
+    recordingTitle->setText("Field Note");
+    recordingMaster->setText("audio/masters/field-note.flac");
+    recordingPublished->setText("audio/published/field-note.opus");
+    recordingFeed->setText("feeds/feed.xml");
+    recordingEntryId->setText("tag:example.invalid,2026:field-note");
+    recordingMime->setText("audio/ogg; codecs=opus");
+    attach->click();
+    QApplication::processEvents();
+
+    const QString metadataPath =
+        projectDir.filePath("audio/metadata/field-note.toml");
+    if (!QFileInfo::exists(metadataPath) ||
+        !status->text().contains("audio/metadata/field-note.toml") ||
+        !details->toPlainText().contains("Recording: Field Note") ||
+        !details->toPlainText().contains("Published: audio/published/field-note.opus")) {
+        err << "workspace recording smoke: recording attachment was not reflected"
+            << Qt::endl;
+        err << "status: " << status->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    delete page;
+    out << "workspace recording smoke: attachment controls succeeded "
+        << metadataPath << Qt::endl;
     return 0;
 }
 
@@ -582,6 +740,9 @@ int main(int argc, char *argv[]) {
     }
     if (smokePublishTargetStatus(app)) {
         return runPublishTargetStatusSmoke(adapter, app);
+    }
+    if (smokeRecordingAttach(app)) {
+        return runRecordingAttachSmoke(adapter, app);
     }
 
     setApplicationStyle(app);

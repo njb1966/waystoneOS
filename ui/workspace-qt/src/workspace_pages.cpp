@@ -951,6 +951,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     projectLayout->setContentsMargins(0, 0, 0, 0);
     projectLayout->addWidget(new QLabel("Projects"));
     auto *projectsTable = table({"Project", "Type", "Validation", "Path"}, {});
+    projectsTable->setObjectName("createProjectsTable");
     projectLayout->addWidget(projectsTable);
     auto *projectDetails = new QPlainTextEdit;
     projectDetails->setReadOnly(true);
@@ -1038,10 +1039,54 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *recordingLayout = new QVBoxLayout(recordingArea);
     recordingLayout->setContentsMargins(0, 0, 0, 0);
     recordingLayout->addWidget(new QLabel("Recordings"));
+
+    auto *attachForm = new QWidget(recordingArea);
+    auto *attachLayout = new QFormLayout(attachForm);
+    attachLayout->setContentsMargins(0, 0, 0, 0);
+    attachLayout->setSpacing(6);
+    auto *recordingId = new QLineEdit(attachForm);
+    recordingId->setObjectName("createRecordingId");
+    auto *recordingTitle = new QLineEdit(attachForm);
+    recordingTitle->setObjectName("createRecordingTitle");
+    auto *recordingMaster = new QLineEdit("audio/masters/field-note.flac", attachForm);
+    recordingMaster->setObjectName("createRecordingMaster");
+    auto *recordingPublished =
+        new QLineEdit("audio/published/field-note.opus", attachForm);
+    recordingPublished->setObjectName("createRecordingPublished");
+    auto *recordingFeed = new QLineEdit("feeds/feed.xml", attachForm);
+    recordingFeed->setObjectName("createRecordingFeed");
+    auto *recordingEntryId = new QLineEdit(attachForm);
+    recordingEntryId->setObjectName("createRecordingEntryId");
+    auto *recordingMime =
+        new QLineEdit("audio/ogg; codecs=opus", attachForm);
+    recordingMime->setObjectName("createRecordingMimeType");
+    auto *attachActions = new QWidget(attachForm);
+    auto *attachActionsLayout = new QHBoxLayout(attachActions);
+    attachActionsLayout->setContentsMargins(0, 0, 0, 0);
+    auto *attachRecording = new QPushButton("Attach Recording", attachActions);
+    attachRecording->setObjectName("createAttachRecording");
+    attachRecording->setEnabled(false);
+    auto *attachStatus = new QLabel("Attachment: no project selected", attachActions);
+    attachStatus->setObjectName("createRecordingAttachStatus");
+    attachStatus->setWordWrap(true);
+    attachActionsLayout->addWidget(attachRecording);
+    attachActionsLayout->addWidget(attachStatus, 1);
+    attachLayout->addRow("ID", recordingId);
+    attachLayout->addRow("Title", recordingTitle);
+    attachLayout->addRow("Master", recordingMaster);
+    attachLayout->addRow("Published", recordingPublished);
+    attachLayout->addRow("Feed", recordingFeed);
+    attachLayout->addRow("Entry ID", recordingEntryId);
+    attachLayout->addRow("MIME", recordingMime);
+    attachLayout->addRow("", attachActions);
+    recordingLayout->addWidget(attachForm);
+
     auto *recordingsTable =
         table({"Recording", "ID", "Validation", "Playable", "Path"}, {});
+    recordingsTable->setObjectName("createRecordingsTable");
     recordingLayout->addWidget(recordingsTable);
     auto *recordingDetails = new QPlainTextEdit;
+    recordingDetails->setObjectName("createRecordingDetails");
     recordingDetails->setReadOnly(true);
     recordingLayout->addWidget(recordingDetails);
     splitter->addWidget(recordingArea);
@@ -1090,6 +1135,8 @@ QWidget *createPage(const CliAdapter *adapter) {
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
             addTarget->setEnabled(false);
+            attachRecording->setEnabled(false);
+            attachStatus->setText("Attachment: no project selected");
             return;
         }
 
@@ -1103,6 +1150,8 @@ QWidget *createPage(const CliAdapter *adapter) {
         saveContent->setEnabled(true);
         reloadContent->setEnabled(true);
         addTarget->setEnabled(true);
+        attachRecording->setEnabled(true);
+        attachStatus->setText("Attachment: ready");
     };
 
     QObject::connect(createProject, &QPushButton::clicked, [=]() {
@@ -1164,6 +1213,42 @@ QWidget *createPage(const CliAdapter *adapter) {
             adapter->inspectProject(currentDocument->projectPath) +
             "\n\nValidation: " +
             adapter->projectValidationState(currentDocument->projectPath));
+    });
+
+    QObject::connect(attachRecording, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            attachStatus->setText("Attachment: no project selected");
+            return;
+        }
+
+        const QString id = recordingId->text().trimmed();
+        const QString title = recordingTitle->text().trimmed();
+        const QString master = recordingMaster->text().trimmed();
+        const QString published = recordingPublished->text().trimmed();
+        const QString feed = recordingFeed->text().trimmed();
+        const QString entryId = recordingEntryId->text().trimmed();
+        const QString mimeType = recordingMime->text().trimmed();
+        if (id.isEmpty() || title.isEmpty() || master.isEmpty() ||
+            published.isEmpty() || feed.isEmpty() || entryId.isEmpty() ||
+            mimeType.isEmpty()) {
+            attachStatus->setText("Attachment fields are required");
+            return;
+        }
+
+        const RecordingAttachResult attached = adapter->attachRecording(
+            currentDocument->projectPath, id, title, master, published, feed,
+            entryId, mimeType);
+        if (!attached.ok) {
+            attachStatus->setText("Attachment failed: " + attached.error);
+            return;
+        }
+
+        populateRecordingTable(recordingsTable, recordingDetails, adapter);
+        attachStatus->setText("Attached: " + attached.metadataRelativePath);
+        recordingDetails->setPlainText(adapter->inspectRecording(attached.metadataPath));
+        recordingId->clear();
+        recordingTitle->clear();
+        recordingEntryId->clear();
     });
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {

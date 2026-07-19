@@ -17,6 +17,8 @@ project_id="workspace-smoke"
 project_name="Workspace Smoke"
 publish_project_id="workspace-publish-smoke"
 publish_project_name="Workspace Publish Smoke"
+recording_project_id="workspace-audio-smoke"
+recording_project_name="Workspace Audio Smoke"
 
 mkdir -p "$projects_root" "$hosts_root" "$identities_root" "$audio_root"
 {
@@ -27,7 +29,7 @@ mkdir -p "$projects_root" "$hosts_root" "$identities_root" "$audio_root"
   printf "audio_metadata = %s\n" "$audio_root"
 } > "$config_path"
 
-cargo build -p waystone-project-cli -p waystone-publish-cli
+cargo build -p waystone-project-cli -p waystone-publish-cli -p waystone-record-cli
 
 cmake -S "$repo_root/ui/workspace-qt" -B "$build_dir"
 cmake --build "$build_dir"
@@ -140,4 +142,47 @@ case "$publish_inspect_output" in
     ;;
 esac
 
-echo "workspace project smoke: create/target/load/save/validate/preview/status succeeded"
+set +e
+recording_output="$(QT_QPA_PLATFORM=offscreen \
+  "$build_dir/waystone-workspace" \
+    --repo-root "$repo_root" \
+    --config "$config_path" \
+    --smoke-recording-attach \
+    --smoke-project-id "$recording_project_id" \
+    --smoke-project-name "$recording_project_name" \
+    --smoke-project-type audio-series 2>&1)"
+recording_status=$?
+set -e
+if [ "$recording_status" -ne 0 ]; then
+  echo "workspace project smoke: recording diagnostic mode exited with $recording_status"
+  echo "$recording_output"
+  exit "$recording_status"
+fi
+
+case "$recording_output" in
+  *"workspace recording smoke: attachment controls succeeded"*) ;;
+  *)
+    echo "workspace project smoke: recording diagnostic mode failed"
+    echo "$recording_output"
+    exit 1
+    ;;
+esac
+
+recording_project_path="$projects_root/$recording_project_id.wayproject"
+recording_metadata_path="$recording_project_path/audio/metadata/field-note.toml"
+if [ ! -f "$recording_metadata_path" ]; then
+  echo "workspace project smoke: recording metadata sidecar was not created"
+  exit 1
+fi
+
+recording_inspect_output="$(cargo run -q -p waystone-record-cli -- inspect --json "$recording_metadata_path")"
+case "$recording_inspect_output" in
+  *'"id":"field-note"'*'"published":"audio/published/field-note.opus"'*) ;;
+  *)
+    echo "workspace project smoke: attached recording was not inspectable"
+    echo "$recording_inspect_output"
+    exit 1
+    ;;
+esac
+
+echo "workspace project smoke: create/target/load/save/validate/preview/status/recording succeeded"

@@ -779,6 +779,45 @@ QList<RecordingSummary> CliAdapter::listRecordings(QString *error) const {
     return recordings;
 }
 
+RecordingAttachResult CliAdapter::attachRecording(
+    const QString &projectPath, const QString &id, const QString &title,
+    const QString &master, const QString &published, const QString &feed,
+    const QString &entryId, const QString &mimeType) const {
+    RecordingAttachResult attached;
+    const CommandResult result =
+        runCommand("record", {"attach", "--json", projectPath, id, title, master,
+                              published, feed, entryId, mimeType});
+
+    if (!result.error.isEmpty()) {
+        attached.error = result.error;
+        return attached;
+    }
+
+    if (result.exitCode != 0) {
+        attached.error = commandFailureDetail(result, "record attach failed");
+        return attached;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        attached.error = "record attach returned unreadable JSON";
+        return attached;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    attached.id = data.value("id").toString();
+    attached.title = data.value("title").toString();
+    attached.metadataPath = data.value("metadata_path").toString();
+    attached.metadataRelativePath =
+        data.value("metadata_relative_path").toString();
+    attached.master = data.value("master").toString();
+    attached.published = data.value("published").toString();
+    attached.feed = data.value("feed").toString();
+    attached.ok = true;
+    return attached;
+}
+
 QString CliAdapter::inspectRecording(const QString &path) const {
     const CommandResult result = runCommand("record", {"inspect", "--json", path});
     if (result.exitCode != 0) {

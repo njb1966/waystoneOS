@@ -473,7 +473,8 @@ Current behavior:
 - Lists files under the selected project's content root in the Create pane without changing the editable content index binding
 - Filters the Create pane content-root file list by relative path or full path
 - Shows read-only detail for the selected Create pane content-root file, including whether it is the editable content index
-- Uses the existing `record` and `listen` CLI JSON output for read-only Create-pane recording list, inspect, validate, and playable state
+- Uses the existing `record` and `listen` CLI JSON output for Create-pane recording list, inspect, validate, playable state, and local metadata sidecar attachment
+- Uses `record attach --json` in the Create pane to create audio metadata sidecars for existing project-local master and publication-copy files when the selected project has audio metadata configured
 - Uses configured local projects plus existing `publish` CLI JSON output for read-only Publish-pane dry-run previews
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
 - Shows Publish-pane preview status as ready, blocked, failed, no project, or no target
@@ -497,9 +498,9 @@ Current behavior:
 - Lets the Explore pane write persistent user root settings
 - Preflights missing configured roots before running pane CLIs
 - Provides `--check-roots` diagnostics for bad config paths and missing configured roots
-- Provides diagnostic project create/save and Publish-pane target/status smoke modes for temporary workspace roots
+- Provides diagnostic project create/save, recording attachment, and Publish-pane target/status smoke modes for temporary workspace roots
 - Uses static placeholder resource data for Explore
-- Mutates only persistent user root settings, minimal project directories under the configured projects root, removable publish target metadata, and the selected local project content index file
+- Mutates only persistent user root settings, minimal project directories under the configured projects root, removable publish target metadata, selected local project content index files, planned preview records, and selected project audio metadata sidecars
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
 ## Project Service

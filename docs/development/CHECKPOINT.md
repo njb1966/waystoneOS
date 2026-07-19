@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after local audio attachment slice
+Status: current after Create-pane recording attachment
 Date: 2026-07-19
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, and the local audio attachment slice.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, and Create-pane recording attachment controls.
 
 ## Current Position
 
@@ -36,6 +36,7 @@ The Qt Workspace currently has:
 - Create pane lists files under the selected project's content root with relative path, size, and full path
 - Create pane filters visible content-root files by relative path or full path without changing the editable content index binding
 - Create pane shows read-only detail for the selected content-root file, including whether it is the editable content index
+- Create pane can attach an existing project-local audio master/publication copy through `record attach --json` when the selected project has `[audio].metadata` configured
 - Publish pane lists configured local projects and derives preview targets from `project inspect --json`
 - Publish pane shows all discovered project targets, exposes them through a target selector, and reports preview readiness as ready, blocked, failed, no project, or no target
 - Publish pane previews selected local projects through `publish --dry-run --json`, including newly created removable export targets
@@ -62,10 +63,11 @@ The Qt Workspace currently has:
 
 The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, and reads selected preview TOML only from that project-local preview directory; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
-The local audio attachment slice is currently CLI/service-only. `record attach`
-creates an audio metadata sidecar for existing project-local master and
-publication-copy files and records feed enclosure handoff fields. The Qt
-Workspace does not expose that write path yet.
+The Create-pane audio attachment controls call `record attach --json`. They
+create metadata sidecars for existing project-local master and publication-copy
+files and record feed enclosure handoff fields. They do not copy audio,
+transcode, generate feeds, overwrite existing sidecars, call D-Bus, or access
+audio devices.
 
 ## Verification Marker
 
@@ -92,7 +94,8 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after local audio attachment pass: all relevant checks passed on 2026-07-19.
+Result after Create-pane recording attachment pass: focused Qt and relevant
+Rust checks passed on 2026-07-19.
 
 ## Important Boundaries
 
@@ -109,6 +112,7 @@ Result after local audio attachment pass: all relevant checks passed on 2026-07-
 - `waystone-identityd` direct D-Bus serving is implemented for identity list, inspect, and validate.
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
+- The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
 - `waystone-hostd` and `waystone-identityd` fail cleanly without a session bus and reject duplicate bus ownership.
 - `waystone-hostd` and `waystone-identityd` D-Bus service files and systemd user units are present in the repo.
 - `waystone-audiod` fails cleanly without a session bus and rejects duplicate bus ownership.
@@ -123,10 +127,10 @@ Result after local audio attachment pass: all relevant checks passed on 2026-07-
 
 Recommended next implementation step:
 
-1. Expose the local `record attach` workflow in the Qt Create pane, if the CLI contract holds through verification.
+1. Review the remaining 0.1 vertical-flow gap and choose between narrow feed metadata preparation or audio-capable project creation defaults.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Add a narrow feed metadata preparation command before adding Qt controls.
+- Add additional Create-pane validation/error-state refinements for recording attachment.
