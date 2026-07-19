@@ -953,6 +953,7 @@ name = "waystone-publish-cli"
 version = "0.1.0"
 dependencies = [
  "waystone-cli-output",
+ "waystone-publication-history",
  "waystone-publish-plan",
 ]
 

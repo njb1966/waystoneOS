@@ -4,6 +4,7 @@ use std::process;
 use waystone_cli_output::{
     escape_json, json_optional_string, json_string_array, print_command_error,
 };
+use waystone_publication_history::PublicationHistoryRecord;
 use waystone_publish_plan::{dry_run_publish_with_context, PublishContext, Resolution};
 
 fn main() {
@@ -24,12 +25,20 @@ fn run(args: &[String]) -> i32 {
             print_help();
             0
         }
+        _ if positional.contains(&"--planned-history") => planned_history(&positional, json),
         _ if positional.contains(&"--dry-run") => dry_run(&positional, json),
         _ => {
             eprintln!("publish: usage error");
             print_help();
             2
         }
+    }
+}
+
+fn publish_context(args: &[&str]) -> PublishContext {
+    PublishContext {
+        hosts_root: option_value(args, "--hosts").map(PathBuf::from),
+        identities_root: option_value(args, "--identities").map(PathBuf::from),
     }
 }
 
@@ -41,10 +50,7 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
         return usage_error("missing --target");
     };
 
-    let context = PublishContext {
-        hosts_root: option_value(args, "--hosts").map(PathBuf::from),
-        identities_root: option_value(args, "--identities").map(PathBuf::from),
-    };
+    let context = publish_context(args);
 
     match dry_run_publish_with_context(Path::new(project), target, &context) {
         Ok(plan) => {
@@ -99,9 +105,44 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
     }
 }
 
+fn planned_history(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+    let Some(date) = option_value(args, "--date") else {
+        return usage_error("missing --date");
+    };
+
+    let context = publish_context(args);
+    match dry_run_publish_with_context(Path::new(project), target, &context) {
+        Ok(plan) => {
+            let record = PublicationHistoryRecord::planned_from_dry_run(&plan, date);
+            let toml = record.to_toml();
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"transfer_result\":\"{}\",\"verification_result\":\"{}\",\"record_toml\":\"{}\"}}}}",
+                    escape_json(&record.project_id),
+                    escape_json(&record.target),
+                    escape_json(&record.transfer_result),
+                    escape_json(&record.verification_result),
+                    escape_json(&toml)
+                );
+            } else {
+                print!("{toml}");
+            }
+            0
+        }
+        Err(error) => print_command_error("publish", "planned_history", &error.to_string(), json),
+    }
+}
+
 fn print_help() {
     println!("Usage:");
     println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]");
+    println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
 }
 
 fn usage_error(message: &str) -> i32 {

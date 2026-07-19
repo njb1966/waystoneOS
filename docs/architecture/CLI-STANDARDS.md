@@ -202,6 +202,7 @@ project list
 project inspect
 project validate
 publish --dry-run
+publish --planned-history
 host list
 host inspect
 identity list

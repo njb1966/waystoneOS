@@ -101,6 +101,8 @@ public:
     bool saveProjectDocument(const ProjectDocument &document, const QString &text,
                              QString *error) const;
     PublishPreview previewPublication(const QString &path, const QString &target) const;
+    QString plannedPublicationHistory(const QString &path, const QString &target,
+                                      const QString &date, QString *error) const;
     QList<HostSummary> listHosts(QString *error) const;
     QString inspectHost(const QString &path) const;
     QString hostValidationState(const QString &path) const;

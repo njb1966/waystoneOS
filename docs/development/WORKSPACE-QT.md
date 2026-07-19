@@ -30,6 +30,7 @@ Implemented:
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
 - Publish-pane target selection derived from `project inspect --json` metadata
 - Publish-pane ready, blocked, failed, no-project, and no-target preview status display
+- Publish-pane planned history preview using `publish --planned-history --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
@@ -140,7 +141,7 @@ Focused project create/save and Publish-pane target/status smoke test:
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready and blocked preview status transitions without remote publication.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, and planned-history preview transitions without remote publication.
 
 CLI JSON contract smoke test:
 
@@ -158,6 +159,7 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `project inspect --json`
 - `project validate --json`
 - `publish --dry-run --json`
+- `publish --planned-history --json`
 - `host list --json`
 - `host inspect --json`
 - `host validate --json`

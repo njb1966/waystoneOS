@@ -205,8 +205,10 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *selector = page->findChild<QComboBox *>("publishTargetSelector");
     auto *status = page->findChild<QLabel *>("publishPreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
+    auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     if (selector == nullptr || status == nullptr || plan == nullptr ||
+        history == nullptr ||
         projects == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
@@ -244,7 +246,9 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
 
     if (selector->currentText() != "export" ||
         status->text() != "Preview: ready" ||
-        !plan->toPlainText().contains("Target: export")) {
+        !plan->toPlainText().contains("Target: export") ||
+        !history->toPlainText().contains("transfer_result = \"planned\"") ||
+        !history->toPlainText().contains("target = \"export\"")) {
         err << "workspace publish smoke: export preview was not ready" << Qt::endl;
         delete page;
         return 1;
@@ -253,7 +257,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     selector->setCurrentText("backup");
     QApplication::processEvents();
     if (status->text() != "Preview: ready" ||
-        !plan->toPlainText().contains("Target: backup")) {
+        !plan->toPlainText().contains("Target: backup") ||
+        !history->toPlainText().contains("target = \"backup\"")) {
         err << "workspace publish smoke: backup preview was not ready" << Qt::endl;
         delete page;
         return 1;
@@ -263,7 +268,9 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     QApplication::processEvents();
     if (status->text() != "Preview: blocked" ||
         !plan->toPlainText().contains("Target: production") ||
-        !plan->toPlainText().contains("Blocked: yes")) {
+        !plan->toPlainText().contains("Blocked: yes") ||
+        !history->toPlainText().contains("target = \"production\"") ||
+        !history->toPlainText().contains("verification_result = \"not-run\"")) {
         err << "workspace publish smoke: production preview was not blocked"
             << Qt::endl;
         delete page;

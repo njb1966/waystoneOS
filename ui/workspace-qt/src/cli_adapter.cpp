@@ -366,6 +366,50 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
     return preview;
 }
 
+QString CliAdapter::plannedPublicationHistory(const QString &path, const QString &target,
+                                              const QString &date,
+                                              QString *error) const {
+    const CommandResult result = runCommand(
+        "publish",
+        {"--planned-history",
+         "--project",
+         path,
+         "--target",
+         target,
+         "--date",
+         date,
+         "--hosts",
+         config_.hostsRoot,
+         "--identities",
+         config_.identitiesRoot,
+         "--json"});
+
+    if (!result.error.isEmpty()) {
+        if (error != nullptr) {
+            *error = result.error;
+        }
+        return {};
+    }
+
+    if (result.exitCode != 0) {
+        if (error != nullptr) {
+            *error = commandFailureDetail(result, "publish planned-history failed");
+        }
+        return {};
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        if (error != nullptr) {
+            *error = "publish planned-history returned unreadable JSON";
+        }
+        return {};
+    }
+
+    return root.value("data").toObject().value("record_toml").toString();
+}
+
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
     if (rootMissing(config_.hostsRoot, "hosts", error)) {
         return {};

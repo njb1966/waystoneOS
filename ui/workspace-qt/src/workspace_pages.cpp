@@ -5,6 +5,7 @@
 
 #include <QAbstractItemView>
 #include <QComboBox>
+#include <QDateTime>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -379,6 +380,10 @@ QString publishPreviewStatus(const PublishPreview &preview) {
     }
 
     return preview.blocked ? "Preview: blocked" : "Preview: ready";
+}
+
+QString plannedHistoryDate() {
+    return QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
 }
 
 QString renderPublishPreview(const PublishPreview &preview) {
@@ -948,22 +953,44 @@ QWidget *publishPage(const CliAdapter *adapter) {
     auto *projectsTable = table({"Project", "Targets", "Path"}, {});
     projectsTable->setObjectName("publishProjectsTable");
     layout->addWidget(projectsTable);
+
+    auto *previewSplitter = new QSplitter(Qt::Vertical);
+    auto *planArea = new QWidget(previewSplitter);
+    auto *planLayout = new QVBoxLayout(planArea);
+    planLayout->setContentsMargins(0, 0, 0, 0);
+    planLayout->addWidget(new QLabel("Dry-run Plan", planArea));
     auto *plan = new QPlainTextEdit;
     plan->setObjectName("publishPlan");
     plan->setReadOnly(true);
-    layout->addWidget(plan);
+    planLayout->addWidget(plan);
+    previewSplitter->addWidget(planArea);
+
+    auto *historyArea = new QWidget(previewSplitter);
+    auto *historyLayout = new QVBoxLayout(historyArea);
+    historyLayout->setContentsMargins(0, 0, 0, 0);
+    historyLayout->addWidget(new QLabel("Planned History", historyArea));
+    auto *history = new QPlainTextEdit(historyArea);
+    history->setObjectName("publishPlannedHistory");
+    history->setReadOnly(true);
+    historyLayout->addWidget(history);
+    previewSplitter->addWidget(historyArea);
+    previewSplitter->setStretchFactor(0, 1);
+    previewSplitter->setStretchFactor(1, 1);
+    layout->addWidget(previewSplitter, 1);
 
     auto runPreview = [=]() {
         const int row = projectsTable->currentRow();
         if (row < 0) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            history->setPlainText("No planned history");
             return;
         }
         auto *item = projectsTable->item(row, 0);
         if (item == nullptr) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            history->setPlainText("No planned history");
             return;
         }
         const QString path = item->data(Qt::UserRole).toString();
@@ -971,11 +998,25 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (targetName.isEmpty()) {
             previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
+            history->setPlainText("No planned history");
             return;
         }
         const PublishPreview preview = adapter->previewPublication(path, targetName);
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
+        if (!preview.ok) {
+            history->setPlainText("No planned history");
+            return;
+        }
+
+        QString historyError;
+        const QString record = adapter->plannedPublicationHistory(
+            path, targetName, plannedHistoryDate(), &historyError);
+        if (!historyError.isEmpty()) {
+            history->setPlainText("Planned history failed\n" + historyError);
+            return;
+        }
+        history->setPlainText(record);
     };
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
@@ -993,12 +1034,14 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          if (row < 0) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             history->setPlainText("No planned history");
                              return;
                          }
                          auto *item = projectsTable->item(row, 0);
                          if (item == nullptr) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             history->setPlainText("No planned history");
                              return;
                          }
                          const QString targetError =
@@ -1009,6 +1052,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              previewStatus->setText("Preview: failed");
                              plan->setPlainText("Publish target inspection failed\n" +
                                                 targetError);
+                             history->setPlainText("No planned history");
                              return;
                          }
                          runPreview();

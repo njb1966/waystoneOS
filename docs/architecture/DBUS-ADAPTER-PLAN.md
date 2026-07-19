@@ -307,7 +307,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Continue the Publish workflow toward planned publication history preview.
+1. Refine user-visible Publish details now that dry-run and planned history previews are both visible, such as file action grouping or save-as-preview export within the configured project boundary.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.
