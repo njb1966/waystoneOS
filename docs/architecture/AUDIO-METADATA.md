@@ -18,6 +18,7 @@ Current implementation supports:
 - Publication-copy and feed-entry handoff validation
 - Project-relative master and published paths
 - Feed enclosure metadata references
+- Minimal Atom feed XML generation from validated feed-entry sidecars
 
 Current implementation does not support:
 
@@ -29,7 +30,7 @@ Current implementation does not support:
 - Opus export
 - Audio codec inspection
 - Waveform generation
-- Full feed XML generation or updates
+- Existing feed XML merge updates or multi-format feed generation
 - Metadata replacement or merge editing
 
 ## Recording Sidecar Shape
@@ -86,8 +87,7 @@ mime_type = "audio/ogg; codecs=opus"
 ```
 
 This is a preparation contract for publication tools. It records the feed entry
-and enclosure fields that a later feed generator needs, but it does not edit or
-generate the feed XML file.
+and enclosure fields consumed by the minimal Atom feed generator.
 
 ## CLI Mapping
 
@@ -98,6 +98,7 @@ record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record prepare-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
 record validate-publication PROJECT RECORDING_ID
 record validate-feed-entry PROJECT RECORDING_ID
+record generate-feed PROJECT
 record list ROOT
 record inspect PATH
 record validate PATH
@@ -115,7 +116,7 @@ or overwrite an existing sidecar.
 configured `[audio].metadata` root. It requires the recording sidecar to include
 `recording.published`, `publication.feed`, `publication.entry_id`, and
 `publication.mime_type`, and it requires the published audio file to exist. It
-does not generate or modify the feed XML file.
+does not generate or modify the feed XML file by itself.
 
 `record validate-publication` checks an existing recording sidecar in project
 context. It validates the referenced master file, publication-copy file,
@@ -126,6 +127,12 @@ context. It validates required entry and enclosure fields, verifies referenced
 recording metadata and enclosure audio exist, checks that feed-entry values
 match the recording sidecar's publication fields, and reports duplicate feed
 entry IDs in `feeds/entries/`.
+
+`record generate-feed` reads the selected project's `[feed]` manifest section,
+supports enabled Atom feeds only, validates every `feeds/entries/*.toml`
+sidecar, sorts entries by descending `entry.updated`, and atomically writes the
+configured feed path. It is intentionally a minimal local generator: it does not
+preserve hand-edited XML, merge remote feeds, support RSS, or expose D-Bus.
 
 The `record` command owns recording metadata creation and inspection. The
 `listen` command can list playable recording metadata, but it does not play

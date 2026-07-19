@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 use waystone_audio_metadata::{
-    attach_recording, list_recordings, load_audio_metadata, prepare_feed_entry,
+    attach_recording, generate_feed, list_recordings, load_audio_metadata, prepare_feed_entry,
     validate_audio_metadata, validate_feed_entry, validate_publication_copy,
     AttachRecordingOptions, AttachedRecording, AudioMetadata, AudioMetadataError,
-    PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary, ValidateFeedEntryOptions,
-    ValidatePublicationOptions, ValidationReport,
+    GenerateFeedOptions, GeneratedFeed, PrepareFeedEntryOptions, PreparedFeedEntry,
+    RecordingSummary, ValidateFeedEntryOptions, ValidatePublicationOptions, ValidationReport,
 };
 
 #[derive(Debug, Default)]
@@ -56,6 +56,13 @@ pub struct ValidatePublicationRequest {
 pub struct ValidateFeedEntryRequest {
     pub project_root: PathBuf,
     pub feed_entry_path: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+pub struct GenerateFeedRequest {
+    pub project_root: PathBuf,
+    pub feed_path: String,
+    pub title: String,
 }
 
 impl AudioService {
@@ -126,6 +133,17 @@ impl AudioService {
         validate_feed_entry(&ValidateFeedEntryOptions {
             project_root: request.project_root,
             feed_entry_path: request.feed_entry_path,
+        })
+    }
+
+    pub fn generate_feed(
+        &self,
+        request: GenerateFeedRequest,
+    ) -> Result<GeneratedFeed, AudioMetadataError> {
+        generate_feed(&GenerateFeedOptions {
+            project_root: request.project_root,
+            feed_path: request.feed_path,
+            title: request.title,
         })
     }
 }
@@ -253,11 +271,23 @@ mime_type = "audio/ogg; codecs=opus"
 
         let feed_report = service
             .validate_feed_entry(ValidateFeedEntryRequest {
-                project_root: project,
+                project_root: project.clone(),
                 feed_entry_path: prepared.output_path,
             })
             .expect("feed entry should validate");
         assert!(feed_report.valid, "{feed_report:#?}");
+
+        let generated = service
+            .generate_feed(GenerateFeedRequest {
+                project_root: project.clone(),
+                feed_path: "feeds/feed.xml".to_string(),
+                title: "Audio Project".to_string(),
+            })
+            .expect("feed should generate");
+
+        assert_eq!(generated.feed_relative_path, "feeds/feed.xml");
+        assert_eq!(generated.entries, 1);
+        assert!(generated.feed_path.is_file());
 
         let _ = fs::remove_dir_all(root);
     }

@@ -334,10 +334,11 @@ Current behavior:
 - Validates project-relative master, published, and feed paths
 - Refuses metadata sidecar paths that escape the project root
 - Refuses to overwrite existing metadata and feed-entry sidecars
+- Generates minimal Atom feed XML from validated `feeds/entries/*.toml` sidecars
 - Validates positive channel count and sample rate when present
 - Warns on unusual MIME type shape
 - Does not copy audio files
-- Does not generate or update feed XML files
+- Does not merge existing feed XML or generate non-Atom feeds
 - Does not inspect real audio codecs
 - Does not access audio devices
 
@@ -345,6 +346,7 @@ Current tests cover:
 
 - Metadata sidecar creation
 - Feed-entry sidecar preparation
+- Minimal Atom feed XML generation
 - Publication-copy and feed-entry handoff validation
 - Valid audio metadata example
 - Recording metadata listing
@@ -361,16 +363,17 @@ crates/audio-service/
 Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
-- Provides a service boundary for attach/prepare-feed-entry/validate-publication/validate-feed-entry/list/inspect/validate
+- Provides a service boundary for attach/prepare-feed-entry/validate-publication/validate-feed-entry/generate-feed/list/inspect/validate
 - Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not capture, play audio, or generate feed XML
+- Does not capture, play audio, merge existing feed XML, or expose feed generation through D-Bus
 
 Current tests cover:
 
 - List and validate through the service wrapper
 - Recording metadata attachment through the service wrapper
 - Feed-entry metadata preparation through the service wrapper
+- Minimal Atom feed XML generation through the service wrapper
 - Publication-copy and feed-entry handoff validation through the service wrapper
 
 ## Host CLI
@@ -420,6 +423,7 @@ record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY
 record validate-publication [--json] PROJECT RECORDING_ID
 record validate-feed-entry [--json] PROJECT RECORDING_ID
+record generate-feed [--json] PROJECT
 record list [--json] ROOT
 record inspect [--json] PATH
 record validate [--json] PATH
@@ -439,6 +443,11 @@ published audio file to exist. It does not generate or update feed XML.
 context, including referenced master and publication-copy files. `record
 validate-feed-entry` validates a prepared feed-entry sidecar against its
 recording metadata, enclosure file, and sibling feed-entry IDs.
+
+`record generate-feed` reads the selected project's enabled Atom `[feed]`
+configuration, validates prepared feed-entry sidecars, and atomically writes the
+configured feed XML path. It does not merge existing feed XML, support RSS, copy
+audio, transcode audio, or publish remotely.
 
 ## Listen CLI
 
@@ -730,7 +739,7 @@ scripts/workspace-qt-project-smoke.sh
 - Audio playback
 - Audio trimming, normalization, or export
 - Audio metadata replacement or merge editing
-- Full feed generation or existing feed XML updates
+- Existing feed XML merge updates or non-Atom feed generation
 - Deeper Workspace actions beyond local inspect, authoring, and preview
 - Live reload after editing persistent user settings
 - Browser, Helm, or Comm integration

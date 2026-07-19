@@ -169,6 +169,7 @@ Current contract:
 - `PrepareFeedEntryRequest`
 - `ValidatePublicationRequest`
 - `ValidateFeedEntryRequest`
+- `GenerateFeedRequest`
 - `AudioService`
 
 Current behavior:
@@ -176,11 +177,12 @@ Current behavior:
 - Creates recording metadata sidecars for existing project-local master and publication-copy files.
 - Creates feed-entry sidecars from existing recording metadata and published audio references.
 - Validates publication-copy and feed-entry handoff metadata in project context.
+- Generates minimal Atom feed XML from validated feed-entry sidecars through the local service crate.
 - Lists recording sidecar metadata.
 - Loads and inspects recording metadata.
 - Validates project-relative audio and feed paths.
 - Refuses to overwrite existing sidecars.
-- Does not enumerate audio devices, capture audio, play audio, edit audio, export codecs, or generate feed XML.
+- Does not enumerate audio devices, capture audio, play audio, edit audio, export codecs, merge existing feed XML, or expose feed generation over D-Bus.
 
 ## D-Bus Mapping Notes
 

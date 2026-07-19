@@ -63,7 +63,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project audio metadata sidecars, and creates selected project feed-entry sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, generate feed XML, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project audio metadata sidecars, and creates selected project feed-entry sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, expose feed XML generation, or embed Browser, Helm, or Comm.
 
 The Create-pane audio attachment controls call `record attach --json`. They
 create metadata sidecars for existing project-local master and publication-copy
@@ -77,6 +77,13 @@ The Create-pane feed-entry controls call `record prepare-feed-entry --json`,
 `feeds/entries/<recording-id>.toml` sidecar from an existing recording sidecar
 and published audio reference. This is a create-only metadata preparation
 contract. It does not generate or update feed XML.
+
+The `record generate-feed --json` command is implemented as a minimal local
+Atom generator. It reads enabled `[feed]` project configuration, validates every
+`feeds/entries/*.toml` sidecar, sorts entries by descending update time, and
+atomically writes the configured feed XML file. It does not merge existing XML,
+support non-Atom feeds, copy audio, transcode audio, publish remotely, or expose
+the operation through Qt or D-Bus yet.
 
 The `record validate-publication --json` and `record validate-feed-entry
 --json` commands validate local publication-copy and feed-entry handoff metadata
@@ -112,6 +119,10 @@ scripts/audiod-systemd-unit-smoke.sh
 Result after Qt feed-entry preparation controls: all relevant checks passed on
 2026-07-19.
 
+Result after minimal Atom feed generation from prepared sidecars: relevant
+checks passed on 2026-07-19, including Rust tests, clippy, CLI JSON contract
+smoke, audiod smoke checks, and Qt project smoke.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -129,6 +140,7 @@ Result after Qt feed-entry preparation controls: all relevant checks passed on
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
 - `record prepare-feed-entry` creates local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
+- `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars without merging existing XML or publishing remotely.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
 - The Qt Create pane exposes feed-entry preparation and publication/feed-entry validation status through local CLI adapters.
 - `project create` scaffolds audio/feed defaults for `audio-series` and `mixed-publication` projects.
@@ -146,10 +158,10 @@ Result after Qt feed-entry preparation controls: all relevant checks passed on
 
 Recommended next implementation step:
 
-1. Start a minimal feed XML generator from validated `feeds/entries/` sidecars.
+1. Run full verification for the minimal feed XML generator slice and commit/push it.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Add additional Create-pane error-detail rendering for failed publication/feed-entry validation.
+- Expose `record generate-feed` in the Qt Create pane after the CLI/service generator is committed.

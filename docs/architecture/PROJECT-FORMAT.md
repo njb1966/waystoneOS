@@ -149,8 +149,10 @@ Unknown project types should produce a validation warning or error depending on 
 `audio-series` and `mixed-publication` are audio-capable project types. New
 projects of those types receive `[audio]` and `[feed]` manifest defaults plus
 `audio/masters`, `audio/published`, `audio/metadata`, and `feeds/feed.xml`.
-The feed file is a placeholder only. Feed-entry sidecar preparation is
-implemented under `feeds/entries/`, but full feed XML generation is not.
+The initial feed file is a placeholder. Feed-entry sidecar preparation is
+implemented under `feeds/entries/`, and `record generate-feed` can replace the
+placeholder with a minimal Atom feed generated from validated sidecars. Existing
+feed merge/update behavior remains deferred.
 
 ## Required Fields
 

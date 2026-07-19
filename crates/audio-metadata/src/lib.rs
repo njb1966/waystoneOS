@@ -158,6 +158,21 @@ pub struct ValidateFeedEntryOptions {
     pub feed_entry_path: PathBuf,
 }
 
+#[derive(Debug, Clone)]
+pub struct GenerateFeedOptions {
+    pub project_root: PathBuf,
+    pub feed_path: String,
+    pub title: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct GeneratedFeed {
+    pub feed_path: PathBuf,
+    pub feed_relative_path: String,
+    pub entries: usize,
+    pub updated: String,
+}
+
 struct PreparedFeedEntryRender<'a> {
     metadata: &'a AudioMetadata,
     recording_metadata_path: &'a str,
@@ -236,6 +251,15 @@ pub enum AudioMetadataError {
 
     #[error("feed entry metadata could not be installed: {path}: {source}")]
     InstallFeedEntryFailed { path: PathBuf, source: io::Error },
+
+    #[error("feed entry metadata is invalid: {path}: {issues:?}")]
+    InvalidFeedEntry { path: PathBuf, issues: Vec<String> },
+
+    #[error("feed file could not be written: {path}: {source}")]
+    WriteFeedFailed { path: PathBuf, source: io::Error },
+
+    #[error("feed file could not be installed: {path}: {source}")]
+    InstallFeedFailed { path: PathBuf, source: io::Error },
 }
 
 pub fn load_audio_metadata(path: impl AsRef<Path>) -> Result<AudioMetadata, AudioMetadataError> {
@@ -658,6 +682,58 @@ pub fn validate_feed_entry(
     Ok(ValidationReport::from_issues(issues))
 }
 
+pub fn generate_feed(options: &GenerateFeedOptions) -> Result<GeneratedFeed, AudioMetadataError> {
+    check_project_root(&options.project_root)?;
+    validate_audio_path_for_write("feed.path", &options.feed_path)?;
+
+    let entries_root = options.project_root.join("feeds/entries");
+    let entries =
+        load_valid_feed_entries(&options.project_root, &entries_root, &options.feed_path)?;
+    let updated = entries
+        .first()
+        .map(|entry| entry.updated.clone())
+        .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
+    let feed_relative_path = options.feed_path.clone();
+    let feed_path = options.project_root.join(&feed_relative_path);
+    let feed_dir = feed_path
+        .parent()
+        .expect("feed output path has a parent directory");
+
+    fs::create_dir_all(feed_dir).map_err(|source| AudioMetadataError::CreateDirectoryFailed {
+        path: feed_dir.to_path_buf(),
+        source,
+    })?;
+
+    let temp_feed_path = feed_path.with_file_name(format!(
+        "{}.tmp",
+        feed_path
+            .file_name()
+            .expect("feed output path has a file name")
+            .to_string_lossy()
+    ));
+    fs::write(
+        &temp_feed_path,
+        render_atom_feed(&options.title, &feed_relative_path, &updated, &entries),
+    )
+    .map_err(|source| AudioMetadataError::WriteFeedFailed {
+        path: temp_feed_path.clone(),
+        source,
+    })?;
+    fs::rename(&temp_feed_path, &feed_path).map_err(|source| {
+        AudioMetadataError::InstallFeedFailed {
+            path: feed_path.clone(),
+            source,
+        }
+    })?;
+
+    Ok(GeneratedFeed {
+        feed_path,
+        feed_relative_path,
+        entries: entries.len(),
+        updated,
+    })
+}
+
 pub fn validate_audio_metadata_record(metadata: &AudioMetadata) -> ValidationReport {
     ValidationReport::from_issues(audio_metadata_issues(metadata))
 }
@@ -942,6 +1018,128 @@ fn validate_duplicate_feed_entry_ids(
     Ok(())
 }
 
+#[derive(Debug)]
+struct FeedXmlEntry {
+    id: String,
+    title: String,
+    updated: String,
+    summary: String,
+    feed: String,
+    enclosure_path: String,
+    enclosure_mime_type: String,
+}
+
+fn load_valid_feed_entries(
+    project_root: &Path,
+    entries_root: &Path,
+    feed_path: &str,
+) -> Result<Vec<FeedXmlEntry>, AudioMetadataError> {
+    if !entries_root.exists() {
+        return Ok(Vec::new());
+    }
+    if !entries_root.is_dir() {
+        return Err(AudioMetadataError::NotDirectory(entries_root.to_path_buf()));
+    }
+
+    let mut entries = Vec::new();
+    for entry in
+        fs::read_dir(entries_root).map_err(|source| AudioMetadataError::ReadDirectoryFailed {
+            path: entries_root.to_path_buf(),
+            source,
+        })?
+    {
+        let entry = entry.map_err(|source| AudioMetadataError::ReadDirectoryFailed {
+            path: entries_root.to_path_buf(),
+            source,
+        })?;
+        let path = entry.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("toml") {
+            continue;
+        }
+
+        let report = validate_feed_entry(&ValidateFeedEntryOptions {
+            project_root: project_root.to_path_buf(),
+            feed_entry_path: path.clone(),
+        })?;
+        if !report.valid {
+            return Err(AudioMetadataError::InvalidFeedEntry {
+                path,
+                issues: validation_report_into_issues(report)
+                    .into_iter()
+                    .map(|issue| format!("{}: {}", issue.code, issue.message))
+                    .collect(),
+            });
+        }
+
+        let entry = feed_xml_entry_from_metadata(&path, &load_feed_entry_metadata(&path)?)?;
+        if entry.feed != feed_path {
+            return Err(AudioMetadataError::InvalidFeedEntry {
+                path,
+                issues: vec![format!(
+                    "entry.feed does not match configured feed path: {} != {feed_path}",
+                    entry.feed
+                )],
+            });
+        }
+        entries.push(entry);
+    }
+
+    entries.sort_by(|left, right| {
+        right
+            .updated
+            .cmp(&left.updated)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    Ok(entries)
+}
+
+fn feed_xml_entry_from_metadata(
+    path: &Path,
+    metadata: &FeedEntryMetadata,
+) -> Result<FeedXmlEntry, AudioMetadataError> {
+    let entry = metadata
+        .entry
+        .as_ref()
+        .ok_or_else(|| invalid_feed_entry(path, "entry section is required"))?;
+    let enclosure = metadata
+        .enclosure
+        .as_ref()
+        .ok_or_else(|| invalid_feed_entry(path, "enclosure section is required"))?;
+
+    Ok(FeedXmlEntry {
+        id: required_feed_value(path, "entry.id", &entry.id)?,
+        title: required_feed_value(path, "entry.title", &entry.title)?,
+        updated: required_feed_value(path, "entry.updated", &entry.updated)?,
+        summary: required_feed_value(path, "entry.summary", &entry.summary)?,
+        feed: required_feed_value(path, "entry.feed", &entry.feed)?,
+        enclosure_path: required_feed_value(path, "enclosure.path", &enclosure.path)?,
+        enclosure_mime_type: required_feed_value(
+            path,
+            "enclosure.mime_type",
+            &enclosure.mime_type,
+        )?,
+    })
+}
+
+fn required_feed_value(
+    path: &Path,
+    field: &str,
+    value: &Option<String>,
+) -> Result<String, AudioMetadataError> {
+    value
+        .as_ref()
+        .filter(|value| !value.trim().is_empty())
+        .cloned()
+        .ok_or_else(|| invalid_feed_entry(path, &format!("{field} is required")))
+}
+
+fn invalid_feed_entry(path: &Path, issue: &str) -> AudioMetadataError {
+    AudioMetadataError::InvalidFeedEntry {
+        path: path.to_path_buf(),
+        issues: vec![issue.to_string()],
+    }
+}
+
 fn validate_recording_id_for_write(value: &str) -> Result<(), AudioMetadataError> {
     if recording_id_is_valid(value) {
         Ok(())
@@ -1052,8 +1250,59 @@ fn render_prepared_feed_entry(fields: &PreparedFeedEntryRender<'_>) -> String {
     entry
 }
 
+fn render_atom_feed(
+    title: &str,
+    feed_path: &str,
+    updated: &str,
+    entries: &[FeedXmlEntry],
+) -> String {
+    let mut feed = String::new();
+    feed.push_str("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+    feed.push_str("<feed xmlns=\"http://www.w3.org/2005/Atom\">\n");
+    feed.push_str(&format!("  <title>{}</title>\n", xml_escape(title)));
+    feed.push_str(&format!(
+        "  <id>{}</id>\n",
+        xml_escape(&format!("waystone:feed:{feed_path}"))
+    ));
+    feed.push_str(&format!("  <updated>{}</updated>\n", xml_escape(updated)));
+
+    for entry in entries {
+        feed.push_str("  <entry>\n");
+        feed.push_str(&format!("    <id>{}</id>\n", xml_escape(&entry.id)));
+        feed.push_str(&format!(
+            "    <title>{}</title>\n",
+            xml_escape(&entry.title)
+        ));
+        feed.push_str(&format!(
+            "    <updated>{}</updated>\n",
+            xml_escape(&entry.updated)
+        ));
+        feed.push_str(&format!(
+            "    <summary>{}</summary>\n",
+            xml_escape(&entry.summary)
+        ));
+        feed.push_str(&format!(
+            "    <link rel=\"enclosure\" href=\"{}\" type=\"{}\" />\n",
+            xml_escape(&entry.enclosure_path),
+            xml_escape(&entry.enclosure_mime_type)
+        ));
+        feed.push_str("  </entry>\n");
+    }
+
+    feed.push_str("</feed>\n");
+    feed
+}
+
 fn toml_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn xml_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 fn error(code: &'static str, message: String, path: Option<impl Into<String>>) -> ValidationIssue {
@@ -1215,6 +1464,23 @@ mime_type = "audio/ogg; codecs=opus"
         .expect("feed entry should validate");
         assert!(feed_report.valid, "{feed_report:#?}");
 
+        let generated = generate_feed(&GenerateFeedOptions {
+            project_root: project.clone(),
+            feed_path: "feeds/feed.xml".to_string(),
+            title: "Metadata Feed".to_string(),
+        })
+        .expect("feed should generate");
+        assert_eq!(generated.feed_relative_path, "feeds/feed.xml");
+        assert_eq!(generated.entries, 1);
+        assert_eq!(generated.updated, "2026-07-19T00:00:00Z");
+        assert!(generated.feed_path.is_file());
+        let feed_xml = fs::read_to_string(&generated.feed_path).expect("generated feed");
+        assert!(feed_xml.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
+        assert!(feed_xml.contains("<title>Metadata Feed</title>"));
+        assert!(feed_xml.contains("<entry>"));
+        assert!(feed_xml.contains("<id>tag:example.invalid,2026:note</id>"));
+        assert!(feed_xml.contains("<link rel=\"enclosure\" href=\"audio/published/note.opus\""));
+
         fs::write(
             project.join("feeds/entries/duplicate.toml"),
             r#"[entry]
@@ -1243,6 +1509,17 @@ mime_type = "audio/ogg; codecs=opus"
             .errors
             .iter()
             .any(|issue| issue.code == "duplicate_feed_entry_id"));
+
+        let duplicate_generate = generate_feed(&GenerateFeedOptions {
+            project_root: project.clone(),
+            feed_path: "feeds/feed.xml".to_string(),
+            title: "Metadata Feed".to_string(),
+        })
+        .expect_err("duplicate feed entry should block feed generation");
+        assert!(matches!(
+            duplicate_generate,
+            AudioMetadataError::InvalidFeedEntry { .. }
+        ));
 
         let duplicate = prepare_feed_entry(&PrepareFeedEntryOptions {
             project_root: project,

@@ -60,7 +60,7 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
-- Audio capture, playback, transcoding, or feed XML generation
+- Audio capture, playback, transcoding, or UI-triggered feed XML generation
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 

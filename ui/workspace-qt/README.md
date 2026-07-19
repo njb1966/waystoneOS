@@ -47,6 +47,7 @@ Current UI data is limited to:
 - local content-root file listing, filtering, and selected-file detail for the selected project
 - local audio metadata sidecar attachment for existing project-local master and publication-copy files
 - local feed-entry sidecar preparation and validation status for attached project recordings
+- CLI-backed feed generation exists through `record generate-feed`, but is not exposed in the Qt UI yet
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links
 - local Publish-pane project filtering, target selection, ready/blocked preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering

@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
 use waystone_audio_service::{
-    AttachRecordingRequest, AudioService, PrepareFeedEntryRequest, ValidateFeedEntryRequest,
-    ValidatePublicationRequest,
+    AttachRecordingRequest, AudioService, GenerateFeedRequest, PrepareFeedEntryRequest,
+    ValidateFeedEntryRequest, ValidatePublicationRequest,
 };
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
 use waystone_project_format::load_manifest;
@@ -72,6 +72,7 @@ fn run(args: &[String]) -> i32 {
         ["validate-feed-entry", project, recording_id] => {
             validate_feed_entry(project, recording_id, json)
         }
+        ["generate-feed", project] => generate_feed(project, json),
         ["help"] | ["--help"] | [] => {
             print_help();
             0
@@ -210,6 +211,77 @@ fn validate_feed_entry(project: &str, recording_id: &str, json: bool) -> i32 {
     }
 }
 
+fn generate_feed(project: &str, json: bool) -> i32 {
+    let manifest = match load_manifest(Path::new(project)) {
+        Ok(manifest) => manifest,
+        Err(error) => {
+            return print_command_error("record", "generate-feed", &error.to_string(), json);
+        }
+    };
+
+    let Some(feed) = manifest.feed else {
+        return print_command_error(
+            "record",
+            "generate-feed",
+            "project feed is not configured",
+            json,
+        );
+    };
+    if !feed.enabled.unwrap_or(false) {
+        return print_command_error(
+            "record",
+            "generate-feed",
+            "project feed is not enabled",
+            json,
+        );
+    }
+    if feed.feed_type.as_deref().unwrap_or("atom").trim() != "atom" {
+        return print_command_error(
+            "record",
+            "generate-feed",
+            "only Atom feeds are supported",
+            json,
+        );
+    }
+
+    let Some(feed_path) = feed.path.filter(|path| !path.trim().is_empty()) else {
+        return print_command_error(
+            "record",
+            "generate-feed",
+            "project feed path is not configured",
+            json,
+        );
+    };
+    let title = feed
+        .title
+        .filter(|title| !title.trim().is_empty())
+        .unwrap_or(manifest.project.name);
+
+    let service = AudioService;
+    match service.generate_feed(GenerateFeedRequest {
+        project_root: Path::new(project).to_path_buf(),
+        feed_path,
+        title,
+    }) {
+        Ok(generated) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"feed_path\":\"{}\",\"feed_relative_path\":\"{}\",\"entries\":{},\"updated\":\"{}\"}}}}",
+                    escape_json(&generated.feed_path.display().to_string()),
+                    escape_json(&generated.feed_relative_path),
+                    generated.entries,
+                    escape_json(&generated.updated)
+                );
+            } else {
+                println!("Generated feed: {}", generated.feed_path.display());
+                println!("Entries: {}", generated.entries);
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "generate-feed", &error.to_string(), json),
+    }
+}
+
 fn project_audio_metadata_root(project: &str, command: &str, json: bool) -> Result<String, i32> {
     let manifest = load_manifest(Path::new(project))
         .map_err(|error| print_command_error("record", command, &error.to_string(), json))?;
@@ -304,6 +376,7 @@ fn print_help() {
     println!("  record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
     println!("  record validate-publication [--json] PROJECT RECORDING_ID");
     println!("  record validate-feed-entry [--json] PROJECT RECORDING_ID");
+    println!("  record generate-feed [--json] PROJECT");
     println!("  record list [--json] ROOT");
     println!("  record inspect [--json] PATH");
     println!("  record validate [--json] PATH");

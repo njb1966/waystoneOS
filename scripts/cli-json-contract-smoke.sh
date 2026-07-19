@@ -175,6 +175,21 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record validate-feed-entry contract changed")
     require(feed_entry_validation["data"]["valid"],
             "record validate-feed-entry unexpectedly failed")
+    generated_feed = run([
+        "target/debug/record", "generate-feed", "--json", str(temp_project),
+    ])
+    require({"feed_path", "feed_relative_path", "entries", "updated"}
+            <= generated_feed["data"].keys(),
+            "record generate-feed contract changed")
+    require(generated_feed["data"]["feed_relative_path"] == "feeds/feed.xml",
+            "record generate-feed feed path changed")
+    require(generated_feed["data"]["entries"] >= 1,
+            "record generate-feed did not include entries")
+    generated_feed_path = Path(generated_feed["data"]["feed_path"])
+    require(generated_feed_path.exists(),
+            "record generate-feed did not write feed file")
+    require("<feed xmlns=\"http://www.w3.org/2005/Atom\">" in generated_feed_path.read_text(),
+            "record generate-feed did not write Atom feed")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]

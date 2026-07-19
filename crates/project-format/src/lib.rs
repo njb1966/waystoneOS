@@ -781,7 +781,7 @@ fn audio_capable_project_type(project_type: &str) -> bool {
 }
 
 fn initial_feed_placeholder() -> &'static str {
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- WaystoneOS feed placeholder; feed entry generation is not implemented yet. -->\n"
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- WaystoneOS feed placeholder; run record generate-feed after preparing entries. -->\n"
 }
 
 fn supported_publish_method(method: &str) -> bool {
