@@ -95,6 +95,7 @@ public:
                                                   const QString &name,
                                                   const QString &exportPath) const;
     QString inspectProject(const QString &path) const;
+    QStringList projectPublishTargets(const QString &path, QString *error) const;
     QString projectValidationState(const QString &path) const;
     ProjectDocument loadProjectDocument(const QString &path) const;
     bool saveProjectDocument(const ProjectDocument &document, const QString &text,

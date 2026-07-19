@@ -340,11 +340,17 @@ void populateRecordingTable(QTableWidget *recordingsTable, QPlainTextEdit *detai
     details->setPlainText(adapter->inspectRecording(recordings.at(0).path));
 }
 
-QString defaultPublishTarget(const ProjectSummary &project) {
-    if (project.id == "ssh-capsule") {
+QString preferredPublishTarget(const QStringList &targets) {
+    if (targets.contains("export")) {
+        return "export";
+    }
+    if (targets.contains("production")) {
         return "production";
     }
-    return "export";
+    if (!targets.isEmpty()) {
+        return targets.at(0);
+    }
+    return {};
 }
 
 QString renderPublishPreview(const PublishPreview &preview) {
@@ -398,12 +404,16 @@ void populatePublishTable(QTableWidget *projectsTable, QLineEdit *target,
     projectsTable->setRowCount(projects.size());
     for (int row = 0; row < projects.size(); ++row) {
         const ProjectSummary &project = projects.at(row);
-        const QString targetName = defaultPublishTarget(project);
+        QString targetError;
+        const QStringList targets =
+            adapter->projectPublishTargets(project.path, &targetError);
+        const QString targetName = preferredPublishTarget(targets);
+        const QString targetText = targetName.isEmpty() ? "none" : targetName;
         auto *name = new QTableWidgetItem(project.name);
         name->setData(Qt::UserRole, project.path);
         name->setData(Qt::UserRole + 1, targetName);
         projectsTable->setItem(row, 0, name);
-        projectsTable->setItem(row, 1, new QTableWidgetItem(targetName));
+        projectsTable->setItem(row, 1, new QTableWidgetItem(targetText));
         projectsTable->setItem(row, 2, new QTableWidgetItem(project.path));
     }
 
@@ -419,9 +429,16 @@ void populatePublishTable(QTableWidget *projectsTable, QLineEdit *target,
     }
 
     projectsTable->selectRow(0);
-    target->setText(defaultPublishTarget(projects.at(0)));
-    plan->setPlainText(renderPublishPreview(
-        adapter->previewPublication(projects.at(0).path, target->text())));
+    QString targetError;
+    target->setText(
+        preferredPublishTarget(adapter->projectPublishTargets(projects.at(0).path,
+                                                             &targetError)));
+    if (target->text().isEmpty()) {
+        plan->setPlainText("No publish target configured");
+        return;
+    }
+    plan->setPlainText(
+        renderPublishPreview(adapter->previewPublication(projects.at(0).path, target->text())));
 }
 
 void populateHostTable(QTableWidget *hostsTable, QPlainTextEdit *details,
@@ -900,8 +917,12 @@ QWidget *publishPage(const CliAdapter *adapter) {
             return;
         }
         const QString path = item->data(Qt::UserRole).toString();
+        if (target->text().trimmed().isEmpty()) {
+            plan->setPlainText("No publish target configured");
+            return;
+        }
         plan->setPlainText(
-            renderPublishPreview(adapter->previewPublication(path, target->text())));
+            renderPublishPreview(adapter->previewPublication(path, target->text().trimmed())));
     };
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {

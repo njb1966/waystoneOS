@@ -307,7 +307,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Continue user-visible Workspace workflow with Publish-pane selection of newly created/local projects and removable export previews.
+1. Continue user-visible Workspace workflow with clearer Publish-pane blocked/ready status and target-selection controls.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

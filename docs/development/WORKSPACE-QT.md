@@ -27,7 +27,8 @@ Implemented:
 - Create-pane editor for the selected project's content index file
 - Local Gemtext preview, link validation, and save validation status for the selected project's content index file
 - Read-only recording adapter using `record` and `listen` CLI JSON output
-- Read-only Publish-pane adapter using `publish --dry-run --json`
+- Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
+- Publish-pane target selection derived from `project inspect --json` metadata
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
@@ -138,7 +139,7 @@ Focused project create/save smoke test:
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, and validates the result without touching repository examples.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples.
 
 CLI JSON contract smoke test:
 

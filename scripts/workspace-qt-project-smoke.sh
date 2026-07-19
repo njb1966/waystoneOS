@@ -87,5 +87,18 @@ case "$inspect_output" in
     exit 1
     ;;
 esac
+preview_output="$(cargo run -q -p waystone-publish-cli -- \
+  --dry-run \
+  --project "$project_path" \
+  --target export \
+  --json)"
+case "$preview_output" in
+  *'"target":"export"'*'"method":"removable"'*) ;;
+  *)
+    echo "workspace project smoke: removable publish preview failed"
+    echo "$preview_output"
+    exit 1
+    ;;
+esac
 
-echo "workspace project smoke: create/target/load/save/validate succeeded"
+echo "workspace project smoke: create/target/load/save/validate/preview succeeded"

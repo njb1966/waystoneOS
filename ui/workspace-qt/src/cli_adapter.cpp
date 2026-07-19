@@ -211,6 +211,27 @@ QString CliAdapter::inspectProject(const QString &path) const {
         .arg(targetText);
 }
 
+QStringList CliAdapter::projectPublishTargets(const QString &path, QString *error) const {
+    const CommandResult result = runCommand("project", {"inspect", "--json", path});
+    if (result.exitCode != 0) {
+        if (error != nullptr) {
+            *error = commandFailureDetail(result, "project inspect failed");
+        }
+        return {};
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        if (error != nullptr) {
+            *error = "project inspect returned unreadable JSON";
+        }
+        return {};
+    }
+
+    return jsonStringArray(root.value("data").toObject().value("publish_targets").toArray());
+}
+
 QString CliAdapter::projectValidationState(const QString &path) const {
     const CommandResult result = runCommand("project", {"validate", "--json", path});
     if (result.exitCode != 0) {
