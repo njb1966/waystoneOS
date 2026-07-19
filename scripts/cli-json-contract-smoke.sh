@@ -159,6 +159,22 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record prepare-feed-entry output path changed")
     require((temp_project / "feeds" / "entries" / "second-note.toml").exists(),
             "record prepare-feed-entry did not write feed entry sidecar")
+    publication_validation = run([
+        "target/debug/record", "validate-publication", "--json", str(temp_project),
+        "second-note",
+    ])
+    require("valid" in publication_validation["data"],
+            "record validate-publication contract changed")
+    require(publication_validation["data"]["valid"],
+            "record validate-publication unexpectedly failed")
+    feed_entry_validation = run([
+        "target/debug/record", "validate-feed-entry", "--json", str(temp_project),
+        "second-note",
+    ])
+    require("valid" in feed_entry_validation["data"],
+            "record validate-feed-entry contract changed")
+    require(feed_entry_validation["data"]["valid"],
+            "record validate-feed-entry unexpectedly failed")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]

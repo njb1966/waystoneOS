@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after feed-entry metadata preparation
+Status: current after audio publication handoff validation
 Date: 2026-07-19
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, and feed-entry metadata preparation.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, and audio publication handoff validation.
 
 ## Current Position
 
@@ -76,6 +76,12 @@ and published audio reference. This is a create-only metadata preparation
 contract. It does not generate or update feed XML and is not exposed in the Qt
 Workspace yet.
 
+The `record validate-publication --json` and `record validate-feed-entry
+--json` commands validate local publication-copy and feed-entry handoff metadata
+in project context. They check required fields, project-relative paths,
+referenced local files, feed-entry consistency with recording metadata, and
+duplicate feed-entry IDs. They do not modify files.
+
 ## Verification Marker
 
 The current expected verification set is:
@@ -101,8 +107,8 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after feed-entry metadata preparation: all relevant checks passed on
-2026-07-19.
+Result after audio publication handoff validation: all relevant checks passed
+on 2026-07-19.
 
 ## Important Boundaries
 
@@ -120,6 +126,7 @@ Result after feed-entry metadata preparation: all relevant checks passed on
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
 - `record prepare-feed-entry` creates local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
+- `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
 - `project create` scaffolds audio/feed defaults for `audio-series` and `mixed-publication` projects.
 - `waystone-hostd` and `waystone-identityd` fail cleanly without a session bus and reject duplicate bus ownership.
@@ -128,7 +135,7 @@ Result after feed-entry metadata preparation: all relevant checks passed on
 - `waystone-audiod` D-Bus service file and systemd user unit are present in the repo.
 - D-Bus autostart is verified on a private test session bus with generated temporary service files.
 - Activation files have not been installed into user or system service directories.
-- `waystone-audiod` remains read-only over D-Bus; the new attachment and feed-entry preparation operations are not exposed through IPC yet.
+- `waystone-audiod` remains read-only over D-Bus; the new attachment, feed-entry preparation, and project-context publication validation operations are not exposed through IPC yet.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -136,10 +143,10 @@ Result after feed-entry metadata preparation: all relevant checks passed on
 
 Recommended next implementation step:
 
-1. Decide whether to expose feed-entry preparation in the Qt Create pane or keep it CLI/service-only for now.
+1. Expose feed-entry preparation and validation status in the Qt Create pane through CLI adapters.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Tighten local publication-copy validation before moving toward feed XML generation.
+- Start a minimal feed XML generator from validated `feeds/entries/` sidecars.

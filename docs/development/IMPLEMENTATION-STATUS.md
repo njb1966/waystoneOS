@@ -326,6 +326,7 @@ Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files
 - Creates feed-entry metadata sidecars under `feeds/entries/` from existing recording metadata
+- Validates publication-copy and feed-entry handoff metadata in project context
 - Loads audio metadata TOML sidecars
 - Lists recording metadata from a directory
 - Validates recording IDs
@@ -344,6 +345,7 @@ Current tests cover:
 
 - Metadata sidecar creation
 - Feed-entry sidecar preparation
+- Publication-copy and feed-entry handoff validation
 - Valid audio metadata example
 - Recording metadata listing
 - Invalid upward path rejection
@@ -359,7 +361,7 @@ crates/audio-service/
 Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
-- Provides a service boundary for attach/prepare-feed-entry/list/inspect/validate
+- Provides a service boundary for attach/prepare-feed-entry/validate-publication/validate-feed-entry/list/inspect/validate
 - Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Does not capture, play audio, or generate feed XML
@@ -369,6 +371,7 @@ Current tests cover:
 - List and validate through the service wrapper
 - Recording metadata attachment through the service wrapper
 - Feed-entry metadata preparation through the service wrapper
+- Publication-copy and feed-entry handoff validation through the service wrapper
 
 ## Host CLI
 
@@ -415,6 +418,8 @@ Current commands:
 ```text
 record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY
+record validate-publication [--json] PROJECT RECORDING_ID
+record validate-feed-entry [--json] PROJECT RECORDING_ID
 record list [--json] ROOT
 record inspect [--json] PATH
 record validate [--json] PATH
@@ -429,6 +434,11 @@ copy files, generate feeds, transcode audio, or overwrite an existing sidecar.
 `feeds/entries/` for an existing recording sidecar. It requires the recording
 sidecar to include published audio and publication fields and requires the
 published audio file to exist. It does not generate or update feed XML.
+
+`record validate-publication` validates an existing recording sidecar in project
+context, including referenced master and publication-copy files. `record
+validate-feed-entry` validates a prepared feed-entry sidecar against its
+recording metadata, enclosure file, and sibling feed-entry IDs.
 
 ## Listen CLI
 
@@ -611,7 +621,7 @@ Current tests cover:
 - `host validate` rejects invalid trust state
 - `identity validate` rejects private-key material
 - `record validate` rejects invalid audio paths
-- `record attach --json` creates recording metadata and `record prepare-feed-entry --json` creates feed-entry metadata
+- `record attach --json` creates recording metadata, `record prepare-feed-entry --json` creates feed-entry metadata, and `record validate-publication --json` plus `record validate-feed-entry --json` validate local audio publication handoff
 - `listen library --json` lists recording metadata
 - `way --help` lists current core commands
 

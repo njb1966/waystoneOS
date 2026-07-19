@@ -28,6 +28,29 @@ pub struct PublicationSection {
     pub mime_type: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct FeedEntryMetadata {
+    pub entry: Option<FeedEntrySection>,
+    pub enclosure: Option<EnclosureSection>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FeedEntrySection {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    pub updated: Option<String>,
+    pub summary: Option<String>,
+    pub feed: Option<String>,
+    pub recording: Option<String>,
+    pub recording_metadata: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EnclosureSection {
+    pub path: Option<String>,
+    pub mime_type: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Severity {
     Error,
@@ -123,6 +146,18 @@ pub struct PreparedFeedEntry {
     pub updated: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ValidatePublicationOptions {
+    pub project_root: PathBuf,
+    pub recording_metadata_path: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidateFeedEntryOptions {
+    pub project_root: PathBuf,
+    pub feed_entry_path: PathBuf,
+}
+
 struct PreparedFeedEntryRender<'a> {
     metadata: &'a AudioMetadata,
     recording_metadata_path: &'a str,
@@ -204,6 +239,13 @@ pub enum AudioMetadataError {
 }
 
 pub fn load_audio_metadata(path: impl AsRef<Path>) -> Result<AudioMetadata, AudioMetadataError> {
+    let text = read_metadata(path.as_ref())?;
+    toml::from_str(&text).map_err(AudioMetadataError::ParseFailed)
+}
+
+pub fn load_feed_entry_metadata(
+    path: impl AsRef<Path>,
+) -> Result<FeedEntryMetadata, AudioMetadataError> {
     let text = read_metadata(path.as_ref())?;
     toml::from_str(&text).map_err(AudioMetadataError::ParseFailed)
 }
@@ -442,7 +484,185 @@ pub fn prepare_feed_entry(
     })
 }
 
+pub fn validate_publication_copy(
+    options: &ValidatePublicationOptions,
+) -> Result<ValidationReport, AudioMetadataError> {
+    check_project_root(&options.project_root)?;
+    let metadata = load_audio_metadata(&options.recording_metadata_path)?;
+    let mut issues = validation_report_into_issues(validate_audio_metadata_record(&metadata));
+
+    match relative_project_path(&options.project_root, &options.recording_metadata_path) {
+        Some(relative_metadata_path) => {
+            validate_relative_path(&mut issues, "recording.metadata", &relative_metadata_path);
+        }
+        None => issues.push(error(
+            "invalid_audio_path",
+            "recording.metadata must be inside the project".to_string(),
+            Some("recording.metadata"),
+        )),
+    }
+
+    validate_existing_project_file(
+        &mut issues,
+        &options.project_root,
+        "recording.master",
+        &metadata.recording.master,
+        "missing_master_audio",
+    );
+
+    if let Some(published) = &metadata.recording.published {
+        validate_existing_project_file(
+            &mut issues,
+            &options.project_root,
+            "recording.published",
+            published,
+            "missing_published_audio",
+        );
+    } else {
+        issues.push(error(
+            "missing_publication_field",
+            "recording.published is required for publication validation".to_string(),
+            Some("recording.published"),
+        ));
+    }
+
+    if let Some(publication) = &metadata.publication {
+        validate_required_publication_field(&mut issues, "publication.feed", &publication.feed);
+        validate_required_publication_field(
+            &mut issues,
+            "publication.entry_id",
+            &publication.entry_id,
+        );
+        validate_required_publication_field(
+            &mut issues,
+            "publication.mime_type",
+            &publication.mime_type,
+        );
+    } else {
+        issues.push(error(
+            "missing_publication",
+            "publication section is required for publication validation".to_string(),
+            Some("publication"),
+        ));
+    }
+
+    Ok(ValidationReport::from_issues(issues))
+}
+
+pub fn validate_feed_entry(
+    options: &ValidateFeedEntryOptions,
+) -> Result<ValidationReport, AudioMetadataError> {
+    check_project_root(&options.project_root)?;
+    let feed_entry = load_feed_entry_metadata(&options.feed_entry_path)?;
+    let mut issues = Vec::new();
+
+    match relative_project_path(&options.project_root, &options.feed_entry_path) {
+        Some(relative_path) => {
+            validate_relative_path(&mut issues, "feed-entry.metadata", &relative_path)
+        }
+        None => issues.push(error(
+            "invalid_audio_path",
+            "feed-entry.metadata must be inside the project".to_string(),
+            Some("feed-entry.metadata"),
+        )),
+    }
+
+    let Some(entry) = &feed_entry.entry else {
+        issues.push(error(
+            "missing_feed_entry_section",
+            "entry section is required".to_string(),
+            Some("entry"),
+        ));
+        return Ok(ValidationReport::from_issues(issues));
+    };
+    let Some(enclosure) = &feed_entry.enclosure else {
+        issues.push(error(
+            "missing_feed_entry_section",
+            "enclosure section is required".to_string(),
+            Some("enclosure"),
+        ));
+        return Ok(ValidationReport::from_issues(issues));
+    };
+
+    validate_required_feed_entry_field(&mut issues, "entry.id", &entry.id);
+    validate_required_feed_entry_field(&mut issues, "entry.title", &entry.title);
+    validate_required_feed_entry_field(&mut issues, "entry.updated", &entry.updated);
+    validate_required_feed_entry_field(&mut issues, "entry.summary", &entry.summary);
+    validate_required_feed_entry_field(&mut issues, "entry.feed", &entry.feed);
+    validate_required_feed_entry_field(&mut issues, "entry.recording", &entry.recording);
+    validate_required_feed_entry_field(
+        &mut issues,
+        "entry.recording_metadata",
+        &entry.recording_metadata,
+    );
+    validate_required_feed_entry_field(&mut issues, "enclosure.path", &enclosure.path);
+    validate_required_feed_entry_field(&mut issues, "enclosure.mime_type", &enclosure.mime_type);
+
+    if let Some(recording) = &entry.recording {
+        validate_id(&mut issues, "entry.recording", recording);
+    }
+    if let Some(feed) = &entry.feed {
+        validate_relative_path(&mut issues, "entry.feed", feed);
+    }
+    if let Some(recording_metadata) = &entry.recording_metadata {
+        validate_relative_path(&mut issues, "entry.recording_metadata", recording_metadata);
+    }
+    if let Some(path) = &enclosure.path {
+        validate_existing_project_file(
+            &mut issues,
+            &options.project_root,
+            "enclosure.path",
+            path,
+            "missing_enclosure_audio",
+        );
+    }
+    if let Some(mime_type) = &enclosure.mime_type {
+        if !mime_type.contains('/') {
+            issues.push(warning(
+                "unusual_mime_type",
+                format!("MIME type does not contain '/': {mime_type}"),
+                Some("enclosure.mime_type"),
+            ));
+        }
+    }
+
+    if let Some(recording_metadata) = &entry.recording_metadata {
+        if path_is_relative_inside(recording_metadata) {
+            let recording_metadata_path = options.project_root.join(recording_metadata);
+            if recording_metadata_path.is_file() {
+                let recording = load_audio_metadata(&recording_metadata_path)?;
+                issues.extend(validation_report_into_issues(validate_publication_copy(
+                    &ValidatePublicationOptions {
+                        project_root: options.project_root.clone(),
+                        recording_metadata_path,
+                    },
+                )?));
+                validate_feed_entry_matches_recording(&mut issues, entry, enclosure, &recording);
+            } else {
+                issues.push(error(
+                    "missing_recording_metadata",
+                    format!("entry.recording_metadata does not exist: {recording_metadata}"),
+                    Some("entry.recording_metadata"),
+                ));
+            }
+        }
+    }
+
+    validate_duplicate_feed_entry_ids(
+        &mut issues,
+        &options.project_root,
+        &options.feed_entry_path,
+        entry.id.as_deref(),
+    )?;
+
+    Ok(ValidationReport::from_issues(issues))
+}
+
 pub fn validate_audio_metadata_record(metadata: &AudioMetadata) -> ValidationReport {
+    ValidationReport::from_issues(audio_metadata_issues(metadata))
+}
+
+fn audio_metadata_issues(metadata: &AudioMetadata) -> Vec<ValidationIssue> {
     let mut issues = Vec::new();
     validate_id(&mut issues, "recording.id", &metadata.recording.id);
 
@@ -495,7 +715,7 @@ pub fn validate_audio_metadata_record(metadata: &AudioMetadata) -> ValidationRep
         }
     }
 
-    ValidationReport::from_issues(issues)
+    issues
 }
 
 fn read_metadata(path: &Path) -> Result<String, AudioMetadataError> {
@@ -511,6 +731,24 @@ fn read_metadata(path: &Path) -> Result<String, AudioMetadataError> {
     })
 }
 
+fn check_project_root(project_root: &Path) -> Result<(), AudioMetadataError> {
+    if !project_root.exists() {
+        return Err(AudioMetadataError::ProjectNotFound(
+            project_root.to_path_buf(),
+        ));
+    }
+    if !project_root.is_dir() {
+        return Err(AudioMetadataError::ProjectNotDirectory(
+            project_root.to_path_buf(),
+        ));
+    }
+    Ok(())
+}
+
+fn validation_report_into_issues(report: ValidationReport) -> Vec<ValidationIssue> {
+    report.errors.into_iter().chain(report.warnings).collect()
+}
+
 fn validate_id(issues: &mut Vec<ValidationIssue>, field: &'static str, value: &str) {
     if !recording_id_is_valid(value) {
         issues.push(error(
@@ -521,19 +759,187 @@ fn validate_id(issues: &mut Vec<ValidationIssue>, field: &'static str, value: &s
     }
 }
 
+fn validate_required_publication_field(
+    issues: &mut Vec<ValidationIssue>,
+    field: &'static str,
+    value: &Option<String>,
+) {
+    if value.as_deref().is_none_or(|value| value.trim().is_empty()) {
+        issues.push(error(
+            "missing_publication_field",
+            format!("{field} is required for publication validation"),
+            Some(field),
+        ));
+    }
+}
+
+fn validate_required_feed_entry_field(
+    issues: &mut Vec<ValidationIssue>,
+    field: &'static str,
+    value: &Option<String>,
+) {
+    if value.as_deref().is_none_or(|value| value.trim().is_empty()) {
+        issues.push(error(
+            "missing_feed_entry_field",
+            format!("{field} is required for feed-entry validation"),
+            Some(field),
+        ));
+    }
+}
+
 fn validate_relative_path(issues: &mut Vec<ValidationIssue>, field: &'static str, value: &str) {
-    let path = Path::new(value);
-    if path.is_absolute()
-        || path
-            .components()
-            .any(|component| matches!(component, Component::ParentDir))
-    {
+    if !path_is_relative_inside(value) {
         issues.push(error(
             "invalid_audio_path",
             format!("{field} must be a relative path inside the project audio metadata boundary"),
             Some(field),
         ));
     }
+}
+
+fn validate_existing_project_file(
+    issues: &mut Vec<ValidationIssue>,
+    project_root: &Path,
+    field: &'static str,
+    value: &str,
+    missing_code: &'static str,
+) {
+    validate_relative_path(issues, field, value);
+    if path_is_relative_inside(value) && !project_root.join(value).is_file() {
+        issues.push(error(
+            missing_code,
+            format!("{field} does not exist: {value}"),
+            Some(field),
+        ));
+    }
+}
+
+fn validate_feed_entry_matches_recording(
+    issues: &mut Vec<ValidationIssue>,
+    entry: &FeedEntrySection,
+    enclosure: &EnclosureSection,
+    recording: &AudioMetadata,
+) {
+    if let Some(recording_id) = &entry.recording {
+        if recording_id != &recording.recording.id {
+            issues.push(error(
+                "feed_entry_recording_mismatch",
+                format!(
+                    "entry.recording does not match recording.id: {recording_id} != {}",
+                    recording.recording.id
+                ),
+                Some("entry.recording"),
+            ));
+        }
+    }
+
+    if let Some(title) = &entry.title {
+        if title != &recording.recording.title {
+            issues.push(warning(
+                "feed_entry_title_mismatch",
+                "entry.title differs from the recording title".to_string(),
+                Some("entry.title"),
+            ));
+        }
+    }
+
+    let Some(publication) = &recording.publication else {
+        return;
+    };
+
+    compare_optional_field(
+        issues,
+        "entry.id",
+        entry.id.as_deref(),
+        publication.entry_id.as_deref(),
+        "feed_entry_id_mismatch",
+    );
+    compare_optional_field(
+        issues,
+        "entry.feed",
+        entry.feed.as_deref(),
+        publication.feed.as_deref(),
+        "feed_entry_feed_mismatch",
+    );
+    compare_optional_field(
+        issues,
+        "enclosure.path",
+        enclosure.path.as_deref(),
+        recording.recording.published.as_deref(),
+        "feed_entry_enclosure_mismatch",
+    );
+    compare_optional_field(
+        issues,
+        "enclosure.mime_type",
+        enclosure.mime_type.as_deref(),
+        publication.mime_type.as_deref(),
+        "feed_entry_mime_type_mismatch",
+    );
+}
+
+fn compare_optional_field(
+    issues: &mut Vec<ValidationIssue>,
+    field: &'static str,
+    actual: Option<&str>,
+    expected: Option<&str>,
+    code: &'static str,
+) {
+    if let (Some(actual), Some(expected)) = (actual, expected) {
+        if actual != expected {
+            issues.push(error(
+                code,
+                format!("{field} does not match recording metadata: {actual} != {expected}"),
+                Some(field),
+            ));
+        }
+    }
+}
+
+fn validate_duplicate_feed_entry_ids(
+    issues: &mut Vec<ValidationIssue>,
+    project_root: &Path,
+    feed_entry_path: &Path,
+    entry_id: Option<&str>,
+) -> Result<(), AudioMetadataError> {
+    let Some(entry_id) = entry_id.filter(|value| !value.trim().is_empty()) else {
+        return Ok(());
+    };
+
+    let feed_entries_root = project_root.join("feeds/entries");
+    if !feed_entries_root.is_dir() {
+        return Ok(());
+    }
+
+    let current_path = absolute_path(feed_entry_path)?;
+    for entry in fs::read_dir(&feed_entries_root).map_err(|source| {
+        AudioMetadataError::ReadDirectoryFailed {
+            path: feed_entries_root.clone(),
+            source,
+        }
+    })? {
+        let entry = entry.map_err(|source| AudioMetadataError::ReadDirectoryFailed {
+            path: feed_entries_root.clone(),
+            source,
+        })?;
+        let path = entry.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("toml") {
+            continue;
+        }
+        if absolute_path(&path)? == current_path {
+            continue;
+        }
+        if let Ok(metadata) = load_feed_entry_metadata(&path) {
+            if metadata.entry.and_then(|entry| entry.id).as_deref() == Some(entry_id) {
+                issues.push(error(
+                    "duplicate_feed_entry_id",
+                    format!("feed entry id is already used by {}", path.display()),
+                    Some("entry.id"),
+                ));
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn validate_recording_id_for_write(value: &str) -> Result<(), AudioMetadataError> {
@@ -551,14 +957,17 @@ fn recording_id_is_valid(value: &str) -> bool {
             .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
 }
 
-fn validate_audio_path_for_write(field: &str, value: &str) -> Result<(), AudioMetadataError> {
+fn path_is_relative_inside(value: &str) -> bool {
     let path = Path::new(value);
-    let invalid = path.is_absolute()
-        || path
+    !value.trim().is_empty()
+        && !path.is_absolute()
+        && !path
             .components()
-            .any(|component| matches!(component, Component::ParentDir));
+            .any(|component| matches!(component, Component::ParentDir))
+}
 
-    if invalid {
+fn validate_audio_path_for_write(field: &str, value: &str) -> Result<(), AudioMetadataError> {
+    if !path_is_relative_inside(value) {
         Err(AudioMetadataError::InvalidAudioPath {
             field: field.to_string(),
             value: value.to_string(),
@@ -568,18 +977,23 @@ fn validate_audio_path_for_write(field: &str, value: &str) -> Result<(), AudioMe
     }
 }
 
+fn absolute_path(path: &Path) -> Result<PathBuf, AudioMetadataError> {
+    if path.is_absolute() {
+        Ok(path.to_path_buf())
+    } else {
+        std::env::current_dir()
+            .map(|current_dir| current_dir.join(path))
+            .map_err(|source| AudioMetadataError::Unreadable {
+                path: path.to_path_buf(),
+                source,
+            })
+    }
+}
+
 fn relative_project_path(project_root: &Path, path: &Path) -> Option<String> {
-    let absolute_path = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir().ok()?.join(path)
-    };
-    let absolute_project = if project_root.is_absolute() {
-        project_root.to_path_buf()
-    } else {
-        std::env::current_dir().ok()?.join(project_root)
-    };
-    let relative = absolute_path
+    let absolute_metadata_path = absolute_path(path).ok()?;
+    let absolute_project = absolute_path(project_root).ok()?;
+    let relative = absolute_metadata_path
         .strip_prefix(absolute_project)
         .ok()?
         .to_string_lossy()
@@ -749,8 +1163,10 @@ mod tests {
         ));
         let project = root.join("feed.wayproject");
         let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
         fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
         fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
         fs::write(project.join("audio/published/note.opus"), b"published").expect("published file");
         let metadata_path = project.join("audio/metadata/note.toml");
         fs::write(
@@ -784,6 +1200,49 @@ mime_type = "audio/ogg; codecs=opus"
         assert!(feed_entry.contains("recording_metadata = \"audio/metadata/note.toml\""));
         assert!(feed_entry.contains("[enclosure]"));
         assert!(feed_entry.contains("path = \"audio/published/note.opus\""));
+
+        let publication_report = validate_publication_copy(&ValidatePublicationOptions {
+            project_root: project.clone(),
+            recording_metadata_path: metadata_path.clone(),
+        })
+        .expect("publication should validate");
+        assert!(publication_report.valid, "{publication_report:#?}");
+
+        let feed_report = validate_feed_entry(&ValidateFeedEntryOptions {
+            project_root: project.clone(),
+            feed_entry_path: prepared.output_path.clone(),
+        })
+        .expect("feed entry should validate");
+        assert!(feed_report.valid, "{feed_report:#?}");
+
+        fs::write(
+            project.join("feeds/entries/duplicate.toml"),
+            r#"[entry]
+id = "tag:example.invalid,2026:note"
+title = "Duplicate"
+updated = "2026-07-19T00:00:00Z"
+summary = "Duplicate summary"
+feed = "feeds/feed.xml"
+recording = "note"
+recording_metadata = "audio/metadata/note.toml"
+
+[enclosure]
+path = "audio/published/note.opus"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("duplicate feed entry metadata");
+
+        let duplicate_report = validate_feed_entry(&ValidateFeedEntryOptions {
+            project_root: project.clone(),
+            feed_entry_path: prepared.output_path.clone(),
+        })
+        .expect("duplicate feed entry should validate as report");
+        assert!(!duplicate_report.valid);
+        assert!(duplicate_report
+            .errors
+            .iter()
+            .any(|issue| issue.code == "duplicate_feed_entry_id"));
 
         let duplicate = prepare_feed_entry(&PrepareFeedEntryOptions {
             project_root: project,

@@ -2,7 +2,10 @@ use std::env;
 use std::path::Path;
 use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
-use waystone_audio_service::{AttachRecordingRequest, AudioService, PrepareFeedEntryRequest};
+use waystone_audio_service::{
+    AttachRecordingRequest, AudioService, PrepareFeedEntryRequest, ValidateFeedEntryRequest,
+    ValidatePublicationRequest,
+};
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
 use waystone_project_format::load_manifest;
 
@@ -63,6 +66,12 @@ fn run(args: &[String]) -> i32 {
             },
             json,
         ),
+        ["validate-publication", project, recording_id] => {
+            validate_publication(project, recording_id, json)
+        }
+        ["validate-feed-entry", project, recording_id] => {
+            validate_feed_entry(project, recording_id, json)
+        }
         ["help"] | ["--help"] | [] => {
             print_help();
             0
@@ -163,6 +172,44 @@ fn prepare_feed_entry(args: PrepareFeedEntryArgs<'_>, json: bool) -> i32 {
     }
 }
 
+fn validate_publication(project: &str, recording_id: &str, json: bool) -> i32 {
+    let metadata_root = match project_audio_metadata_root(project, "validate-publication", json) {
+        Ok(metadata_root) => metadata_root,
+        Err(exit_code) => return exit_code,
+    };
+    let recording_metadata_path = Path::new(project)
+        .join(metadata_root)
+        .join(format!("{recording_id}.toml"));
+
+    let service = AudioService;
+    match service.validate_publication(ValidatePublicationRequest {
+        project_root: Path::new(project).to_path_buf(),
+        recording_metadata_path,
+    }) {
+        Ok(report) => print_validation_result("publication", report, json),
+        Err(error) => {
+            print_command_error("record", "validate-publication", &error.to_string(), json)
+        }
+    }
+}
+
+fn validate_feed_entry(project: &str, recording_id: &str, json: bool) -> i32 {
+    let feed_entry_path = Path::new(project)
+        .join("feeds/entries")
+        .join(format!("{recording_id}.toml"));
+
+    let service = AudioService;
+    match service.validate_feed_entry(ValidateFeedEntryRequest {
+        project_root: Path::new(project).to_path_buf(),
+        feed_entry_path,
+    }) {
+        Ok(report) => print_validation_result("feed entry", report, json),
+        Err(error) => {
+            print_command_error("record", "validate-feed-entry", &error.to_string(), json)
+        }
+    }
+}
+
 fn project_audio_metadata_root(project: &str, command: &str, json: bool) -> Result<String, i32> {
     let manifest = load_manifest(Path::new(project))
         .map_err(|error| print_command_error("record", command, &error.to_string(), json))?;
@@ -246,20 +293,7 @@ fn inspect(path: &str, json: bool) -> i32 {
 
 fn validate(path: &str, json: bool) -> i32 {
     match validate_audio_metadata(Path::new(path)) {
-        Ok(report) => {
-            print_validation(
-                "recording",
-                report.valid,
-                &report.errors,
-                &report.warnings,
-                json,
-            );
-            if report.valid {
-                0
-            } else {
-                3
-            }
-        }
+        Ok(report) => print_validation_result("recording", report, json),
         Err(error) => print_command_error("record", "validate", &error.to_string(), json),
     }
 }
@@ -268,9 +302,24 @@ fn print_help() {
     println!("Usage:");
     println!("  record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE");
     println!("  record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
+    println!("  record validate-publication [--json] PROJECT RECORDING_ID");
+    println!("  record validate-feed-entry [--json] PROJECT RECORDING_ID");
     println!("  record list [--json] ROOT");
     println!("  record inspect [--json] PATH");
     println!("  record validate [--json] PATH");
+}
+
+fn print_validation_result(
+    label: &str,
+    report: waystone_audio_metadata::ValidationReport,
+    json: bool,
+) -> i32 {
+    print_validation(label, report.valid, &report.errors, &report.warnings, json);
+    if report.valid {
+        0
+    } else {
+        3
+    }
 }
 
 fn print_validation(

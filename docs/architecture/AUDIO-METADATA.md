@@ -15,6 +15,7 @@ Current implementation supports:
 - Recording listing
 - Recording inspection
 - Metadata validation
+- Publication-copy and feed-entry handoff validation
 - Project-relative master and published paths
 - Feed enclosure metadata references
 
@@ -95,6 +96,8 @@ Current commands:
 ```text
 record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record prepare-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
+record validate-publication PROJECT RECORDING_ID
+record validate-feed-entry PROJECT RECORDING_ID
 record list ROOT
 record inspect PATH
 record validate PATH
@@ -113,6 +116,16 @@ configured `[audio].metadata` root. It requires the recording sidecar to include
 `recording.published`, `publication.feed`, `publication.entry_id`, and
 `publication.mime_type`, and it requires the published audio file to exist. It
 does not generate or modify the feed XML file.
+
+`record validate-publication` checks an existing recording sidecar in project
+context. It validates the referenced master file, publication-copy file,
+required publication fields, project-relative feed path, and MIME shape.
+
+`record validate-feed-entry` checks a prepared feed-entry sidecar in project
+context. It validates required entry and enclosure fields, verifies referenced
+recording metadata and enclosure audio exist, checks that feed-entry values
+match the recording sidecar's publication fields, and reports duplicate feed
+entry IDs in `feeds/entries/`.
 
 The `record` command owns recording metadata creation and inspection. The
 `listen` command can list playable recording metadata, but it does not play

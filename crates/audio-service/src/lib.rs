@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 use waystone_audio_metadata::{
     attach_recording, list_recordings, load_audio_metadata, prepare_feed_entry,
-    validate_audio_metadata, AttachRecordingOptions, AttachedRecording, AudioMetadata,
-    AudioMetadataError, PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary,
-    ValidationReport,
+    validate_audio_metadata, validate_feed_entry, validate_publication_copy,
+    AttachRecordingOptions, AttachedRecording, AudioMetadata, AudioMetadataError,
+    PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary, ValidateFeedEntryOptions,
+    ValidatePublicationOptions, ValidationReport,
 };
 
 #[derive(Debug, Default)]
@@ -43,6 +44,18 @@ pub struct PrepareFeedEntryRequest {
     pub recording_metadata_path: PathBuf,
     pub updated: String,
     pub summary: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidatePublicationRequest {
+    pub project_root: PathBuf,
+    pub recording_metadata_path: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidateFeedEntryRequest {
+    pub project_root: PathBuf,
+    pub feed_entry_path: PathBuf,
 }
 
 impl AudioService {
@@ -93,6 +106,26 @@ impl AudioService {
             recording_metadata_path: request.recording_metadata_path,
             updated: request.updated,
             summary: request.summary,
+        })
+    }
+
+    pub fn validate_publication(
+        &self,
+        request: ValidatePublicationRequest,
+    ) -> Result<ValidationReport, AudioMetadataError> {
+        validate_publication_copy(&ValidatePublicationOptions {
+            project_root: request.project_root,
+            recording_metadata_path: request.recording_metadata_path,
+        })
+    }
+
+    pub fn validate_feed_entry(
+        &self,
+        request: ValidateFeedEntryRequest,
+    ) -> Result<ValidationReport, AudioMetadataError> {
+        validate_feed_entry(&ValidateFeedEntryOptions {
+            project_root: request.project_root,
+            feed_entry_path: request.feed_entry_path,
         })
     }
 }
@@ -175,8 +208,10 @@ mod tests {
             std::process::id()
         ));
         let project = root.join("audio-project.wayproject");
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
         fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
         fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
         fs::write(project.join("audio/published/note.opus"), b"published").expect("published file");
         let metadata_path = project.join("audio/metadata/note.toml");
         fs::write(
@@ -207,6 +242,22 @@ mime_type = "audio/ogg; codecs=opus"
 
         assert_eq!(prepared.output_relative_path, "feeds/entries/note.toml");
         assert!(prepared.output_path.is_file());
+
+        let publication_report = service
+            .validate_publication(ValidatePublicationRequest {
+                project_root: project.clone(),
+                recording_metadata_path: project.join("audio/metadata/note.toml"),
+            })
+            .expect("publication should validate");
+        assert!(publication_report.valid, "{publication_report:#?}");
+
+        let feed_report = service
+            .validate_feed_entry(ValidateFeedEntryRequest {
+                project_root: project,
+                feed_entry_path: prepared.output_path,
+            })
+            .expect("feed entry should validate");
+        assert!(feed_report.valid, "{feed_report:#?}");
 
         let _ = fs::remove_dir_all(root);
     }

@@ -121,6 +121,67 @@ title = "Attach Audio"
     assert!(feed_entry.contains("[enclosure]"));
     assert!(feed_entry.contains("path = \"audio/published/field-note.opus\""));
 
+    let publication_validation = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "validate-publication",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(publication_validation.status.code(), Some(0));
+    let publication_stdout = String::from_utf8_lossy(&publication_validation.stdout);
+    assert!(publication_stdout.contains("\"valid\":true"));
+
+    let feed_validation = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "validate-feed-entry",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(feed_validation.status.code(), Some(0));
+    let feed_validation_stdout = String::from_utf8_lossy(&feed_validation.stdout);
+    assert!(feed_validation_stdout.contains("\"valid\":true"));
+
+    fs::write(
+        project.join("feeds/entries/duplicate.toml"),
+        r#"[entry]
+id = "tag:example.invalid,2026:field-note"
+title = "Duplicate"
+updated = "2026-07-19T00:00:00Z"
+summary = "Duplicate summary"
+feed = "feeds/feed.xml"
+recording = "field-note"
+recording_metadata = "audio/metadata/field-note.toml"
+
+[enclosure]
+path = "audio/published/field-note.opus"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+    )
+    .expect("duplicate feed entry sidecar");
+
+    let duplicate_feed_validation = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "validate-feed-entry",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(duplicate_feed_validation.status.code(), Some(3));
+    let duplicate_feed_validation_stdout =
+        String::from_utf8_lossy(&duplicate_feed_validation.stdout);
+    assert!(duplicate_feed_validation_stdout.contains("duplicate_feed_entry_id"));
+
     let duplicate_feed_output = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([
             "prepare-feed-entry",
@@ -156,6 +217,73 @@ title = "Attach Audio"
     assert_eq!(duplicate.status.code(), Some(1));
     let duplicate_stdout = String::from_utf8_lossy(&duplicate.stdout);
     assert!(duplicate_stdout.contains("already exists"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn validate_publication_rejects_missing_published_audio() {
+    let root = std::env::temp_dir().join(format!(
+        "waystone-record-cli-missing-published-{}",
+        process::id()
+    ));
+    let project = root.join("missing-published.wayproject");
+    let _ = fs::remove_dir_all(&root);
+
+    fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+    fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+    fs::write(
+        project.join("project.toml"),
+        r#"[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "missing-published"
+name = "Missing Published"
+type = "audio-series"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[audio]
+masters = "audio/masters"
+published = "audio/published"
+metadata = "audio/metadata"
+"#,
+    )
+    .expect("project manifest");
+    fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+    fs::write(
+        project.join("audio/metadata/note.toml"),
+        r#"[recording]
+id = "note"
+title = "Note"
+master = "audio/masters/note.flac"
+published = "audio/published/missing.opus"
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:note"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+    )
+    .expect("recording metadata");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "validate-publication",
+            "--json",
+            project.to_str().expect("project path"),
+            "note",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("missing_published_audio"));
 
     let _ = fs::remove_dir_all(root);
 }

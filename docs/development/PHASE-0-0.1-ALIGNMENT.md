@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after feed-entry metadata preparation
+Status: current after audio publication handoff validation
 Date: 2026-07-19
 
 This document records the deliberate alignment check between the Phase 0
@@ -40,8 +40,10 @@ repo can now create audio-capable project scaffolds for `audio-series` and
 `mixed-publication`, create an audio metadata sidecar that attaches an existing
 master and publication copy to a project, record feed enclosure handoff fields,
 prepare a feed-entry sidecar under `feeds/entries/`, and expose attachment in
-the Qt Create pane. It still does not record audio, export Opus, generate feed
-files, update existing feed XML, or merge-update existing audio metadata.
+the Qt Create pane. It also validates publication-copy and feed-entry handoff
+metadata in project context. It still does not record audio, export Opus,
+generate feed files, update existing feed XML, or merge-update existing audio
+metadata.
 
 ## Phase 0 Alignment
 
@@ -70,7 +72,7 @@ or approved scope changes.
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run scope | Dry-run plans, blocked states, planned history generation, saved preview records, and Publish-pane inspection exist. Remote comparison, transfer, verification, and completed history are not implemented. |
-| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, feed-entry metadata sidecars, validation, local sidecar attachment, Qt Create-pane attachment controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, metadata replacement, and feed XML generation are not implemented. |
+| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, feed-entry metadata sidecars, publication/feed-entry handoff validation, local sidecar attachment, Qt Create-pane attachment controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, metadata replacement, and feed XML generation are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
 
@@ -85,16 +87,16 @@ Version 0.1 scope defines this local flow:
 | Preview locally | Implemented as local Create-pane preview and link validation |
 | Record or attach an audio file | Attach is implemented for existing local master/publication-copy files through metadata sidecar creation and exposed in the Qt Create pane; recording is not implemented |
 | Export an Opus publication copy | Not implemented; only existing published-copy paths are modeled |
-| Generate or update feed metadata | Partially implemented as create-only feed-entry sidecar preparation; full feed XML generation or update is not implemented |
+| Generate or update feed metadata | Partially implemented as create-only feed-entry sidecar preparation plus validation; full feed XML generation or update is not implemented |
 | Configure a host/destination | Partially implemented through examples, host/identity metadata, and removable targets |
 | Run publication validation | Partially implemented through project, audio, host, identity, and dry-run validation |
 | Perform a dry-run publish | Implemented for local plans without remote mutation |
 | Show publication history or planned transfer state | Implemented as planned history previews and saved preview records |
 
-The next useful 0.1 slice should deliberately choose between exposing the new
-feed-entry preparation in the Workspace UI or tightening the remaining local
-publication-copy validation path. It should still avoid real recording, codec
-export, packaging, installed services, remote transfer, and compositor work.
+The next useful 0.1 slice should expose feed-entry preparation and validation in
+the Workspace UI through the existing CLI adapter pattern. It should still avoid
+real recording, codec export, packaging, installed services, remote transfer,
+and compositor work.
 
 ## Deliberate Next Slice
 
@@ -126,6 +128,7 @@ Concrete deliverables should be small and inspectable:
   `mixed-publication` project creation.
 - Add create-only feed-entry sidecar preparation from existing recording
   metadata, while keeping full feed XML generation deferred.
+- Add local validation for publication-copy and feed-entry handoff metadata.
 
 ## Explicitly Still Deferred
 
