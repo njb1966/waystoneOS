@@ -1090,6 +1090,10 @@ QWidget *publishPage(const CliAdapter *adapter) {
     historySummary->setMaximumHeight(160);
     historyLayout->addWidget(historySummary);
     historyLayout->addWidget(new QLabel("Saved Preview Records", historyArea));
+    auto *savedPreviewFilter = new QLineEdit(historyArea);
+    savedPreviewFilter->setObjectName("publishSavedPreviewFilter");
+    savedPreviewFilter->setPlaceholderText("Filter saved previews");
+    historyLayout->addWidget(savedPreviewFilter);
     auto *savedPreviews = table({"Preview", "Modified", "Size", "Path"}, {});
     savedPreviews->setObjectName("publishSavedPreviewsTable");
     savedPreviews->setMaximumHeight(150);
@@ -1174,6 +1178,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
 
     auto refreshSavedPreviews = [=]() {
         const QString previousPreviewPath = selectedSavedPreviewPath();
+        const QString filterText = savedPreviewFilter->text().trimmed();
         int rowToSelect = 0;
         QSignalBlocker blocker(savedPreviews);
         savedPreviews->setRowCount(0);
@@ -1200,9 +1205,15 @@ QWidget *publishPage(const CliAdapter *adapter) {
             return;
         }
 
-        savedPreviews->setRowCount(previews.previews.size());
-        for (int row = 0; row < previews.previews.size(); ++row) {
-            const PlannedHistorySavedPreview &preview = previews.previews.at(row);
+        int row = 0;
+        for (const PlannedHistorySavedPreview &preview : previews.previews) {
+            if (!filterText.isEmpty() &&
+                !preview.filename.contains(filterText, Qt::CaseInsensitive) &&
+                !preview.path.contains(filterText, Qt::CaseInsensitive)) {
+                continue;
+            }
+
+            savedPreviews->setRowCount(row + 1);
             if (!previousPreviewPath.isEmpty() &&
                 QDir::cleanPath(preview.path) == QDir::cleanPath(previousPreviewPath)) {
                 rowToSelect = row;
@@ -1220,6 +1231,13 @@ QWidget *publishPage(const CliAdapter *adapter) {
             savedPreviews->setItem(
                 row, 2, new QTableWidgetItem(QString::number(preview.sizeBytes)));
             savedPreviews->setItem(row, 3, new QTableWidgetItem(preview.path));
+            ++row;
+        }
+        if (savedPreviews->rowCount() == 0) {
+            savedPreviewDetail->setPlainText("No saved previews match filter");
+            savedPreviewDetail->setProperty("recordToml", QString{});
+            updateHistoryComparison();
+            return;
         }
         savedPreviews->selectRow(rowToSelect);
         blocker.unblock();
@@ -1323,6 +1341,11 @@ QWidget *publishPage(const CliAdapter *adapter) {
     };
 
     QObject::connect(savePreview, &QPushButton::clicked, runSavePreview);
+
+    QObject::connect(savedPreviewFilter, &QLineEdit::textChanged,
+                     [=](const QString &) {
+                         refreshSavedPreviews();
+                     });
 
     QObject::connect(savedPreviews, &QTableWidget::currentCellChanged,
                      [=](int row, int, int, int) {

@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Publish-pane saved preview comparison aid
+Status: current after Publish-pane saved preview filter
 Date: 2026-07-19
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, and Publish-pane saved preview comparison aid.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, and Publish-pane saved preview filtering.
 
 ## Current Position
 
@@ -40,6 +40,7 @@ The Qt Workspace currently has:
 - Publish pane loads selected saved preview TOML through `publish --read-planned-history-preview --json`
 - Publish pane preserves the selected saved preview row across preview-list refreshes when that row still exists
 - Publish pane compares generated planned history against the selected saved preview and reports the first differing line
+- Publish pane filters saved previews by filename or path without reading outside the selected project
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
 - Local root configuration in `ui/workspace-qt/src/workspace_config.*`
@@ -78,7 +79,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after Publish-pane saved preview comparison aid pass: all passed on 2026-07-19.
+Result after Publish-pane saved preview filter pass: all passed on 2026-07-19.
 
 ## Important Boundaries
 
@@ -107,7 +108,7 @@ Result after Publish-pane saved preview comparison aid pass: all passed on 2026-
 
 Recommended next implementation step:
 
-1. Add a read-only publish history filter or compact saved-preview metadata view if the saved-preview list becomes noisy.
+1. Add a read-only compact publish overview for projects, such as a per-target status summary for the selected project.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 

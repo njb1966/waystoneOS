@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMainWindow>
 #include <QMenu>
@@ -209,6 +210,7 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
+    auto *savedPreviewFilter = page->findChild<QLineEdit *>("publishSavedPreviewFilter");
     auto *savedPreviews = page->findChild<QTableWidget *>("publishSavedPreviewsTable");
     auto *savedPreviewDetail =
         page->findChild<QPlainTextEdit *>("publishSavedPreviewDetail");
@@ -218,8 +220,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
         saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
-        savedPreviews == nullptr || savedPreviewDetail == nullptr ||
-        historyComparison == nullptr ||
+        savedPreviewFilter == nullptr || savedPreviews == nullptr ||
+        savedPreviewDetail == nullptr || historyComparison == nullptr ||
         history == nullptr || projects == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
@@ -351,6 +353,17 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !historyComparison->toPlainText().contains("Generated target: target = \"backup\"") ||
         !historyComparison->toPlainText().contains("Saved target: target = \"production\"")) {
         err << "workspace publish smoke: saved preview comparison did not report target drift"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    savedPreviewFilter->setText("backup");
+    QApplication::processEvents();
+    if (savedPreviews->rowCount() != 1 || savedPreviews->item(0, 0) == nullptr ||
+        !savedPreviews->item(0, 0)->text().contains("backup") ||
+        !savedPreviewDetail->toPlainText().contains("target = \"backup\"")) {
+        err << "workspace publish smoke: saved preview filter did not isolate backup"
             << Qt::endl;
         delete page;
         return 1;
