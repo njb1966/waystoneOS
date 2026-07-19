@@ -307,7 +307,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Add a small read-only Publish-pane project filter or project-list refinement if the configured project list becomes noisy.
+1. Add a read-only Create-pane content-file list or editor diagnostic refinement for the selected project.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

@@ -220,6 +220,7 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
+    auto *projectFilter = page->findChild<QLineEdit *>("publishProjectFilter");
     auto *savedPreviewFilter = page->findChild<QLineEdit *>("publishSavedPreviewFilter");
     auto *savedPreviews = page->findChild<QTableWidget *>("publishSavedPreviewsTable");
     auto *savedPreviewDetail =
@@ -231,10 +232,23 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *targetOverview = page->findChild<QTableWidget *>("publishTargetOverviewTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
         saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
-        savedPreviewFilter == nullptr || savedPreviews == nullptr ||
-        savedPreviewDetail == nullptr || historyComparison == nullptr ||
-        history == nullptr || projects == nullptr || targetOverview == nullptr) {
+        projectFilter == nullptr || savedPreviewFilter == nullptr ||
+        savedPreviews == nullptr || savedPreviewDetail == nullptr ||
+        historyComparison == nullptr || history == nullptr ||
+        projects == nullptr || targetOverview == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    projectFilter->setText("publish");
+    QApplication::processEvents();
+    if (projects->rowCount() != 1 || projects->item(0, 0) == nullptr ||
+        projects->item(0, 0)->text() != name ||
+        status->text() != "Preview: ready" ||
+        !plan->toPlainText().contains("Target: export")) {
+        err << "workspace publish smoke: project filter did not isolate publish project"
             << Qt::endl;
         delete page;
         return 1;

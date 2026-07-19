@@ -360,6 +360,20 @@ QString publishTargetSummary(const QStringList &targets) {
     return targets.isEmpty() ? "none" : targets.join(", ");
 }
 
+bool publishProjectMatchesFilter(const ProjectSummary &project,
+                                 const QStringList &targets,
+                                 const QString &filterText) {
+    if (filterText.isEmpty()) {
+        return true;
+    }
+
+    return project.name.contains(filterText, Qt::CaseInsensitive) ||
+           project.id.contains(filterText, Qt::CaseInsensitive) ||
+           project.type.contains(filterText, Qt::CaseInsensitive) ||
+           project.path.contains(filterText, Qt::CaseInsensitive) ||
+           publishTargetSummary(targets).contains(filterText, Qt::CaseInsensitive);
+}
+
 void setPublishTargetChoices(QComboBox *target, const QStringList &targets) {
     const bool wasBlocked = target->blockSignals(true);
     target->clear();
@@ -547,23 +561,32 @@ QString renderPlannedHistoryComparison(const QString &generatedToml,
 
 void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
                           QPlainTextEdit *plan, QLabel *status,
-                          const CliAdapter *adapter) {
+                          const CliAdapter *adapter,
+                          const QString &filterText = QString{}) {
     QString error;
     const QList<ProjectSummary> projects = adapter->listProjects(&error);
 
-    projectsTable->setRowCount(projects.size());
-    for (int row = 0; row < projects.size(); ++row) {
-        const ProjectSummary &project = projects.at(row);
+    projectsTable->setRowCount(0);
+    int visibleRow = 0;
+    const QString trimmedFilter = filterText.trimmed();
+    for (const ProjectSummary &project : projects) {
         QString targetError;
         const QStringList targets =
             adapter->projectPublishTargets(project.path, &targetError);
+        if (!publishProjectMatchesFilter(project, targets, trimmedFilter)) {
+            continue;
+        }
+
+        projectsTable->setRowCount(visibleRow + 1);
         auto *name = new QTableWidgetItem(project.name);
         name->setData(Qt::UserRole, project.path);
         name->setData(Qt::UserRole + 2, targets);
         name->setData(Qt::UserRole + 3, targetError);
-        projectsTable->setItem(row, 0, name);
-        projectsTable->setItem(row, 1, new QTableWidgetItem(publishTargetSummary(targets)));
-        projectsTable->setItem(row, 2, new QTableWidgetItem(project.path));
+        projectsTable->setItem(visibleRow, 0, name);
+        projectsTable->setItem(visibleRow, 1,
+                               new QTableWidgetItem(publishTargetSummary(targets)));
+        projectsTable->setItem(visibleRow, 2, new QTableWidgetItem(project.path));
+        ++visibleRow;
     }
 
     if (!error.isEmpty()) {
@@ -577,6 +600,13 @@ void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
         setPublishTargetChoices(target, {});
         status->setText("Preview: no project selected");
         plan->setPlainText("No projects found");
+        return;
+    }
+
+    if (projectsTable->rowCount() == 0) {
+        setPublishTargetChoices(target, {});
+        status->setText("Preview: no project selected");
+        plan->setPlainText("No projects match filter");
         return;
     }
 
@@ -597,8 +627,10 @@ void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
         plan->setPlainText("No publish target configured");
         return;
     }
+    const QString projectPath =
+        first == nullptr ? QString{} : first->data(Qt::UserRole).toString();
     const PublishPreview preview =
-        adapter->previewPublication(projects.at(0).path, selectedPublishTarget(target));
+        adapter->previewPublication(projectPath, selectedPublishTarget(target));
     status->setText(publishPreviewStatus(preview));
     plan->setPlainText(renderPublishPreview(preview));
 }
@@ -1107,6 +1139,11 @@ QWidget *publishPage(const CliAdapter *adapter) {
     toolbarLayout->addStretch();
     layout->addWidget(toolbar);
 
+    auto *projectFilter = new QLineEdit(page);
+    projectFilter->setObjectName("publishProjectFilter");
+    projectFilter->setPlaceholderText("Filter projects");
+    layout->addWidget(projectFilter);
+
     auto *projectsTable = table({"Project", "Targets", "Path"}, {});
     projectsTable->setObjectName("publishProjectsTable");
     layout->addWidget(projectsTable);
@@ -1368,11 +1405,24 @@ QWidget *publishPage(const CliAdapter *adapter) {
         updateHistoryComparison();
     };
 
-    QObject::connect(refresh, &QPushButton::clicked, [=]() {
-        populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
+    auto refreshPublishProjects = [=]() {
+        populatePublishTable(projectsTable, target, plan, previewStatus, adapter,
+                             projectFilter->text());
         refreshTargetOverview();
+        if (projectsTable->currentRow() < 0) {
+            historySummary->setPlainText("No planned history");
+            history->setPlainText("No planned history");
+            updateHistoryComparison();
+        }
         refreshSavedPreviews();
-    });
+    };
+
+    QObject::connect(refresh, &QPushButton::clicked, refreshPublishProjects);
+
+    QObject::connect(projectFilter, &QLineEdit::textChanged,
+                     [=](const QString &) {
+                         refreshPublishProjects();
+                     });
 
     QObject::connect(preview, &QPushButton::clicked, runPreview);
 
@@ -1482,7 +1532,8 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          runPreview();
                      });
 
-    populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
+    populatePublishTable(projectsTable, target, plan, previewStatus, adapter,
+                         projectFilter->text());
     refreshTargetOverview();
     return page;
 }

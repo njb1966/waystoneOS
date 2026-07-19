@@ -41,7 +41,7 @@ Current UI data is limited to:
 - local reads and writes of the selected project's content index file
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links
-- local Publish-pane target selection, ready/blocked preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering
+- local Publish-pane project filtering, target selection, ready/blocked preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 
