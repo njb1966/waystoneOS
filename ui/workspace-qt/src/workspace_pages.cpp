@@ -1422,6 +1422,23 @@ QWidget *publishPage(const CliAdapter *adapter) {
         runPreview();
     });
 
+    QObject::connect(targetOverview, &QTableWidget::currentCellChanged,
+                     [=](int row, int, int, int) {
+                         if (row < 0) {
+                             return;
+                         }
+                         auto *item = targetOverview->item(row, 0);
+                         if (item == nullptr) {
+                             return;
+                         }
+                         const QString targetName = item->text().trimmed();
+                         if (!targetName.isEmpty() &&
+                             target->findText(targetName) >= 0 &&
+                             selectedPublishTarget(target) != targetName) {
+                             target->setCurrentText(targetName);
+                         }
+                     });
+
     QObject::connect(projectsTable, &QTableWidget::currentCellChanged,
                      [=](int row, int, int, int) {
                          if (row < 0) {

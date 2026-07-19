@@ -300,6 +300,19 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         return 1;
     }
 
+    targetOverview->selectRow(backupOverviewRow);
+    QApplication::processEvents();
+    if (selector->currentText() != "backup" ||
+        status->text() != "Preview: ready" ||
+        !plan->toPlainText().contains("Target: backup") ||
+        !historySummary->toPlainText().contains("Target: backup") ||
+        !history->toPlainText().contains("target = \"backup\"")) {
+        err << "workspace publish smoke: target overview selection did not drive preview"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     selector->setCurrentText("backup");
     QApplication::processEvents();
     if (status->text() != "Preview: ready" ||
