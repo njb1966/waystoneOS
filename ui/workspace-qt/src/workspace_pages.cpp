@@ -252,8 +252,21 @@ QString contentRelativePath(const ProjectDocument &document, const QString &path
     return QDir(cleanRoot).relativeFilePath(cleanPath);
 }
 
+bool contentFileMatchesFilter(const ProjectDocument &document,
+                              const QFileInfo &file,
+                              const QString &filterText) {
+    if (filterText.isEmpty()) {
+        return true;
+    }
+
+    const QString relative = contentRelativePath(document, file.absoluteFilePath());
+    return relative.contains(filterText, Qt::CaseInsensitive) ||
+           file.absoluteFilePath().contains(filterText, Qt::CaseInsensitive);
+}
+
 void populateContentFiles(QTableWidget *contentFiles,
-                          const ProjectDocument &document) {
+                          const ProjectDocument &document,
+                          const QString &filterText = QString{}) {
     contentFiles->setRowCount(0);
     if (!document.ok || document.contentRootPath.isEmpty()) {
         return;
@@ -269,6 +282,13 @@ void populateContentFiles(QTableWidget *contentFiles,
             files.append(info);
         }
     }
+    const QString trimmedFilter = filterText.trimmed();
+    files.erase(std::remove_if(files.begin(), files.end(),
+                               [&](const QFileInfo &file) {
+                                   return !contentFileMatchesFilter(
+                                       document, file, trimmedFilter);
+                               }),
+                files.end());
     std::sort(files.begin(), files.end(), [](const QFileInfo &left,
                                              const QFileInfo &right) {
         return left.absoluteFilePath() < right.absoluteFilePath();
@@ -943,6 +963,11 @@ QWidget *createPage(const CliAdapter *adapter) {
     contentSplitter->setStretchFactor(1, 1);
     authorLayout->addWidget(contentSplitter, 1);
 
+    auto *contentFileFilter = new QLineEdit(authorArea);
+    contentFileFilter->setObjectName("createContentFileFilter");
+    contentFileFilter->setPlaceholderText("Filter content files");
+    authorLayout->addWidget(contentFileFilter);
+
     auto *contentFiles =
         table({"File", "Size", "Path"}, {});
     contentFiles->setObjectName("createContentFilesTable");
@@ -1012,7 +1037,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         contentStatus->setText("Loaded: " + currentDocument->title);
         editor->setPlainText(currentDocument->text);
         preview->setHtml(renderGemtextPreview(currentDocument->text));
-        populateContentFiles(contentFiles, *currentDocument);
+        populateContentFiles(contentFiles, *currentDocument, contentFileFilter->text());
         linkDetails->setPlainText(
             renderGemtextLinkValidation(*currentDocument, currentDocument->text));
         saveContent->setEnabled(true);
@@ -1130,7 +1155,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         }
 
         currentDocument->text = editor->toPlainText();
-        populateContentFiles(contentFiles, *currentDocument);
+        populateContentFiles(contentFiles, *currentDocument, contentFileFilter->text());
         const QString validation =
             adapter->projectValidationState(currentDocument->projectPath);
         contentStatus->setText("Saved: " + currentDocument->contentPath +
@@ -1139,6 +1164,12 @@ QWidget *createPage(const CliAdapter *adapter) {
             adapter->inspectProject(currentDocument->projectPath) +
             "\n\nValidation: " + validation);
     });
+
+    QObject::connect(contentFileFilter, &QLineEdit::textChanged,
+                     [=](const QString &) {
+                         populateContentFiles(contentFiles, *currentDocument,
+                                              contentFileFilter->text());
+                     });
 
     QObject::connect(recordingsTable, &QTableWidget::currentCellChanged,
                      [=](int row, int, int, int) {

@@ -158,6 +158,16 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
         return 1;
     }
 
+    QFile extraContent(QDir(document.contentRootPath).filePath("notes.gmi"));
+    if (!extraContent.open(QIODevice::WriteOnly | QIODevice::Text |
+                           QIODevice::Truncate)) {
+        err << "workspace project smoke: extra content file could not be created"
+            << Qt::endl;
+        return 1;
+    }
+    extraContent.write("# Notes\n");
+    extraContent.close();
+
     const QString validation = adapter.projectValidationState(created.projectPath);
     if (validation != "valid") {
         err << "workspace project smoke: validation returned " << validation
@@ -167,14 +177,25 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
 
     QWidget *page = createPage(&adapter);
     QApplication::processEvents();
+    auto *contentFileFilter = page->findChild<QLineEdit *>("createContentFileFilter");
     auto *contentFiles = page->findChild<QTableWidget *>("createContentFilesTable");
     const int contentIndexRow =
         contentFiles == nullptr ? -1 : tableRowWithText(contentFiles, 0, "index.gmi");
-    if (contentFiles == nullptr || contentIndexRow < 0 ||
+    if (contentFileFilter == nullptr || contentFiles == nullptr ||
+        contentFiles->rowCount() < 2 || contentIndexRow < 0 ||
         contentFiles->item(contentIndexRow, 2) == nullptr ||
         QDir::cleanPath(contentFiles->item(contentIndexRow, 2)->text()) !=
             QDir::cleanPath(document.contentPath)) {
         err << "workspace project smoke: content file list did not include index.gmi"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    contentFileFilter->setText("index");
+    QApplication::processEvents();
+    if (contentFiles->rowCount() != 1 || contentFiles->item(0, 0) == nullptr ||
+        contentFiles->item(0, 0)->text() != "index.gmi") {
+        err << "workspace project smoke: content file filter did not isolate index.gmi"
             << Qt::endl;
         delete page;
         return 1;
