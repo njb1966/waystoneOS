@@ -179,10 +179,15 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
     QApplication::processEvents();
     auto *contentFileFilter = page->findChild<QLineEdit *>("createContentFileFilter");
     auto *contentFiles = page->findChild<QTableWidget *>("createContentFilesTable");
+    auto *contentFileDetail =
+        page->findChild<QPlainTextEdit *>("createContentFileDetail");
     const int contentIndexRow =
         contentFiles == nullptr ? -1 : tableRowWithText(contentFiles, 0, "index.gmi");
+    const int notesRow =
+        contentFiles == nullptr ? -1 : tableRowWithText(contentFiles, 0, "notes.gmi");
     if (contentFileFilter == nullptr || contentFiles == nullptr ||
-        contentFiles->rowCount() < 2 || contentIndexRow < 0 ||
+        contentFileDetail == nullptr || contentFiles->rowCount() < 2 ||
+        contentIndexRow < 0 || notesRow < 0 ||
         contentFiles->item(contentIndexRow, 2) == nullptr ||
         QDir::cleanPath(contentFiles->item(contentIndexRow, 2)->text()) !=
             QDir::cleanPath(document.contentPath)) {
@@ -191,10 +196,21 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
         delete page;
         return 1;
     }
+    contentFiles->selectRow(notesRow);
+    QApplication::processEvents();
+    if (!contentFileDetail->toPlainText().contains("File: notes.gmi") ||
+        !contentFileDetail->toPlainText().contains("Editable index: no")) {
+        err << "workspace project smoke: content file detail did not describe notes.gmi"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
     contentFileFilter->setText("index");
     QApplication::processEvents();
     if (contentFiles->rowCount() != 1 || contentFiles->item(0, 0) == nullptr ||
-        contentFiles->item(0, 0)->text() != "index.gmi") {
+        contentFiles->item(0, 0)->text() != "index.gmi" ||
+        !contentFileDetail->toPlainText().contains("File: index.gmi") ||
+        !contentFileDetail->toPlainText().contains("Editable index: yes")) {
         err << "workspace project smoke: content file filter did not isolate index.gmi"
             << Qt::endl;
         delete page;

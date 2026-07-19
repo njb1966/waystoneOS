@@ -306,6 +306,31 @@ void populateContentFiles(QTableWidget *contentFiles,
     }
 }
 
+QString renderContentFileDetail(const ProjectDocument &document,
+                                const QString &path) {
+    if (!document.ok || path.isEmpty()) {
+        return "No content file selected";
+    }
+
+    const QFileInfo file(path);
+    if (!file.exists() || !pathIsInsideRoot(file.absoluteFilePath(),
+                                            document.contentRootPath)) {
+        return "Content file detail unavailable";
+    }
+
+    const QString relative = contentRelativePath(document, file.absoluteFilePath());
+    const bool editableIndex =
+        QDir::cleanPath(file.absoluteFilePath()) ==
+        QDir::cleanPath(document.contentPath);
+
+    QString text;
+    text += "File: " + relative + "\n";
+    text += "Path: " + file.absoluteFilePath() + "\n";
+    text += QString("Size: %1 bytes\n").arg(file.size());
+    text += "Editable index: " + QString(editableIndex ? "yes" : "no");
+    return text;
+}
+
 QWidget *rootEditorRow(QWidget *parent, const QString &label, QLineEdit *edit) {
     auto *row = new QWidget(parent);
     auto *layout = new QHBoxLayout(row);
@@ -974,6 +999,13 @@ QWidget *createPage(const CliAdapter *adapter) {
     contentFiles->setMaximumHeight(120);
     authorLayout->addWidget(contentFiles);
 
+    auto *contentFileDetail = new QPlainTextEdit(authorArea);
+    contentFileDetail->setObjectName("createContentFileDetail");
+    contentFileDetail->setReadOnly(true);
+    contentFileDetail->setMaximumHeight(88);
+    contentFileDetail->setPlainText("No content file selected");
+    authorLayout->addWidget(contentFileDetail);
+
     auto *contentStatus = new QLabel("Content: idle", authorArea);
     contentStatus->setWordWrap(true);
     authorLayout->addWidget(contentStatus);
@@ -1018,6 +1050,33 @@ QWidget *createPage(const CliAdapter *adapter) {
     splitter->setStretchFactor(2, 1);
     layout->addWidget(splitter, 1);
 
+    auto loadContentFileDetail = [=](int row) {
+        if (row < 0) {
+            contentFileDetail->setPlainText("No content file selected");
+            return;
+        }
+        auto *item = contentFiles->item(row, 0);
+        if (item == nullptr) {
+            contentFileDetail->setPlainText("No content file selected");
+            return;
+        }
+
+        contentFileDetail->setPlainText(renderContentFileDetail(
+            *currentDocument, item->data(Qt::UserRole).toString()));
+    };
+
+    auto refreshContentFiles = [=]() {
+        populateContentFiles(contentFiles, *currentDocument,
+                             contentFileFilter->text());
+        if (contentFiles->rowCount() == 0) {
+            contentFileDetail->setPlainText("No content files match filter");
+            return;
+        }
+
+        contentFiles->selectRow(0);
+        loadContentFileDetail(0);
+    };
+
     auto loadProjectContent = [=](const QString &path) {
         *currentDocument = adapter->loadProjectDocument(path);
         if (!currentDocument->ok) {
@@ -1026,6 +1085,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             editor->clear();
             preview->setHtml(renderGemtextPreview(""));
             contentFiles->setRowCount(0);
+            contentFileDetail->setPlainText("No content file selected");
             linkDetails->setPlainText("Links: no project content loaded");
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
@@ -1037,7 +1097,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         contentStatus->setText("Loaded: " + currentDocument->title);
         editor->setPlainText(currentDocument->text);
         preview->setHtml(renderGemtextPreview(currentDocument->text));
-        populateContentFiles(contentFiles, *currentDocument, contentFileFilter->text());
+        refreshContentFiles();
         linkDetails->setPlainText(
             renderGemtextLinkValidation(*currentDocument, currentDocument->text));
         saveContent->setEnabled(true);
@@ -1155,7 +1215,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         }
 
         currentDocument->text = editor->toPlainText();
-        populateContentFiles(contentFiles, *currentDocument, contentFileFilter->text());
+        refreshContentFiles();
         const QString validation =
             adapter->projectValidationState(currentDocument->projectPath);
         contentStatus->setText("Saved: " + currentDocument->contentPath +
@@ -1167,8 +1227,12 @@ QWidget *createPage(const CliAdapter *adapter) {
 
     QObject::connect(contentFileFilter, &QLineEdit::textChanged,
                      [=](const QString &) {
-                         populateContentFiles(contentFiles, *currentDocument,
-                                              contentFileFilter->text());
+                         refreshContentFiles();
+                     });
+
+    QObject::connect(contentFiles, &QTableWidget::currentCellChanged,
+                     [=](int row, int, int, int) {
+                         loadContentFileDetail(row);
                      });
 
     QObject::connect(recordingsTable, &QTableWidget::currentCellChanged,
