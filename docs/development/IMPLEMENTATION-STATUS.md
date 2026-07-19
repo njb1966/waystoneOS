@@ -4,6 +4,10 @@ Status: Current as of 2026-07-19
 
 This file records what exists in the repository now. It should be updated whenever a planning contract becomes implementation.
 
+Current alignment marker:
+
+- [PHASE-0-0.1-ALIGNMENT.md](PHASE-0-0.1-ALIGNMENT.md)
+
 ## Current Implementation
 
 The repository now contains a minimal Rust workspace:

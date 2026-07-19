@@ -1,13 +1,15 @@
 # WaystoneOS Checkpoint
 
-Status: current after Create-pane content file detail
+Status: current after Phase 0/0.1 alignment audit
 Date: 2026-07-19
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, and Publish-pane project filtering.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, and the Phase 0/0.1 alignment audit.
 
 ## Current Position
 
 WaystoneOS is in early OS implementation after the Phase 0 charter and architecture decision register.
+
+The current alignment marker is [PHASE-0-0.1-ALIGNMENT.md](PHASE-0-0.1-ALIGNMENT.md).
 
 The current system is a local-first development preview made of:
 
@@ -114,10 +116,10 @@ Result after Create-pane content file detail pass: all passed on 2026-07-19.
 
 Recommended next implementation step:
 
-1. Review current Phase 0/0.1 alignment and choose the next implementation slice deliberately.
+1. Implement the local-only audio publication attachment and feed handoff slice identified by the Phase 0/0.1 alignment audit.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Add another small Publish-pane empty-state refinement before shifting back to Create-pane authoring workflow.
+- Tighten service/CLI contract parity before exposing the audio attachment workflow in the Qt Create pane.
