@@ -24,6 +24,7 @@ Current UI data is limited to:
 - `publish --dry-run --json`
 - `publish --planned-history --json`
 - `publish --save-planned-history-preview --json`
+- `publish --list-planned-history-previews --json`
 - `host list --json`
 - `host inspect --json`
 - `host validate --json`
@@ -39,7 +40,7 @@ Current UI data is limited to:
 - local reads and writes of the selected project's content index file
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links
-- local Publish-pane target selection, ready/blocked preview status, planned history file-action summary, raw planned history preview, and project-local planned preview save
+- local Publish-pane target selection, ready/blocked preview status, planned history file-action summary, raw planned history preview, project-local planned preview save, and saved-preview listing
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 

@@ -85,6 +85,20 @@ struct PlannedHistorySaveResult {
     QString error;
 };
 
+struct PlannedHistorySavedPreview {
+    QString path;
+    QString filename;
+    qint64 modifiedUnix = 0;
+    qint64 sizeBytes = 0;
+};
+
+struct PlannedHistorySavedPreviewList {
+    bool ok = false;
+    QString projectPath;
+    QList<PlannedHistorySavedPreview> previews;
+    QString error;
+};
+
 struct HostSummary {
     QString id;
     QString displayName;
@@ -130,6 +144,8 @@ public:
                                                     const QString &date) const;
     PlannedHistorySaveResult savePlannedPublicationHistoryPreview(
         const QString &path, const QString &target, const QString &date) const;
+    PlannedHistorySavedPreviewList listPlannedPublicationHistoryPreviews(
+        const QString &path) const;
     QList<HostSummary> listHosts(QString *error) const;
     QString inspectHost(const QString &path) const;
     QString hostValidationState(const QString &path) const;

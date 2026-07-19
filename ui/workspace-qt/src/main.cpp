@@ -209,11 +209,12 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
+    auto *savedPreviews = page->findChild<QPlainTextEdit *>("publishSavedPreviews");
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
-        saveStatus == nullptr || plan == nullptr || historySummary == nullptr || history == nullptr ||
-        projects == nullptr) {
+        saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
+        savedPreviews == nullptr || history == nullptr || projects == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
         delete page;
@@ -299,6 +300,13 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !QDir::cleanPath(savedPath).startsWith(
             QDir::cleanPath(created.projectPath + "/history/previews/"))) {
         err << "workspace publish smoke: saved preview path was outside project"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    const QString savedFilename = QFileInfo(savedPath).fileName();
+    if (!savedPreviews->toPlainText().contains(savedFilename)) {
+        err << "workspace publish smoke: saved preview was not listed"
             << Qt::endl;
         delete page;
         return 1;

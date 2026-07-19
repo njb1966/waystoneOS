@@ -130,3 +130,49 @@ fn save_planned_history_preview_writes_under_project_history_previews() {
         .expect("saved preview should be readable")
         .contains("transfer_result = \"planned\""));
 }
+
+#[test]
+fn list_planned_history_previews_reports_saved_previews() {
+    let project_root = unique_temp_project_root("history-preview-list");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+
+    let save_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--save-planned-history-preview",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--target",
+            "production",
+            "--date",
+            "2026-07-19T00:00:00Z",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+    assert!(save_output.status.success());
+
+    let list_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--list-planned-history-previews",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(list_output.status.success());
+    let stdout = String::from_utf8_lossy(&list_output.stdout);
+    assert!(stdout.contains("\"previews\":["));
+    assert!(stdout.contains("\"filename\":\"2026-07-19T00-00-00Z-production-planned.toml\""));
+    assert!(stdout.contains("\"modified_unix\":"));
+    assert!(stdout.contains("\"size_bytes\":"));
+    assert!(stdout.contains("history/previews"));
+}

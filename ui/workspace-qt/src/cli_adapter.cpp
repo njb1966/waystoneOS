@@ -466,6 +466,49 @@ PlannedHistorySaveResult CliAdapter::savePlannedPublicationHistoryPreview(
     return saved;
 }
 
+PlannedHistorySavedPreviewList
+CliAdapter::listPlannedPublicationHistoryPreviews(const QString &path) const {
+    const CommandResult result =
+        runCommand("publish",
+                   {"--list-planned-history-previews", "--project", path, "--json"});
+
+    PlannedHistorySavedPreviewList list;
+    if (!result.error.isEmpty()) {
+        list.error = result.error;
+        return list;
+    }
+
+    if (result.exitCode != 0) {
+        list.error =
+            commandFailureDetail(result, "publish list planned-history previews failed");
+        return list;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        list.error = "publish list planned-history previews returned unreadable JSON";
+        return list;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    list.ok = true;
+    list.projectPath = data.value("project_path").toString();
+
+    const QJsonArray previews = data.value("previews").toArray();
+    for (const auto &item : previews) {
+        const QJsonObject object = item.toObject();
+        PlannedHistorySavedPreview preview;
+        preview.path = object.value("path").toString();
+        preview.filename = object.value("filename").toString();
+        preview.modifiedUnix = object.value("modified_unix").toInteger();
+        preview.sizeBytes = object.value("size_bytes").toInteger();
+        list.previews.append(preview);
+    }
+
+    return list;
+}
+
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
     if (rootMissing(config_.hostsRoot, "hosts", error)) {
         return {};

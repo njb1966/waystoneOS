@@ -138,7 +138,8 @@ ListPublicationHistory
 ```
 
 Current implementation is limited to non-mutating preview, planned-history
-generation, and local planned-preview saves under project `history/previews/`.
+generation, local planned-preview saves under project `history/previews/`, and
+read-only saved-preview listing from that project-local directory.
 It does not compare remote state, perform transfers, delete files, unlock
 credentials, verify remote results, or write completed history records.
 

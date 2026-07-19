@@ -1,6 +1,7 @@
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 use waystone_publish_plan::PublishDryRun;
 
 pub const HISTORY_SCHEMA: u32 = 1;
@@ -30,6 +31,14 @@ pub struct PublicationFile {
 pub struct RollbackInfo {
     pub available: bool,
     pub notes: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PlannedHistoryPreviewEntry {
+    pub path: PathBuf,
+    pub filename: String,
+    pub modified_unix: u64,
+    pub size_bytes: u64,
 }
 
 impl PublicationHistoryRecord {
@@ -133,6 +142,48 @@ pub fn write_planned_history_preview(
     fs::write(&temp_path, record.to_toml())?;
     fs::rename(&temp_path, &output_path)?;
     Ok(output_path)
+}
+
+pub fn list_planned_history_previews(
+    project_root: impl AsRef<Path>,
+) -> io::Result<Vec<PlannedHistoryPreviewEntry>> {
+    let preview_dir = project_root.as_ref().join("history").join("previews");
+    if !preview_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut previews = Vec::new();
+    for entry in fs::read_dir(preview_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = entry.metadata()?;
+        if !metadata.is_file() || path.extension().and_then(|value| value.to_str()) != Some("toml")
+        {
+            continue;
+        }
+
+        let modified_unix = metadata
+            .modified()
+            .ok()
+            .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+            .map(|duration| duration.as_secs())
+            .unwrap_or(0);
+
+        previews.push(PlannedHistoryPreviewEntry {
+            filename: entry.file_name().to_string_lossy().to_string(),
+            path,
+            modified_unix,
+            size_bytes: metadata.len(),
+        });
+    }
+
+    previews.sort_by(|left, right| {
+        right
+            .modified_unix
+            .cmp(&left.modified_unix)
+            .then_with(|| left.filename.cmp(&right.filename))
+    });
+    Ok(previews)
 }
 
 fn safe_filename_segment(value: &str) -> String {
@@ -250,5 +301,33 @@ mod tests {
         assert!(fs::read_to_string(output)
             .expect("preview should be readable")
             .contains("transfer_result = \"planned\""));
+    }
+
+    #[test]
+    fn lists_planned_history_previews_under_project_history_previews() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-history-preview-list-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be available")
+                .as_nanos()
+        ));
+        let previews_dir = root.join("history").join("previews");
+        fs::create_dir_all(&previews_dir).expect("preview directory should be created");
+        fs::write(
+            previews_dir.join("2026-07-19T00-00-00Z-export-planned.toml"),
+            "one",
+        )
+        .expect("preview should be written");
+        fs::write(previews_dir.join("ignore.tmp"), "two").expect("tmp should be written");
+
+        let previews = list_planned_history_previews(&root).expect("previews should list");
+        assert_eq!(previews.len(), 1);
+        assert_eq!(
+            previews[0].filename,
+            "2026-07-19T00-00-00Z-export-planned.toml"
+        );
+        assert!(previews[0].path.starts_with(previews_dir));
+        assert_eq!(previews[0].size_bytes, 3);
     }
 }

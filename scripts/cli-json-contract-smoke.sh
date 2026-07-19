@@ -86,6 +86,17 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
     require(output_path.exists(), "publish save planned-history preview did not write output")
     require((temp_project / "history" / "previews") in output_path.parents,
             "publish save planned-history preview escaped project previews directory")
+    listed_history = run([
+        "target/debug/publish", "--list-planned-history-previews",
+        "--project", str(temp_project), "--json"
+    ])
+    require({"project_path", "previews"} <= listed_history["data"].keys(),
+            "publish list planned-history previews contract changed")
+    require(listed_history["data"]["previews"],
+            "publish list planned-history previews did not report saved output")
+    require({"path", "filename", "modified_unix", "size_bytes"}
+            <= listed_history["data"]["previews"][0].keys(),
+            "publish list planned-history preview item contract changed")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]

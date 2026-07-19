@@ -204,6 +204,7 @@ project validate
 publish --dry-run
 publish --planned-history
 publish --save-planned-history-preview
+publish --list-planned-history-previews
 host list
 host inspect
 identity list

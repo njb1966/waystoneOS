@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Publish-pane planned history preview export
+Status: current after Publish-pane saved preview listing
 Date: 2026-07-19
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, and Publish-pane planned history preview export.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, and Publish-pane saved preview listing.
 
 ## Current Position
 
@@ -36,6 +36,7 @@ The Qt Workspace currently has:
 - Publish pane previews selected local projects through `publish --dry-run --json`, including newly created removable export targets
 - Publish pane previews planned publication history records through `publish --planned-history --json`, including file-action grouping, without writing completed history
 - Publish pane can save planned history previews under the selected project `history/previews/` directory through `publish --save-planned-history-preview --json`
+- Publish pane lists saved planned history previews for the selected project through `publish --list-planned-history-previews --json`
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
 - Local root configuration in `ui/workspace-qt/src/workspace_config.*`
@@ -47,7 +48,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, and saves planned history preview records under selected project `history/previews/` directories only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, and lists those saved preview records only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 ## Verification Marker
 
@@ -74,7 +75,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after Publish-pane planned history preview export pass: all passed on 2026-07-19.
+Result after Publish-pane saved preview listing pass: all passed on 2026-07-19.
 
 ## Important Boundaries
 
@@ -103,7 +104,7 @@ Result after Publish-pane planned history preview export pass: all passed on 202
 
 Recommended next implementation step:
 
-1. Refine Publish-pane saved-preview discoverability, such as listing saved preview records for the selected project.
+1. Add saved-preview detail loading for a selected preview record, still read-only and project-local.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 

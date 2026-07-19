@@ -466,6 +466,34 @@ QString renderPlannedHistorySummary(const PlannedHistoryPreview &history) {
     return text;
 }
 
+QString renderSavedPlannedHistoryPreviews(
+    const PlannedHistorySavedPreviewList &previews) {
+    if (!previews.ok) {
+        return "Saved previews failed\n" + previews.error;
+    }
+
+    if (previews.previews.isEmpty()) {
+        return "No saved previews";
+    }
+
+    QString text;
+    text += "Project: " + previews.projectPath + "\n\n";
+    for (const auto &preview : previews.previews) {
+        const QString modified =
+            preview.modifiedUnix > 0
+                ? QDateTime::fromSecsSinceEpoch(preview.modifiedUnix)
+                      .toLocalTime()
+                      .toString(Qt::ISODate)
+                : "unknown";
+        text += preview.filename + "\n";
+        text += QString("  Modified: %1\n").arg(modified);
+        text += QString("  Size: %1 bytes\n").arg(preview.sizeBytes);
+        text += "  Path: " + preview.path + "\n\n";
+    }
+
+    return text.trimmed();
+}
+
 void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
                           QPlainTextEdit *plan, QLabel *status,
                           const CliAdapter *adapter) {
@@ -1018,6 +1046,12 @@ QWidget *publishPage(const CliAdapter *adapter) {
     historySummary->setReadOnly(true);
     historySummary->setMaximumHeight(160);
     historyLayout->addWidget(historySummary);
+    historyLayout->addWidget(new QLabel("Saved Preview Records", historyArea));
+    auto *savedPreviews = new QPlainTextEdit(historyArea);
+    savedPreviews->setObjectName("publishSavedPreviews");
+    savedPreviews->setReadOnly(true);
+    savedPreviews->setMaximumHeight(140);
+    historyLayout->addWidget(savedPreviews);
     historyLayout->addWidget(new QLabel("Planned History Record", historyArea));
     auto *history = new QPlainTextEdit(historyArea);
     history->setObjectName("publishPlannedHistory");
@@ -1028,12 +1062,31 @@ QWidget *publishPage(const CliAdapter *adapter) {
     previewSplitter->setStretchFactor(1, 1);
     layout->addWidget(previewSplitter, 1);
 
+    auto refreshSavedPreviews = [=]() {
+        const int row = projectsTable->currentRow();
+        if (row < 0) {
+            savedPreviews->setPlainText("No saved previews");
+            return;
+        }
+        auto *item = projectsTable->item(row, 0);
+        if (item == nullptr) {
+            savedPreviews->setPlainText("No saved previews");
+            return;
+        }
+
+        const PlannedHistorySavedPreviewList previews =
+            adapter->listPlannedPublicationHistoryPreviews(
+                item->data(Qt::UserRole).toString());
+        savedPreviews->setPlainText(renderSavedPlannedHistoryPreviews(previews));
+    };
+
     auto runPreview = [=]() {
         const int row = projectsTable->currentRow();
         if (row < 0) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
             historySummary->setPlainText("No planned history");
+            savedPreviews->setPlainText("No saved previews");
             history->setPlainText("No planned history");
             return;
         }
@@ -1042,6 +1095,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
             historySummary->setPlainText("No planned history");
+            savedPreviews->setPlainText("No saved previews");
             history->setPlainText("No planned history");
             return;
         }
@@ -1051,9 +1105,11 @@ QWidget *publishPage(const CliAdapter *adapter) {
             previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
             historySummary->setPlainText("No planned history");
+            refreshSavedPreviews();
             history->setPlainText("No planned history");
             return;
         }
+        refreshSavedPreviews();
         const PublishPreview preview = adapter->previewPublication(path, targetName);
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
@@ -1075,6 +1131,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
         populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
+        refreshSavedPreviews();
     });
 
     QObject::connect(preview, &QPushButton::clicked, runPreview);
@@ -1106,6 +1163,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         }
 
         saveStatus->setText("Saved: " + saved.outputPath);
+        refreshSavedPreviews();
     };
 
     QObject::connect(savePreview, &QPushButton::clicked, runSavePreview);
@@ -1120,6 +1178,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
                              historySummary->setPlainText("No planned history");
+                             savedPreviews->setPlainText("No saved previews");
                              history->setPlainText("No planned history");
                              return;
                          }
@@ -1128,6 +1187,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
                              historySummary->setPlainText("No planned history");
+                             savedPreviews->setPlainText("No saved previews");
                              history->setPlainText("No planned history");
                              return;
                          }
@@ -1140,6 +1200,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              plan->setPlainText("Publish target inspection failed\n" +
                                                 targetError);
                              historySummary->setPlainText("No planned history");
+                             refreshSavedPreviews();
                              history->setPlainText("No planned history");
                              return;
                          }
