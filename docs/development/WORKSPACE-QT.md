@@ -106,7 +106,7 @@ To validate configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
-The binary also has a diagnostic smoke mode for project creation and content save behavior. Prefer the wrapper script below rather than invoking it by hand.
+The binary also has diagnostic smoke modes for project creation/content save behavior and Publish-pane target/status behavior. Prefer the wrapper script below rather than invoking them by hand.
 
 Example config:
 
@@ -134,13 +134,13 @@ scripts/workspace-qt-smoke.sh
 
 The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, user-config, missing-config fallback, and missing-root diagnostics.
 
-Focused project create/save smoke test:
+Focused project create/save and Publish-pane target/status smoke test:
 
 ```bash
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready and blocked preview status transitions without remote publication.
 
 CLI JSON contract smoke test:
 

@@ -4,16 +4,21 @@
 
 #include <QApplication>
 #include <QButtonGroup>
+#include <QComboBox>
 #include <QDir>
+#include <QFile>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QListWidget>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTableWidget>
 #include <QTextStream>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -52,6 +57,10 @@ bool smokeProjectCreateSave(const QApplication &app) {
     return app.arguments().contains("--smoke-project-create-save");
 }
 
+bool smokePublishTargetStatus(const QApplication &app) {
+    return app.arguments().contains("--smoke-publish-target-status");
+}
+
 QString optionValue(const QApplication &app, const QString &name) {
     const QStringList args = app.arguments();
     for (int index = 1; index + 1 < args.size(); ++index) {
@@ -60,6 +69,37 @@ QString optionValue(const QApplication &app, const QString &name) {
         }
     }
     return {};
+}
+
+bool appendBlockedPublishTarget(const QString &projectPath, QString *error) {
+    QFile manifest(QDir(projectPath).filePath("project.toml"));
+    if (!manifest.open(QIODevice::Append | QIODevice::Text)) {
+        if (error != nullptr) {
+            *error = "could not open project manifest for append";
+        }
+        return false;
+    }
+
+    QTextStream stream(&manifest);
+    stream << "\n";
+    stream << "[[publish.targets]]\n";
+    stream << "name = \"production\"\n";
+    stream << "method = \"rsync\"\n";
+    stream << "host = \"missing-host\"\n";
+    stream << "identity = \"missing-identity\"\n";
+    stream << "remote_path = \"/srv/gemini/smoke\"\n";
+    stream << "url = \"gemini://example.invalid\"\n";
+    stream << "delete_policy = \"confirm\"\n";
+    return true;
+}
+
+bool comboContains(const QComboBox *combo, const QString &value) {
+    for (int index = 0; index < combo->count(); ++index) {
+        if (combo->itemText(index) == value) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app) {
@@ -115,6 +155,124 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
 
     out << "workspace project smoke: created, targeted, saved, and validated "
         << created.projectPath << Qt::endl;
+    return 0;
+}
+
+int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &app) {
+    QTextStream out(stdout);
+    QTextStream err(stderr);
+
+    const QString id = optionValue(app, "--smoke-project-id");
+    const QString name = optionValue(app, "--smoke-project-name");
+    const QString type = optionValue(app, "--smoke-project-type");
+    if (id.isEmpty() || name.isEmpty() || type.isEmpty()) {
+        err << "workspace publish smoke: id, name, and type are required" << Qt::endl;
+        return 2;
+    }
+
+    const ProjectCreateResult created = adapter.createProject(id, name, type);
+    if (!created.ok) {
+        err << "workspace publish smoke: create failed: " << created.error << Qt::endl;
+        return 1;
+    }
+
+    const ProjectTargetResult exportTarget =
+        adapter.addRemovablePublishTarget(created.projectPath, "export", "publish/export");
+    if (!exportTarget.ok) {
+        err << "workspace publish smoke: export target failed: " << exportTarget.error
+            << Qt::endl;
+        return 1;
+    }
+
+    const ProjectTargetResult backupTarget =
+        adapter.addRemovablePublishTarget(created.projectPath, "backup", "publish/backup");
+    if (!backupTarget.ok) {
+        err << "workspace publish smoke: backup target failed: " << backupTarget.error
+            << Qt::endl;
+        return 1;
+    }
+
+    QString appendError;
+    if (!appendBlockedPublishTarget(created.projectPath, &appendError)) {
+        err << "workspace publish smoke: blocked target failed: " << appendError
+            << Qt::endl;
+        return 1;
+    }
+
+    QWidget *page = publishPage(&adapter);
+    QApplication::processEvents();
+
+    auto *selector = page->findChild<QComboBox *>("publishTargetSelector");
+    auto *status = page->findChild<QLabel *>("publishPreviewStatus");
+    auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
+    auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
+    if (selector == nullptr || status == nullptr || plan == nullptr ||
+        projects == nullptr) {
+        err << "workspace publish smoke: publish widgets were not discoverable"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    int projectRow = -1;
+    const QString createdPath = QDir::cleanPath(created.projectPath);
+    for (int row = 0; row < projects->rowCount(); ++row) {
+        auto *item = projects->item(row, 0);
+        if (item == nullptr) {
+            continue;
+        }
+        if (QDir::cleanPath(item->data(Qt::UserRole).toString()) == createdPath) {
+            projectRow = row;
+            break;
+        }
+    }
+    if (projectRow < 0) {
+        err << "workspace publish smoke: generated project was not listed" << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    projects->selectRow(projectRow);
+    QApplication::processEvents();
+    if (selector->count() != 3 || !comboContains(selector, "export") ||
+        !comboContains(selector, "backup") || !comboContains(selector, "production")) {
+        err << "workspace publish smoke: target selector did not expose all targets"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    if (selector->currentText() != "export" ||
+        status->text() != "Preview: ready" ||
+        !plan->toPlainText().contains("Target: export")) {
+        err << "workspace publish smoke: export preview was not ready" << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    selector->setCurrentText("backup");
+    QApplication::processEvents();
+    if (status->text() != "Preview: ready" ||
+        !plan->toPlainText().contains("Target: backup")) {
+        err << "workspace publish smoke: backup preview was not ready" << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    selector->setCurrentText("production");
+    QApplication::processEvents();
+    if (status->text() != "Preview: blocked" ||
+        !plan->toPlainText().contains("Target: production") ||
+        !plan->toPlainText().contains("Blocked: yes")) {
+        err << "workspace publish smoke: production preview was not blocked"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    delete page;
+    out << "workspace publish smoke: target selector and status transitions succeeded"
+        << Qt::endl;
     return 0;
 }
 
@@ -216,6 +374,9 @@ int main(int argc, char *argv[]) {
     const CliAdapter adapter(workspaceConfig);
     if (smokeProjectCreateSave(app)) {
         return runProjectCreateSaveSmoke(adapter, app);
+    }
+    if (smokePublishTargetStatus(app)) {
+        return runPublishTargetStatusSmoke(adapter, app);
     }
 
     setApplicationStyle(app);

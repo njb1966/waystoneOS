@@ -15,6 +15,8 @@ audio_root="$smoke_root/audio"
 config_path="$smoke_root/workspace.ini"
 project_id="workspace-smoke"
 project_name="Workspace Smoke"
+publish_project_id="workspace-publish-smoke"
+publish_project_name="Workspace Publish Smoke"
 
 mkdir -p "$projects_root" "$hosts_root" "$identities_root" "$audio_root"
 {
@@ -25,7 +27,7 @@ mkdir -p "$projects_root" "$hosts_root" "$identities_root" "$audio_root"
   printf "audio_metadata = %s\n" "$audio_root"
 } > "$config_path"
 
-cargo build -p waystone-project-cli
+cargo build -p waystone-project-cli -p waystone-publish-cli
 
 cmake -S "$repo_root/ui/workspace-qt" -B "$build_dir"
 cmake --build "$build_dir"
@@ -101,4 +103,41 @@ case "$preview_output" in
     ;;
 esac
 
-echo "workspace project smoke: create/target/load/save/validate/preview succeeded"
+set +e
+publish_output="$(QT_QPA_PLATFORM=offscreen \
+  "$build_dir/waystone-workspace" \
+    --repo-root "$repo_root" \
+    --config "$config_path" \
+    --smoke-publish-target-status \
+    --smoke-project-id "$publish_project_id" \
+    --smoke-project-name "$publish_project_name" \
+    --smoke-project-type capsule 2>&1)"
+publish_status=$?
+set -e
+if [ "$publish_status" -ne 0 ]; then
+  echo "workspace project smoke: publish diagnostic mode exited with $publish_status"
+  echo "$publish_output"
+  exit "$publish_status"
+fi
+
+case "$publish_output" in
+  *"workspace publish smoke: target selector and status transitions succeeded"*) ;;
+  *)
+    echo "workspace project smoke: publish diagnostic mode failed"
+    echo "$publish_output"
+    exit 1
+    ;;
+esac
+
+publish_project_path="$projects_root/$publish_project_id.wayproject"
+publish_inspect_output="$(cargo run -q -p waystone-project-cli -- inspect --json "$publish_project_path")"
+case "$publish_inspect_output" in
+  *'"publish_targets":["export","backup","production"]'*) ;;
+  *)
+    echo "workspace project smoke: publish smoke targets were not reported by inspect"
+    echo "$publish_inspect_output"
+    exit 1
+    ;;
+esac
+
+echo "workspace project smoke: create/target/load/save/validate/preview/status succeeded"

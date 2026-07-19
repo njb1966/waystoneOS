@@ -37,6 +37,7 @@ Current UI data is limited to:
 - local reads and writes of the selected project's content index file
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links
+- local Publish-pane target selection and ready/blocked preview status
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 
@@ -114,7 +115,7 @@ Check configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
-Focused project create/save smoke check:
+Focused project create/save and Publish-pane target/status smoke check:
 
 ```bash
 scripts/workspace-qt-project-smoke.sh

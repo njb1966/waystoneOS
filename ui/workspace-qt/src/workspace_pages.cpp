@@ -930,10 +930,12 @@ QWidget *publishPage(const CliAdapter *adapter) {
     auto *toolbarLayout = new QHBoxLayout(toolbar);
     toolbarLayout->setContentsMargins(0, 0, 0, 0);
     auto *target = new QComboBox;
+    target->setObjectName("publishTargetSelector");
     target->setEnabled(false);
     auto *preview = new QPushButton("Preview");
     auto *refresh = new QPushButton("Refresh");
     auto *previewStatus = new QLabel("Preview: idle");
+    previewStatus->setObjectName("publishPreviewStatus");
     previewStatus->setWordWrap(true);
     toolbarLayout->addWidget(new QLabel("Target"));
     toolbarLayout->addWidget(target);
@@ -944,8 +946,10 @@ QWidget *publishPage(const CliAdapter *adapter) {
     layout->addWidget(toolbar);
 
     auto *projectsTable = table({"Project", "Targets", "Path"}, {});
+    projectsTable->setObjectName("publishProjectsTable");
     layout->addWidget(projectsTable);
     auto *plan = new QPlainTextEdit;
+    plan->setObjectName("publishPlan");
     plan->setReadOnly(true);
     layout->addWidget(plan);
 
