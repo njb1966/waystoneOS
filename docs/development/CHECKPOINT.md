@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Publish-pane local project preview
+Status: current after Publish-pane target status controls
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, and Publish-pane local project previews.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Publish-pane local project previews, and Publish-pane target status controls.
 
 ## Current Position
 
@@ -32,6 +32,7 @@ The Qt Workspace currently has:
 - Create pane loads the selected project content index through `project inspect --json`
 - Create pane provides basic Gemtext editing, saving, validation status, local preview, and local link validation
 - Publish pane lists configured local projects and derives preview targets from `project inspect --json`
+- Publish pane shows all discovered project targets, exposes them through a target selector, and reports preview readiness as ready, blocked, failed, no project, or no target
 - Publish pane previews selected local projects through `publish --dry-run --json`, including newly created removable export targets
 - Operate pane backed by `host` and `identity` CLI JSON output
 - Shared command execution and JSON parsing in `ui/workspace-qt/src/cli_adapter.*`
@@ -71,7 +72,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after Publish-pane local project preview pass: all passed on 2026-07-18.
+Result after Publish-pane target status controls pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -100,9 +101,10 @@ Result after Publish-pane local project preview pass: all passed on 2026-07-18.
 
 Recommended next implementation step:
 
-1. Add clearer Publish-pane blocked/ready status and target-selection controls for projects with multiple targets.
-2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
-3. Keep packaging/install automation deferred until the repo has a broader install layout.
+1. Add focused smoke coverage for Publish-pane target/status behavior, preferably through a diagnostic mode that exercises multiple target metadata without remote publication.
+2. Continue the Publish workflow toward planned publication history preview.
+3. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
+4. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 

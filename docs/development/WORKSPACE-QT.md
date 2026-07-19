@@ -29,6 +29,7 @@ Implemented:
 - Read-only recording adapter using `record` and `listen` CLI JSON output
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
 - Publish-pane target selection derived from `project inspect --json` metadata
+- Publish-pane ready, blocked, failed, no-project, and no-target preview status display
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`

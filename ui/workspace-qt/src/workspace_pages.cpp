@@ -353,6 +353,34 @@ QString preferredPublishTarget(const QStringList &targets) {
     return {};
 }
 
+QString publishTargetSummary(const QStringList &targets) {
+    return targets.isEmpty() ? "none" : targets.join(", ");
+}
+
+void setPublishTargetChoices(QComboBox *target, const QStringList &targets) {
+    const bool wasBlocked = target->blockSignals(true);
+    target->clear();
+    target->addItems(targets);
+    const QString preferred = preferredPublishTarget(targets);
+    if (!preferred.isEmpty()) {
+        target->setCurrentText(preferred);
+    }
+    target->setEnabled(!targets.isEmpty());
+    target->blockSignals(wasBlocked);
+}
+
+QString selectedPublishTarget(const QComboBox *target) {
+    return target->currentText().trimmed();
+}
+
+QString publishPreviewStatus(const PublishPreview &preview) {
+    if (!preview.ok) {
+        return "Preview: failed";
+    }
+
+    return preview.blocked ? "Preview: blocked" : "Preview: ready";
+}
+
 QString renderPublishPreview(const PublishPreview &preview) {
     if (!preview.ok) {
         return "Dry-run preview failed\n" + preview.error;
@@ -396,8 +424,9 @@ QString renderPublishPreview(const PublishPreview &preview) {
     return text;
 }
 
-void populatePublishTable(QTableWidget *projectsTable, QLineEdit *target,
-                          QPlainTextEdit *plan, const CliAdapter *adapter) {
+void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
+                          QPlainTextEdit *plan, QLabel *status,
+                          const CliAdapter *adapter) {
     QString error;
     const QList<ProjectSummary> projects = adapter->listProjects(&error);
 
@@ -407,38 +436,50 @@ void populatePublishTable(QTableWidget *projectsTable, QLineEdit *target,
         QString targetError;
         const QStringList targets =
             adapter->projectPublishTargets(project.path, &targetError);
-        const QString targetName = preferredPublishTarget(targets);
-        const QString targetText = targetName.isEmpty() ? "none" : targetName;
         auto *name = new QTableWidgetItem(project.name);
         name->setData(Qt::UserRole, project.path);
-        name->setData(Qt::UserRole + 1, targetName);
+        name->setData(Qt::UserRole + 2, targets);
+        name->setData(Qt::UserRole + 3, targetError);
         projectsTable->setItem(row, 0, name);
-        projectsTable->setItem(row, 1, new QTableWidgetItem(targetText));
+        projectsTable->setItem(row, 1, new QTableWidgetItem(publishTargetSummary(targets)));
         projectsTable->setItem(row, 2, new QTableWidgetItem(project.path));
     }
 
     if (!error.isEmpty()) {
+        setPublishTargetChoices(target, {});
+        status->setText("Preview: failed");
         plan->setPlainText("Project list failed\n" + error);
         return;
     }
 
     if (projects.isEmpty()) {
-        target->clear();
+        setPublishTargetChoices(target, {});
+        status->setText("Preview: no project selected");
         plan->setPlainText("No projects found");
         return;
     }
 
     projectsTable->selectRow(0);
-    QString targetError;
-    target->setText(
-        preferredPublishTarget(adapter->projectPublishTargets(projects.at(0).path,
-                                                             &targetError)));
-    if (target->text().isEmpty()) {
+    auto *first = projectsTable->item(0, 0);
+    const QStringList targets =
+        first == nullptr ? QStringList{} : first->data(Qt::UserRole + 2).toStringList();
+    const QString targetError =
+        first == nullptr ? QString{} : first->data(Qt::UserRole + 3).toString();
+    setPublishTargetChoices(target, targets);
+    if (!targetError.isEmpty()) {
+        status->setText("Preview: failed");
+        plan->setPlainText("Publish target inspection failed\n" + targetError);
+        return;
+    }
+    if (selectedPublishTarget(target).isEmpty()) {
+        status->setText("Preview: no target configured");
         plan->setPlainText("No publish target configured");
         return;
     }
-    plan->setPlainText(
-        renderPublishPreview(adapter->previewPublication(projects.at(0).path, target->text())));
+    const PublishPreview preview =
+        adapter->previewPublication(projects.at(0).path, selectedPublishTarget(target));
+    status->setText(publishPreviewStatus(preview));
+    plan->setPlainText(renderPublishPreview(preview));
 }
 
 void populateHostTable(QTableWidget *hostsTable, QPlainTextEdit *details,
@@ -888,18 +929,21 @@ QWidget *publishPage(const CliAdapter *adapter) {
     auto *toolbar = new QWidget;
     auto *toolbarLayout = new QHBoxLayout(toolbar);
     toolbarLayout->setContentsMargins(0, 0, 0, 0);
-    auto *target = new QLineEdit;
-    target->setPlaceholderText("target");
+    auto *target = new QComboBox;
+    target->setEnabled(false);
     auto *preview = new QPushButton("Preview");
     auto *refresh = new QPushButton("Refresh");
+    auto *previewStatus = new QLabel("Preview: idle");
+    previewStatus->setWordWrap(true);
     toolbarLayout->addWidget(new QLabel("Target"));
     toolbarLayout->addWidget(target);
     toolbarLayout->addWidget(preview);
     toolbarLayout->addWidget(refresh);
+    toolbarLayout->addWidget(previewStatus, 1);
     toolbarLayout->addStretch();
     layout->addWidget(toolbar);
 
-    auto *projectsTable = table({"Project", "Target", "Path"}, {});
+    auto *projectsTable = table({"Project", "Targets", "Path"}, {});
     layout->addWidget(projectsTable);
     auto *plan = new QPlainTextEdit;
     plan->setReadOnly(true);
@@ -908,43 +952,65 @@ QWidget *publishPage(const CliAdapter *adapter) {
     auto runPreview = [=]() {
         const int row = projectsTable->currentRow();
         if (row < 0) {
+            previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
             return;
         }
         auto *item = projectsTable->item(row, 0);
         if (item == nullptr) {
+            previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
             return;
         }
         const QString path = item->data(Qt::UserRole).toString();
-        if (target->text().trimmed().isEmpty()) {
+        const QString targetName = selectedPublishTarget(target);
+        if (targetName.isEmpty()) {
+            previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
             return;
         }
-        plan->setPlainText(
-            renderPublishPreview(adapter->previewPublication(path, target->text().trimmed())));
+        const PublishPreview preview = adapter->previewPublication(path, targetName);
+        previewStatus->setText(publishPreviewStatus(preview));
+        plan->setPlainText(renderPublishPreview(preview));
     };
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
-        populatePublishTable(projectsTable, target, plan, adapter);
+        populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
     });
 
     QObject::connect(preview, &QPushButton::clicked, runPreview);
 
+    QObject::connect(target, &QComboBox::currentTextChanged, [=](const QString &) {
+        runPreview();
+    });
+
     QObject::connect(projectsTable, &QTableWidget::currentCellChanged,
                      [=](int row, int, int, int) {
                          if (row < 0) {
+                             setPublishTargetChoices(target, {});
+                             previewStatus->setText("Preview: no project selected");
                              return;
                          }
                          auto *item = projectsTable->item(row, 0);
                          if (item == nullptr) {
+                             setPublishTargetChoices(target, {});
+                             previewStatus->setText("Preview: no project selected");
                              return;
                          }
-                         target->setText(item->data(Qt::UserRole + 1).toString());
+                         const QString targetError =
+                             item->data(Qt::UserRole + 3).toString();
+                         setPublishTargetChoices(
+                             target, item->data(Qt::UserRole + 2).toStringList());
+                         if (!targetError.isEmpty()) {
+                             previewStatus->setText("Preview: failed");
+                             plan->setPlainText("Publish target inspection failed\n" +
+                                                targetError);
+                             return;
+                         }
                          runPreview();
                      });
 
-    populatePublishTable(projectsTable, target, plan, adapter);
+    populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
     return page;
 }
 
