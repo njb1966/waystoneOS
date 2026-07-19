@@ -212,11 +212,14 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *savedPreviews = page->findChild<QTableWidget *>("publishSavedPreviewsTable");
     auto *savedPreviewDetail =
         page->findChild<QPlainTextEdit *>("publishSavedPreviewDetail");
+    auto *historyComparison =
+        page->findChild<QPlainTextEdit *>("publishHistoryComparison");
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
         saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
         savedPreviews == nullptr || savedPreviewDetail == nullptr ||
+        historyComparison == nullptr ||
         history == nullptr || projects == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
@@ -259,6 +262,12 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !history->toPlainText().contains("transfer_result = \"planned\"") ||
         !history->toPlainText().contains("target = \"export\"")) {
         err << "workspace publish smoke: export preview was not ready" << Qt::endl;
+        delete page;
+        return 1;
+    }
+    if (!historyComparison->toPlainText().startsWith("Comparison:")) {
+        err << "workspace publish smoke: saved preview comparison was not updated"
+            << Qt::endl;
         delete page;
         return 1;
     }
@@ -334,6 +343,14 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
                             ->data(Qt::UserRole)
                             .toString()) != QDir::cleanPath(savedPath)) {
         err << "workspace publish smoke: saved preview selection was not preserved"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    if (!historyComparison->toPlainText().contains("differs") ||
+        !historyComparison->toPlainText().contains("Generated target: target = \"backup\"") ||
+        !historyComparison->toPlainText().contains("Saved target: target = \"production\"")) {
+        err << "workspace publish smoke: saved preview comparison did not report target drift"
             << Qt::endl;
         delete page;
         return 1;

@@ -481,6 +481,62 @@ QString renderSavedPlannedHistoryPreviewDetail(
     return text;
 }
 
+QString lineAtOrMissing(const QStringList &lines, int index) {
+    if (index < 0 || index >= lines.size()) {
+        return "<missing>";
+    }
+    return lines.at(index);
+}
+
+QString firstLineStartingWith(const QString &text, const QString &prefix) {
+    const QStringList lines = text.split('\n');
+    for (const QString &line : lines) {
+        if (line.startsWith(prefix)) {
+            return line;
+        }
+    }
+    return "<missing>";
+}
+
+QString renderPlannedHistoryComparison(const QString &generatedToml,
+                                       const QString &savedToml) {
+    if (generatedToml.trimmed().isEmpty() ||
+        generatedToml.startsWith("No planned history")) {
+        return "Comparison: no generated planned history";
+    }
+    if (savedToml.trimmed().isEmpty()) {
+        return "Comparison: no saved preview selected";
+    }
+
+    if (generatedToml == savedToml) {
+        return "Comparison: generated planned history matches selected saved preview";
+    }
+
+    const QStringList generatedLines = generatedToml.split('\n');
+    const QStringList savedLines = savedToml.split('\n');
+    const int maxLines = qMax(generatedLines.size(), savedLines.size());
+    int firstDifference = -1;
+    for (int index = 0; index < maxLines; ++index) {
+        if (lineAtOrMissing(generatedLines, index) != lineAtOrMissing(savedLines, index)) {
+            firstDifference = index;
+            break;
+        }
+    }
+
+    QString text;
+    text += "Comparison: generated planned history differs from selected saved preview\n";
+    text += "Generated target: " + firstLineStartingWith(generatedToml, "target = ") + "\n";
+    text += "Saved target: " + firstLineStartingWith(savedToml, "target = ") + "\n";
+    text += "Generated date: " + firstLineStartingWith(generatedToml, "date = ") + "\n";
+    text += "Saved date: " + firstLineStartingWith(savedToml, "date = ") + "\n";
+    if (firstDifference >= 0) {
+        text += QString("First difference: line %1\n").arg(firstDifference + 1);
+        text += "Generated: " + lineAtOrMissing(generatedLines, firstDifference) + "\n";
+        text += "Saved: " + lineAtOrMissing(savedLines, firstDifference);
+    }
+    return text;
+}
+
 void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
                           QPlainTextEdit *plan, QLabel *status,
                           const CliAdapter *adapter) {
@@ -1044,6 +1100,12 @@ QWidget *publishPage(const CliAdapter *adapter) {
     savedPreviewDetail->setReadOnly(true);
     savedPreviewDetail->setMaximumHeight(180);
     historyLayout->addWidget(savedPreviewDetail);
+    historyLayout->addWidget(new QLabel("Saved Preview Comparison", historyArea));
+    auto *historyComparison = new QPlainTextEdit(historyArea);
+    historyComparison->setObjectName("publishHistoryComparison");
+    historyComparison->setReadOnly(true);
+    historyComparison->setMaximumHeight(130);
+    historyLayout->addWidget(historyComparison);
     historyLayout->addWidget(new QLabel("Planned History Record", historyArea));
     auto *history = new QPlainTextEdit(historyArea);
     history->setObjectName("publishPlannedHistory");
@@ -1066,15 +1128,25 @@ QWidget *publishPage(const CliAdapter *adapter) {
         return item->data(Qt::UserRole).toString();
     };
 
+    auto updateHistoryComparison = [=]() {
+        historyComparison->setPlainText(renderPlannedHistoryComparison(
+            history->toPlainText(),
+            savedPreviewDetail->property("recordToml").toString()));
+    };
+
     auto loadSavedPreviewDetail = [=](int row) {
         const QString projectPath = currentProjectPath();
         if (projectPath.isEmpty() || row < 0) {
             savedPreviewDetail->setPlainText("No saved preview selected");
+            savedPreviewDetail->setProperty("recordToml", QString{});
+            updateHistoryComparison();
             return;
         }
         auto *item = savedPreviews->item(row, 0);
         if (item == nullptr) {
             savedPreviewDetail->setPlainText("No saved preview selected");
+            savedPreviewDetail->setProperty("recordToml", QString{});
+            updateHistoryComparison();
             return;
         }
 
@@ -1083,6 +1155,9 @@ QWidget *publishPage(const CliAdapter *adapter) {
                 projectPath, item->data(Qt::UserRole).toString());
         savedPreviewDetail->setPlainText(
             renderSavedPlannedHistoryPreviewDetail(detail));
+        savedPreviewDetail->setProperty("recordToml",
+                                        detail.ok ? detail.recordToml : QString{});
+        updateHistoryComparison();
     };
 
     auto selectedSavedPreviewPath = [=]() -> QString {
@@ -1105,6 +1180,8 @@ QWidget *publishPage(const CliAdapter *adapter) {
         const QString projectPath = currentProjectPath();
         if (projectPath.isEmpty()) {
             savedPreviewDetail->setPlainText("No saved preview selected");
+            savedPreviewDetail->setProperty("recordToml", QString{});
+            updateHistoryComparison();
             return;
         }
 
@@ -1112,10 +1189,14 @@ QWidget *publishPage(const CliAdapter *adapter) {
             adapter->listPlannedPublicationHistoryPreviews(projectPath);
         if (!previews.ok) {
             savedPreviewDetail->setPlainText("Saved previews failed\n" + previews.error);
+            savedPreviewDetail->setProperty("recordToml", QString{});
+            updateHistoryComparison();
             return;
         }
         if (previews.previews.isEmpty()) {
             savedPreviewDetail->setPlainText("No saved previews");
+            savedPreviewDetail->setProperty("recordToml", QString{});
+            updateHistoryComparison();
             return;
         }
 
@@ -1153,7 +1234,9 @@ QWidget *publishPage(const CliAdapter *adapter) {
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
             savedPreviewDetail->setPlainText("No saved previews");
+            savedPreviewDetail->setProperty("recordToml", QString{});
             history->setPlainText("No planned history");
+            updateHistoryComparison();
             return;
         }
         auto *item = projectsTable->item(row, 0);
@@ -1163,7 +1246,9 @@ QWidget *publishPage(const CliAdapter *adapter) {
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
             savedPreviewDetail->setPlainText("No saved previews");
+            savedPreviewDetail->setProperty("recordToml", QString{});
             history->setPlainText("No planned history");
+            updateHistoryComparison();
             return;
         }
         const QString path = item->data(Qt::UserRole).toString();
@@ -1174,6 +1259,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
             historySummary->setPlainText("No planned history");
             refreshSavedPreviews();
             history->setPlainText("No planned history");
+            updateHistoryComparison();
             return;
         }
         refreshSavedPreviews();
@@ -1183,6 +1269,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (!preview.ok) {
             historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
+            updateHistoryComparison();
             return;
         }
 
@@ -1191,9 +1278,11 @@ QWidget *publishPage(const CliAdapter *adapter) {
         historySummary->setPlainText(renderPlannedHistorySummary(plannedHistory));
         if (!plannedHistory.ok) {
             history->setPlainText("No planned history");
+            updateHistoryComparison();
             return;
         }
         history->setPlainText(plannedHistory.recordToml);
+        updateHistoryComparison();
     };
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
@@ -1252,7 +1341,9 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
                              savedPreviewDetail->setPlainText("No saved previews");
+                             savedPreviewDetail->setProperty("recordToml", QString{});
                              history->setPlainText("No planned history");
+                             updateHistoryComparison();
                              return;
                          }
                          auto *item = projectsTable->item(row, 0);
@@ -1262,7 +1353,9 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
                              savedPreviewDetail->setPlainText("No saved previews");
+                             savedPreviewDetail->setProperty("recordToml", QString{});
                              history->setPlainText("No planned history");
+                             updateHistoryComparison();
                              return;
                          }
                          const QString targetError =
@@ -1276,6 +1369,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              historySummary->setPlainText("No planned history");
                              refreshSavedPreviews();
                              history->setPlainText("No planned history");
+                             updateHistoryComparison();
                              return;
                          }
                          runPreview();

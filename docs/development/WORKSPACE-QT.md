@@ -35,6 +35,7 @@ Implemented:
 - Publish-pane saved preview listing using `publish --list-planned-history-previews --json`
 - Publish-pane selected saved preview detail loading using `publish --read-planned-history-preview --json`
 - Publish-pane saved preview row selection preservation across refreshes
+- Publish-pane generated-vs-saved planned-history comparison summary
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
@@ -145,7 +146,7 @@ Focused project create/save and Publish-pane target/status smoke test:
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, and saved-preview row selection preservation without remote publication.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, and generated-vs-saved comparison reporting without remote publication.
 
 CLI JSON contract smoke test:
 
