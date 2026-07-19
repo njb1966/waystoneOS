@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after Phase 0/0.1 alignment audit
+Status: current after local audio attachment slice
 Date: 2026-07-19
 
 This document records the deliberate alignment check between the Phase 0
@@ -35,11 +35,11 @@ foundational areas:
 - D-Bus adapter binaries and repo-local activation artifacts
 - Qt Workspace prototype with Explore, Create, Publish, and Operate panes
 
-The main remaining 0.1 gap is the middle of the first vertical slice: audio
-attachment, publication-copy expectation, and feed-enclosure handoff. The repo
-can inspect audio metadata and include published audio/feed files in dry-run
-plans, but it does not yet provide a concrete local workflow for attaching an
-existing recording/publication copy to a project or preparing feed metadata.
+The most recent slice filled the first local part of the audio/feed gap: the
+repo can now create an audio metadata sidecar that attaches an existing master
+and publication copy to a project and records feed enclosure handoff fields. It
+still does not record audio, export Opus, generate feed files, or merge-update
+existing audio metadata.
 
 ## Phase 0 Alignment
 
@@ -68,7 +68,7 @@ or approved scope changes.
 | Project Format and Service Contract | Strong | Format, examples, validation, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run scope | Dry-run plans, blocked states, planned history generation, saved preview records, and Publish-pane inspection exist. Remote comparison, transfer, verification, and completed history are not implemented. |
-| Audio Path | Partial, next gap | Metadata sidecars, validation, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, attachment workflow, and feed generation are not implemented. |
+| Audio Path | Partial, improved | Metadata sidecars, validation, local sidecar attachment, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, metadata replacement, and feed generation are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
 
@@ -81,7 +81,7 @@ Version 0.1 scope defines this local flow:
 | Open or create a project | Implemented through CLI and Qt Create pane |
 | Write Gemtext | Implemented for selected content index |
 | Preview locally | Implemented as local Create-pane preview and link validation |
-| Record or attach an audio file | Partially modeled through metadata fixtures and record CLI inspection |
+| Record or attach an audio file | Attach is implemented for existing local master/publication-copy files through metadata sidecar creation; recording is not implemented |
 | Export an Opus publication copy | Not implemented; only existing published-copy paths are modeled |
 | Generate or update feed metadata | Not implemented; existing feed files can be included in dry-run plans |
 | Configure a host/destination | Partially implemented through examples, host/identity metadata, and removable targets |
@@ -89,13 +89,14 @@ Version 0.1 scope defines this local flow:
 | Perform a dry-run publish | Implemented for local plans without remote mutation |
 | Show publication history or planned transfer state | Implemented as planned history previews and saved preview records |
 
-This points to audio attachment and feed handoff as the most useful next 0.1
-slice. It advances the vertical workflow without starting real recording,
-codec export, packaging, installed services, remote transfer, or compositor work.
+The next useful 0.1 slice should build on this by either exposing the local
+attachment workflow in the Create pane or by adding a similarly narrow feed
+metadata preparation step. It should still avoid real recording, codec export,
+packaging, installed services, remote transfer, and compositor work.
 
 ## Deliberate Next Slice
 
-Recommended next implementation slice:
+Completed implementation slice:
 
 **Audio publication attachment and feed handoff, local-only.**
 
@@ -112,18 +113,16 @@ Concrete deliverables should be small and inspectable:
 
 - Define the local operation for attaching an existing master/publication copy
   to a project using audio metadata sidecars.
-- Add CLI/service behavior that can create or update an audio metadata sidecar
-  under the selected project without escaping the project root.
+- Add CLI/service behavior that can create an audio metadata sidecar under the
+  selected project without escaping the project root.
 - Preserve the master-versus-publication-copy model.
 - Represent feed enclosure handoff in metadata without generating a full feed
   engine yet.
-- Add focused tests and, if the CLI contract is stable, expose the workflow in
-  the Create pane later.
+- Add focused tests.
 
-This is more aligned than another UI refinement because it fills a documented
-vertical-slice gap. It is also safer than packaging, installed D-Bus activation,
-real SSH transfer, or compositor work because those are explicitly deferred or
-not yet necessary for validating the 0.1 operating model.
+The likely next implementation slice is Create-pane exposure for this stable
+local CLI contract, or a narrow feed metadata preparation command if the feed
+contract needs to be stronger first.
 
 ## Explicitly Still Deferred
 

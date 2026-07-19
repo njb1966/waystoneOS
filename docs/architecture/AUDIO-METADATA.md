@@ -1,7 +1,7 @@
 # WaystoneOS Audio Metadata
 
-Status: Draft for Phase 1 planning
-Date: 2026-07-17
+Status: Current local metadata contract
+Date: 2026-07-19
 
 Audio metadata describes recordings and publication copies without requiring audio decoding or device access.
 
@@ -10,6 +10,7 @@ Audio metadata describes recordings and publication copies without requiring aud
 Current implementation supports:
 
 - TOML sidecar loading
+- TOML sidecar creation for attaching an existing master/publication copy
 - Recording listing
 - Recording inspection
 - Metadata validation
@@ -26,6 +27,7 @@ Current implementation does not support:
 - Opus export
 - Audio codec inspection
 - Waveform generation
+- Metadata replacement or merge editing
 
 ## Sidecar Shape
 
@@ -60,10 +62,19 @@ Paths are project-relative and must not be absolute or traverse upward with `..`
 Current commands:
 
 ```text
+record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record list ROOT
 record inspect PATH
 record validate PATH
 listen library ROOT
 ```
 
-The `record` command owns recording metadata inspection. The `listen` command can list playable recording metadata, but it does not play audio yet.
+`record attach` creates one metadata sidecar under the selected project's
+configured `[audio].metadata` root. It references an existing project-relative
+master file, an existing project-relative publication copy, and a feed enclosure
+handoff path. It does not copy files, record audio, export Opus, generate a feed,
+or overwrite an existing sidecar.
+
+The `record` command owns recording metadata creation and inspection. The
+`listen` command can list playable recording metadata, but it does not play
+audio yet.

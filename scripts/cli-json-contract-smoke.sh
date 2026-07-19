@@ -109,6 +109,27 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
     require("[publication]" in read_history["data"]["record_toml"],
             "publish read planned-history preview did not return record TOML")
 
+    (temp_project / "audio" / "masters" / "second-note.flac").write_bytes(b"master")
+    (temp_project / "audio" / "published" / "second-note.opus").write_bytes(b"published")
+    attached_recording = run([
+        "target/debug/record", "attach", "--json", str(temp_project),
+        "second-note", "Second Note",
+        "audio/masters/second-note.flac",
+        "audio/published/second-note.opus",
+        "feeds/feed.xml",
+        "tag:example.invalid,2026:second-note",
+        "audio/ogg; codecs=opus",
+    ])
+    require({"id", "title", "metadata_path", "metadata_relative_path",
+             "master", "published", "feed", "entry_id", "mime_type"}
+            <= attached_recording["data"].keys(),
+            "record attach contract changed")
+    require(attached_recording["data"]["metadata_relative_path"]
+            == "audio/metadata/second-note.toml",
+            "record attach metadata path changed")
+    require((temp_project / "audio" / "metadata" / "second-note.toml").exists(),
+            "record attach did not write metadata sidecar")
+
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]
 require(hosts and {"id", "display_name", "address", "path"} <= hosts[0].keys(),

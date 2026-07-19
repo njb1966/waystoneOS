@@ -11,3 +11,5 @@ path = "src/main.rs"
 [dependencies]
 waystone-cli-output = { path = "../../crates/cli-output" }
 waystone-audio-metadata = { path = "../../crates/audio-metadata" }
+waystone-audio-service = { path = "../../crates/audio-service" }
+waystone-project-format = { path = "../../crates/project-format" }

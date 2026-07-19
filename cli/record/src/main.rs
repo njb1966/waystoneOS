@@ -2,7 +2,20 @@ use std::env;
 use std::path::Path;
 use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
+use waystone_audio_service::{AttachRecordingRequest, AudioService};
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
+use waystone_project_format::load_manifest;
+
+struct AttachArgs<'a> {
+    project: &'a str,
+    id: &'a str,
+    title: &'a str,
+    master: &'a str,
+    published: &'a str,
+    feed: &'a str,
+    entry_id: &'a str,
+    mime_type: &'a str,
+}
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -21,6 +34,19 @@ fn run(args: &[String]) -> i32 {
         ["list", root] => list(root, json),
         ["inspect", path] => inspect(path, json),
         ["validate", path] => validate(path, json),
+        ["attach", project, id, title, master, published, feed, entry_id, mime_type] => attach(
+            AttachArgs {
+                project,
+                id,
+                title,
+                master,
+                published,
+                feed,
+                entry_id,
+                mime_type,
+            },
+            json,
+        ),
         ["help"] | ["--help"] | [] => {
             print_help();
             0
@@ -30,6 +56,64 @@ fn run(args: &[String]) -> i32 {
             print_help();
             2
         }
+    }
+}
+
+fn attach(args: AttachArgs<'_>, json: bool) -> i32 {
+    let manifest = match load_manifest(Path::new(args.project)) {
+        Ok(manifest) => manifest,
+        Err(error) => return print_command_error("record", "attach", &error.to_string(), json),
+    };
+
+    let Some(metadata_root) = manifest
+        .audio
+        .and_then(|audio| audio.metadata)
+        .filter(|path| !path.trim().is_empty())
+    else {
+        return print_command_error(
+            "record",
+            "attach",
+            "project audio metadata root is not configured",
+            json,
+        );
+    };
+
+    let service = AudioService;
+    match service.attach_recording(AttachRecordingRequest {
+        project_root: Path::new(args.project).to_path_buf(),
+        metadata_root,
+        id: args.id.to_string(),
+        title: args.title.to_string(),
+        master: args.master.to_string(),
+        published: args.published.to_string(),
+        feed: args.feed.to_string(),
+        entry_id: args.entry_id.to_string(),
+        mime_type: args.mime_type.to_string(),
+    }) {
+        Ok(attached) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"id\":\"{}\",\"title\":\"{}\",\"metadata_path\":\"{}\",\"metadata_relative_path\":\"{}\",\"master\":\"{}\",\"published\":\"{}\",\"feed\":\"{}\",\"entry_id\":\"{}\",\"mime_type\":\"{}\"}}}}",
+                    escape_json(&attached.id),
+                    escape_json(&attached.title),
+                    escape_json(&attached.metadata_path.display().to_string()),
+                    escape_json(&attached.metadata_relative_path),
+                    escape_json(&attached.master),
+                    escape_json(&attached.published),
+                    escape_json(&attached.feed),
+                    escape_json(&attached.entry_id),
+                    escape_json(&attached.mime_type)
+                );
+            } else {
+                println!("Attached recording: {}", attached.id);
+                println!("Metadata: {}", attached.metadata_path.display());
+                println!("Master: {}", attached.master);
+                println!("Published: {}", attached.published);
+                println!("Feed: {}", attached.feed);
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "attach", &error.to_string(), json),
     }
 }
 
@@ -118,6 +202,7 @@ fn validate(path: &str, json: bool) -> i32 {
 
 fn print_help() {
     println!("Usage:");
+    println!("  record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE");
     println!("  record list [--json] ROOT");
     println!("  record inspect [--json] PATH");
     println!("  record validate [--json] PATH");

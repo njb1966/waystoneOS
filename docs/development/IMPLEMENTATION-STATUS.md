@@ -322,18 +322,23 @@ crates/audio-metadata/
 
 Current behavior:
 
+- Creates recording metadata sidecars for existing project-local master and publication-copy files
 - Loads audio metadata TOML sidecars
 - Lists recording metadata from a directory
 - Validates recording IDs
 - Validates required title
 - Validates project-relative master, published, and feed paths
+- Refuses metadata sidecar paths that escape the project root
+- Refuses to overwrite existing metadata sidecars
 - Validates positive channel count and sample rate when present
 - Warns on unusual MIME type shape
+- Does not copy audio files
 - Does not inspect real audio codecs
 - Does not access audio devices
 
 Current tests cover:
 
+- Metadata sidecar creation
 - Valid audio metadata example
 - Recording metadata listing
 - Invalid upward path rejection
@@ -349,7 +354,7 @@ crates/audio-service/
 Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
-- Provides a service boundary for list/inspect/validate
+- Provides a service boundary for attach/list/inspect/validate
 - Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Does not capture or play audio
@@ -357,6 +362,7 @@ Current behavior:
 Current tests cover:
 
 - List and validate through the service wrapper
+- Recording metadata attachment through the service wrapper
 
 ## Host CLI
 
@@ -401,10 +407,16 @@ cli/record/
 Current commands:
 
 ```text
+record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record list [--json] ROOT
 record inspect [--json] PATH
 record validate [--json] PATH
 ```
+
+`record attach` creates a metadata sidecar under the selected project's
+configured `[audio].metadata` root for existing project-relative master and
+publication-copy files. It records feed enclosure handoff metadata but does not
+copy files, generate feeds, transcode audio, or overwrite an existing sidecar.
 
 ## Listen CLI
 
@@ -691,6 +703,7 @@ scripts/workspace-qt-project-smoke.sh
 - Audio recording
 - Audio playback
 - Audio trimming, normalization, or export
+- Audio metadata replacement or merge editing
 - Deeper Workspace actions beyond local inspect, authoring, and preview
 - Live reload after editing persistent user settings
 - Browser, Helm, or Comm integration

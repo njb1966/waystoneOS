@@ -995,7 +995,9 @@ name = "waystone-record-cli"
 version = "0.1.0"
 dependencies = [
  "waystone-audio-metadata",
+ "waystone-audio-service",
  "waystone-cli-output",
+ "waystone-project-format",
 ]
 
 [[package]]
