@@ -49,10 +49,17 @@ struct ProjectTargetResult {
 struct PublishPreview {
     bool ok = false;
     bool blocked = false;
+    bool feedConfigured = false;
+    bool feedEnabled = false;
+    bool feedExists = false;
+    int feedPreparedEntries = 0;
+    int feedInvalidEntries = 0;
     QString project;
     QString target;
     QString method;
     QString destination;
+    QString feedPath;
+    QString feedType;
     QString hostResolution;
     QString identityResolution;
     QStringList uploads;

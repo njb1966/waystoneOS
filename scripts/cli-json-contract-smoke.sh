@@ -74,8 +74,11 @@ publish = run([
     "--target", "export", "--json"
 ])
 require({"project", "target", "method", "destination", "blocked", "changes",
-         "verification", "confirmations"} <= publish["data"].keys(),
+         "verification", "confirmations", "feed"} <= publish["data"].keys(),
         "publish dry-run contract changed")
+require({"configured", "enabled", "type", "path", "exists", "prepared_entries",
+         "invalid_entries"} <= publish["data"]["feed"].keys(),
+        "publish dry-run feed contract changed")
 
 planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,
@@ -190,6 +193,21 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record generate-feed did not write feed file")
     require("<feed xmlns=\"http://www.w3.org/2005/Atom\">" in generated_feed_path.read_text(),
             "record generate-feed did not write Atom feed")
+    generated_publish = run([
+        "target/debug/publish", "--dry-run", "--project", str(temp_project),
+        "--target", "export", "--json",
+    ])
+    require({"configured", "enabled", "path", "exists", "prepared_entries",
+             "invalid_entries"} <= generated_publish["data"]["feed"].keys(),
+            "publish dry-run generated feed state contract changed")
+    require(generated_publish["data"]["feed"]["path"] == "feeds/feed.xml",
+            "publish dry-run generated feed path changed")
+    require(generated_publish["data"]["feed"]["exists"],
+            "publish dry-run did not report generated feed")
+    require(generated_publish["data"]["feed"]["prepared_entries"] >= 1,
+            "publish dry-run did not report prepared feed entries")
+    require(generated_publish["data"]["feed"]["invalid_entries"] == 0,
+            "publish dry-run reported unexpected invalid feed entries")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]

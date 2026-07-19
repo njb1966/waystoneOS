@@ -6,5 +6,6 @@ license.workspace = true
 
 [dependencies]
 thiserror = "2.0.18"
+waystone-audio-metadata = { path = "../audio-metadata" }
 waystone-host-identity = { path = "../host-identity" }
 waystone-project-format = { path = "../project-format" }

@@ -46,6 +46,7 @@ Implemented:
 - Publish-pane per-target overview table using read-only dry-run status, method, upload count, verification count, and destination
 - Publish-pane target overview row selection updates the active target and refreshes the existing preview/history panes
 - Publish-pane project filter by name, ID, type, path, or target names
+- Publish-pane feed readiness reporting from `publish --dry-run --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
@@ -158,7 +159,25 @@ Focused project create/save, recording attachment/feed-entry, and Publish-pane t
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, verifies the Create pane content-file list, filter, and selected-file detail, and verifies a removable publish dry-run preview without touching repository examples. It also creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files, prepares a feed-entry sidecar, and verifies publication/feed-entry validation status. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering without remote publication.
+The project smoke test uses a generated `/tmp` workspace root, creates a
+minimal project through the Qt CLI adapter, adds a removable export target,
+saves edited content through the same adapter, validates the result, verifies
+the Create pane content-file list, filter, and selected-file detail, and
+verifies a removable publish dry-run preview without touching repository
+examples. It also creates an audio-capable temporary project, verifies that
+project creation supplies audio/feed scaffold defaults, verifies that the
+Create-pane recording attachment controls create an inspectable metadata
+sidecar for existing project-local audio files, prepares a feed-entry sidecar,
+verifies publication/feed-entry validation status, generates feed XML, and
+verifies that the Publish pane reports the feed as ready with one prepared
+entry. It also creates a separate temporary project with multiple publish
+targets and verifies that the Publish pane target selector drives ready,
+blocked, project filtering, per-target overview rows, overview-row target
+selection, planned-history summary, raw planned-history record preview, saved
+planned-history preview transitions, saved-preview listing, selected saved
+preview detail loading, saved-preview row selection preservation,
+generated-vs-saved comparison reporting, and saved-preview filtering without
+remote publication.
 
 CLI JSON contract smoke test:
 

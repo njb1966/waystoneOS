@@ -8,7 +8,9 @@ use waystone_publication_history::{
     list_planned_history_previews, read_planned_history_preview, write_planned_history_preview,
     PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
-use waystone_publish_plan::{dry_run_publish_with_context, PublishContext, Resolution};
+use waystone_publish_plan::{
+    dry_run_publish_with_context, FeedPublicationState, PublishContext, Resolution,
+};
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -68,7 +70,7 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
         Ok(plan) => {
             if json {
                 println!(
-                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination\":{},\"blocked\":{},\"host_resolution\":{},\"identity_resolution\":{},\"changes\":{{\"upload\":[{}],\"update\":[],\"delete\":[],\"skip\":[]}},\"verification\":{{\"checks\":[{}]}},\"confirmations\":[{}]}}}}",
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination\":{},\"blocked\":{},\"host_resolution\":{},\"identity_resolution\":{},\"feed\":{},\"changes\":{{\"upload\":[{}],\"update\":[],\"delete\":[],\"skip\":[]}},\"verification\":{{\"checks\":[{}]}},\"confirmations\":[{}]}}}}",
                     escape_json(&plan.project_id),
                     escape_json(&plan.target),
                     escape_json(&plan.method),
@@ -76,6 +78,7 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
                     plan.blocked,
                     json_resolution(plan.host_resolution.as_ref()),
                     json_resolution(plan.identity_resolution.as_ref()),
+                    json_feed_state(&plan.feed),
                     json_string_array(&plan.upload),
                     json_string_array(&plan.verification_checks),
                     json_string_array(&plan.confirmations)
@@ -100,6 +103,7 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
                 if plan.blocked {
                     println!("Blocked: yes");
                 }
+                println!("Feed: {}", human_feed_state(&plan.feed));
                 println!("Upload:");
                 for path in plan.upload {
                     println!("  {path}");
@@ -341,5 +345,32 @@ fn json_resolution(resolution: Option<&Resolution>) -> String {
         escape_json(&resolution.id),
         resolution.status,
         escape_json(&resolution.detail)
+    )
+}
+
+fn json_feed_state(feed: &FeedPublicationState) -> String {
+    format!(
+        "{{\"configured\":{},\"enabled\":{},\"type\":{},\"path\":{},\"exists\":{},\"prepared_entries\":{},\"invalid_entries\":{}}}",
+        feed.configured,
+        feed.enabled,
+        json_optional_string(feed.feed_type.as_deref()),
+        json_optional_string(feed.path.as_deref()),
+        feed.exists,
+        feed.prepared_entries,
+        feed.invalid_entries
+    )
+}
+
+fn human_feed_state(feed: &FeedPublicationState) -> String {
+    if !feed.configured {
+        return "not configured".to_string();
+    }
+
+    format!(
+        "{} ({}, {} prepared entries, {} invalid entries)",
+        feed.path.as_deref().unwrap_or("no path"),
+        if feed.exists { "exists" } else { "missing" },
+        feed.prepared_entries,
+        feed.invalid_entries
     )
 }

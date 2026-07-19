@@ -50,7 +50,7 @@ Current UI data is limited to:
 - local feed XML generation from prepared entries through `record generate-feed --json`
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links
-- local Publish-pane project filtering, target selection, ready/blocked preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering
+- local Publish-pane project filtering, target selection, ready/blocked/feed-aware preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
 
@@ -128,7 +128,7 @@ Check configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
-Focused project create/save, recording attachment/feed-entry, and Publish-pane target/status smoke check:
+Focused project create/save, recording attachment/feed-entry/feed-generation, and Publish-pane target/status smoke check:
 
 ```bash
 scripts/workspace-qt-project-smoke.sh

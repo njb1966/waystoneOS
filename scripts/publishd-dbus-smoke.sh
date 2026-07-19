@@ -81,7 +81,7 @@ preview_output="$(busctl --user call \
   org.waystone.Publish1 \
   PreviewPublication \
   s "{\"project_path\":\"examples/projects/ssh-capsule.wayproject\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\"}")"
-for expected in ssh-capsule production rsync offgridholdout nick-pub content/index.gmi; do
+for expected in ssh-capsule production rsync offgridholdout nick-pub content/index.gmi feed configured; do
   case "$preview_output" in
     *"$expected"*) ;;
     *)

@@ -218,7 +218,22 @@ Future methods may include `PreparePublication`, `ValidatePublication`,
 
 For version 0.1, define and test dry-run behavior before real remote mutation.
 
-The current implementation supports a local, non-mutating dry-run plan that lists publishable project files for a selected target. It can also resolve host and identity metadata when local metadata roots are provided, generate planned publication history records without writing them as completed history, save planned preview records under project `history/previews/`, list saved planned preview records, and read selected saved preview TOML through the `publish` CLI. Preview saving is a local project write only. Saved preview reads are constrained to the selected project's `history/previews/` directory. These preview operations are available through the `publish` CLI; non-mutating preview and planned-history generation are also available through the `waystone-publishd` D-Bus adapter. It does not compare remote state, perform transfer, delete files, access credentials, probe SSH host keys, or verify a remote result.
+The current implementation supports a local, non-mutating dry-run plan that
+lists publishable project files for a selected target and reports feed
+readiness for configured feeds. Feed readiness includes the configured feed
+path, whether the feed XML file exists, how many valid prepared feed-entry
+sidecars target that feed, and how many feed-entry sidecars are invalid. It can
+also resolve host and identity metadata when local metadata roots are provided,
+generate planned publication history records without writing them as completed
+history, save planned preview records under project `history/previews/`, list
+saved planned preview records, and read selected saved preview TOML through the
+`publish` CLI. Preview saving is a local project write only. Saved preview
+reads are constrained to the selected project's `history/previews/` directory.
+These preview operations are available through the `publish` CLI; non-mutating
+preview and planned-history generation are also available through the
+`waystone-publishd` D-Bus adapter. It does not generate feeds automatically,
+compare remote state, perform transfer, delete files, access credentials, probe
+SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

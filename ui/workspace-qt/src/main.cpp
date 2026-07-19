@@ -263,6 +263,13 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
             << Qt::endl;
         return 1;
     }
+    const ProjectTargetResult target =
+        adapter.addRemovablePublishTarget(created.projectPath, "export", "publish/export");
+    if (!target.ok) {
+        err << "workspace recording smoke: export target failed: " << target.error
+            << Qt::endl;
+        return 1;
+    }
 
     QDir projectDir(created.projectPath);
     if (!QFileInfo(projectDir.filePath("audio/masters")).isDir() ||
@@ -411,8 +418,48 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
+    QWidget *publish = publishPage(&adapter);
+    QApplication::processEvents();
+    auto *publishFilter = publish->findChild<QLineEdit *>("publishProjectFilter");
+    auto *publishProjects = publish->findChild<QTableWidget *>("publishProjectsTable");
+    auto *publishStatus = publish->findChild<QLabel *>("publishPreviewStatus");
+    auto *publishPlan = publish->findChild<QPlainTextEdit *>("publishPlan");
+    if (publishFilter == nullptr || publishProjects == nullptr ||
+        publishStatus == nullptr || publishPlan == nullptr) {
+        err << "workspace recording smoke: publish widgets were not discoverable"
+            << Qt::endl;
+        delete publish;
+        delete page;
+        return 1;
+    }
+    publishFilter->setText(id);
+    QApplication::processEvents();
+    const int publishRow = tableRowWithText(publishProjects, 2, created.projectPath);
+    if (publishRow < 0) {
+        err << "workspace recording smoke: generated project was not listed in publish pane"
+            << Qt::endl;
+        delete publish;
+        delete page;
+        return 1;
+    }
+    publishProjects->selectRow(publishRow);
+    QApplication::processEvents();
+    if (!publishStatus->text().contains("feed ready") ||
+        !publishPlan->toPlainText().contains("Feed:") ||
+        !publishPlan->toPlainText().contains("Path: feeds/feed.xml") ||
+        !publishPlan->toPlainText().contains("Prepared entries: 1")) {
+        err << "workspace recording smoke: publish feed state was not reflected"
+            << Qt::endl;
+        err << "publish status: " << publishStatus->text() << Qt::endl;
+        err << "publish plan: " << publishPlan->toPlainText() << Qt::endl;
+        delete publish;
+        delete page;
+        return 1;
+    }
+
+    delete publish;
     delete page;
-    out << "workspace recording smoke: attachment, feed-entry, and feed generation controls succeeded "
+    out << "workspace recording smoke: attachment, feed-entry, feed generation, and publish feed state controls succeeded "
         << metadataPath << Qt::endl;
     return 0;
 }

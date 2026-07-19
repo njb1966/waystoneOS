@@ -962,6 +962,7 @@ name = "waystone-publish-plan"
 version = "0.1.0"
 dependencies = [
  "thiserror",
+ "waystone-audio-metadata",
  "waystone-host-identity",
  "waystone-project-format",
 ]

@@ -83,6 +83,7 @@ Current contract:
 Current behavior:
 
 - Builds non-mutating dry-run publication plans through `waystone-publish-plan`.
+- Reports feed readiness in dry-run previews, including configured path, file existence, prepared entry count, and invalid entry count.
 - Resolves host and identity metadata when caller supplies roots.
 - Builds planned publication history records through `waystone-publication-history`.
 - Preserves blocked dry-run state.

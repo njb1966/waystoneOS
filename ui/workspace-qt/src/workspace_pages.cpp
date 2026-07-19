@@ -485,7 +485,20 @@ QString publishPreviewStatus(const PublishPreview &preview) {
         return "Preview: failed";
     }
 
-    return preview.blocked ? "Preview: blocked" : "Preview: ready";
+    QString status = preview.blocked ? "Preview: blocked" : "Preview: ready";
+    if (!preview.feedConfigured) {
+        return status;
+    }
+    if (!preview.feedExists) {
+        return status + "; feed missing";
+    }
+    if (preview.feedInvalidEntries > 0) {
+        return status + "; feed entries invalid";
+    }
+    if (preview.feedPreparedEntries > 0) {
+        return status + "; feed ready";
+    }
+    return status + "; feed present";
 }
 
 QString publishOverviewStatus(const PublishPreview &preview) {
@@ -513,6 +526,21 @@ QString renderPublishPreview(const PublishPreview &preview) {
     text += "Blocked: " + QString(preview.blocked ? "yes" : "no") + "\n";
     text += "Host: " + preview.hostResolution + "\n";
     text += "Identity: " + preview.identityResolution + "\n\n";
+    text += "Feed:\n";
+    if (!preview.feedConfigured) {
+        text += "  not configured\n\n";
+    } else {
+        text += "  Path: " +
+                (preview.feedPath.isEmpty() ? QString("none") : preview.feedPath) +
+                "\n";
+        text += "  Type: " +
+                (preview.feedType.isEmpty() ? QString("unknown") : preview.feedType) +
+                "\n";
+        text += "  Enabled: " + QString(preview.feedEnabled ? "yes" : "no") + "\n";
+        text += "  Exists: " + QString(preview.feedExists ? "yes" : "no") + "\n";
+        text += QString("  Prepared entries: %1\n").arg(preview.feedPreparedEntries);
+        text += QString("  Invalid entries: %1\n\n").arg(preview.feedInvalidEntries);
+    }
     text += "Uploads:\n";
     if (preview.uploads.isEmpty()) {
         text += "  none\n";

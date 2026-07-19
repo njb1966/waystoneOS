@@ -357,6 +357,14 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
     preview.hostResolution = resolutionText(data.value("host_resolution").toObject());
     preview.identityResolution =
         resolutionText(data.value("identity_resolution").toObject());
+    const QJsonObject feed = data.value("feed").toObject();
+    preview.feedConfigured = feed.value("configured").toBool(false);
+    preview.feedEnabled = feed.value("enabled").toBool(false);
+    preview.feedPath = feed.value("path").toString();
+    preview.feedType = feed.value("type").toString();
+    preview.feedExists = feed.value("exists").toBool(false);
+    preview.feedPreparedEntries = feed.value("prepared_entries").toInt();
+    preview.feedInvalidEntries = feed.value("invalid_entries").toInt();
 
     const QJsonObject changes = data.value("changes").toObject();
     preview.uploads = jsonStringArray(changes.value("upload").toArray());

@@ -59,6 +59,31 @@ fn dry_run_json_reports_resolved_metadata() {
 }
 
 #[test]
+fn dry_run_json_reports_feed_state() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--dry-run",
+            "--project",
+            &repo_path("examples/projects/audio-capsule.wayproject"),
+            "--target",
+            "export",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"feed\":{"));
+    assert!(stdout.contains("\"configured\":true"));
+    assert!(stdout.contains("\"enabled\":true"));
+    assert!(stdout.contains("\"path\":\"feeds/feed.xml\""));
+    assert!(stdout.contains("\"exists\":true"));
+    assert!(stdout.contains("\"prepared_entries\":0"));
+    assert!(stdout.contains("\"invalid_entries\":0"));
+}
+
+#[test]
 fn planned_history_json_reports_inspectable_record() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

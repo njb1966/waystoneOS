@@ -145,6 +145,15 @@ fn plan_response(
         "blocked": plan.blocked,
         "host_resolution": plan.host_resolution.map(resolution_response),
         "identity_resolution": plan.identity_resolution.map(resolution_response),
+        "feed": {
+            "configured": plan.feed.configured,
+            "enabled": plan.feed.enabled,
+            "type": plan.feed.feed_type,
+            "path": plan.feed.path,
+            "exists": plan.feed.exists,
+            "prepared_entries": plan.feed.prepared_entries,
+            "invalid_entries": plan.feed.invalid_entries,
+        },
         "changes": {
             "upload": plan.upload,
             "update": plan.update,
