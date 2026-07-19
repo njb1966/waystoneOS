@@ -104,6 +104,16 @@ bool comboContains(const QComboBox *combo, const QString &value) {
     return false;
 }
 
+int tableRowWithText(const QTableWidget *table, int column, const QString &value) {
+    for (int row = 0; row < table->rowCount(); ++row) {
+        auto *item = table->item(row, column);
+        if (item != nullptr && item->text() == value) {
+            return row;
+        }
+    }
+    return -1;
+}
+
 int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app) {
     QTextStream out(stdout);
     QTextStream err(stderr);
@@ -218,11 +228,12 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         page->findChild<QPlainTextEdit *>("publishHistoryComparison");
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
+    auto *targetOverview = page->findChild<QTableWidget *>("publishTargetOverviewTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
         saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
         savedPreviewFilter == nullptr || savedPreviews == nullptr ||
         savedPreviewDetail == nullptr || historyComparison == nullptr ||
-        history == nullptr || projects == nullptr) {
+        history == nullptr || projects == nullptr || targetOverview == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
         delete page;
@@ -252,6 +263,21 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     if (selector->count() != 3 || !comboContains(selector, "export") ||
         !comboContains(selector, "backup") || !comboContains(selector, "production")) {
         err << "workspace publish smoke: target selector did not expose all targets"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    const int exportOverviewRow = tableRowWithText(targetOverview, 0, "export");
+    const int backupOverviewRow = tableRowWithText(targetOverview, 0, "backup");
+    const int productionOverviewRow = tableRowWithText(targetOverview, 0, "production");
+    if (targetOverview->rowCount() != 3 || exportOverviewRow < 0 ||
+        backupOverviewRow < 0 || productionOverviewRow < 0 ||
+        targetOverview->item(exportOverviewRow, 1)->text() != "ready" ||
+        targetOverview->item(backupOverviewRow, 1)->text() != "ready" ||
+        targetOverview->item(productionOverviewRow, 1)->text() != "blocked" ||
+        targetOverview->item(exportOverviewRow, 3)->text() != "1" ||
+        targetOverview->item(productionOverviewRow, 2)->text() != "rsync") {
+        err << "workspace publish smoke: target overview did not summarize targets"
             << Qt::endl;
         delete page;
         return 1;

@@ -384,6 +384,14 @@ QString publishPreviewStatus(const PublishPreview &preview) {
     return preview.blocked ? "Preview: blocked" : "Preview: ready";
 }
 
+QString publishOverviewStatus(const PublishPreview &preview) {
+    if (!preview.ok) {
+        return "failed";
+    }
+
+    return preview.blocked ? "blocked" : "ready";
+}
+
 QString plannedHistoryDate() {
     return QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
 }
@@ -593,6 +601,40 @@ void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
         adapter->previewPublication(projects.at(0).path, selectedPublishTarget(target));
     status->setText(publishPreviewStatus(preview));
     plan->setPlainText(renderPublishPreview(preview));
+}
+
+void populatePublishTargetOverview(QTableWidget *overview,
+                                   const QString &projectPath,
+                                   const QStringList &targets,
+                                   const CliAdapter *adapter) {
+    overview->setRowCount(0);
+    if (projectPath.isEmpty() || targets.isEmpty()) {
+        return;
+    }
+
+    overview->setRowCount(targets.size());
+    for (int row = 0; row < targets.size(); ++row) {
+        const QString targetName = targets.at(row);
+        const PublishPreview preview = adapter->previewPublication(projectPath, targetName);
+
+        overview->setItem(row, 0, new QTableWidgetItem(targetName));
+        overview->setItem(row, 1,
+                          new QTableWidgetItem(publishOverviewStatus(preview)));
+        overview->setItem(row, 2,
+                          new QTableWidgetItem(preview.ok ? preview.method : "unknown"));
+        overview->setItem(
+            row, 3,
+            new QTableWidgetItem(preview.ok ? QString::number(preview.uploads.size())
+                                            : "-"));
+        overview->setItem(row, 4,
+                          new QTableWidgetItem(
+                              preview.ok
+                                  ? QString::number(preview.verificationChecks.size())
+                                  : "-"));
+        overview->setItem(
+            row, 5,
+            new QTableWidgetItem(preview.ok ? preview.destination : preview.error));
+    }
 }
 
 void populateHostTable(QTableWidget *hostsTable, QPlainTextEdit *details,
@@ -1069,6 +1111,13 @@ QWidget *publishPage(const CliAdapter *adapter) {
     projectsTable->setObjectName("publishProjectsTable");
     layout->addWidget(projectsTable);
 
+    layout->addWidget(new QLabel("Target Overview", page));
+    auto *targetOverview =
+        table({"Target", "Status", "Method", "Uploads", "Checks", "Destination"}, {});
+    targetOverview->setObjectName("publishTargetOverviewTable");
+    targetOverview->setMaximumHeight(120);
+    layout->addWidget(targetOverview);
+
     auto *previewSplitter = new QSplitter(Qt::Vertical);
     auto *planArea = new QWidget(previewSplitter);
     auto *planLayout = new QVBoxLayout(planArea);
@@ -1136,6 +1185,22 @@ QWidget *publishPage(const CliAdapter *adapter) {
         historyComparison->setPlainText(renderPlannedHistoryComparison(
             history->toPlainText(),
             savedPreviewDetail->property("recordToml").toString()));
+    };
+
+    auto refreshTargetOverview = [=]() {
+        const int row = projectsTable->currentRow();
+        if (row < 0) {
+            targetOverview->setRowCount(0);
+            return;
+        }
+        auto *item = projectsTable->item(row, 0);
+        if (item == nullptr) {
+            targetOverview->setRowCount(0);
+            return;
+        }
+        populatePublishTargetOverview(
+            targetOverview, item->data(Qt::UserRole).toString(),
+            item->data(Qt::UserRole + 2).toStringList(), adapter);
     };
 
     auto loadSavedPreviewDetail = [=](int row) {
@@ -1305,6 +1370,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {
         populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
+        refreshTargetOverview();
         refreshSavedPreviews();
     });
 
@@ -1385,6 +1451,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              item->data(Qt::UserRole + 3).toString();
                          setPublishTargetChoices(
                              target, item->data(Qt::UserRole + 2).toStringList());
+                         refreshTargetOverview();
                          if (!targetError.isEmpty()) {
                              previewStatus->setText("Preview: failed");
                              plan->setPlainText("Publish target inspection failed\n" +
@@ -1399,6 +1466,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                      });
 
     populatePublishTable(projectsTable, target, plan, previewStatus, adapter);
+    refreshTargetOverview();
     return page;
 }
 
