@@ -32,6 +32,7 @@ Implemented:
 - Local Gemtext preview, link validation, and save validation status for the selected project's content index file
 - Recording adapter using `record` and `listen` CLI JSON output
 - Create-pane recording attachment controls using `record attach --json` for existing project-local master and publication-copy files
+- Create-pane feed-entry preparation and validation controls using `record prepare-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
 - Publish-pane target selection derived from `project inspect --json` metadata
 - Publish-pane ready, blocked, failed, no-project, and no-target preview status display
@@ -59,7 +60,7 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
-- Audio capture, playback, transcoding, or feed generation
+- Audio capture, playback, transcoding, or feed XML generation
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 
@@ -122,7 +123,7 @@ To validate configured roots without opening the window:
 /tmp/waystone-workspace-qt-build/waystone-workspace --repo-root /path/to/waystoneOS --check-roots
 ```
 
-The binary also has diagnostic smoke modes for project creation/content save behavior, Create-pane recording attachment, and Publish-pane target/status behavior. Prefer the wrapper script below rather than invoking them by hand.
+The binary also has diagnostic smoke modes for project creation/content save behavior, Create-pane recording attachment/feed-entry behavior, and Publish-pane target/status behavior. Prefer the wrapper script below rather than invoking them by hand.
 
 Example config:
 
@@ -150,13 +151,13 @@ scripts/workspace-qt-smoke.sh
 
 The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, user-config, missing-config fallback, and missing-root diagnostics.
 
-Focused project create/save, recording attachment, and Publish-pane target/status smoke test:
+Focused project create/save, recording attachment/feed-entry, and Publish-pane target/status smoke test:
 
 ```bash
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, verifies the Create pane content-file list, filter, and selected-file detail, and verifies a removable publish dry-run preview without touching repository examples. It also creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, and verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering without remote publication.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, verifies the Create pane content-file list, filter, and selected-file detail, and verifies a removable publish dry-run preview without touching repository examples. It also creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files, prepares a feed-entry sidecar, and verifies publication/feed-entry validation status. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering without remote publication.
 
 CLI JSON contract smoke test:
 
@@ -174,6 +175,9 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `project inspect --json`
 - `project validate --json`
 - `record attach --json`
+- `record prepare-feed-entry --json`
+- `record validate-publication --json`
+- `record validate-feed-entry --json`
 - `publish --dry-run --json`
 - `publish --planned-history --json`
 - `publish --save-planned-history-preview --json`

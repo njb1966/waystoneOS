@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after audio publication handoff validation
+Status: current after Qt feed-entry preparation controls
 Date: 2026-07-19
 
 This document records the deliberate alignment check between the Phase 0
@@ -41,7 +41,8 @@ repo can now create audio-capable project scaffolds for `audio-series` and
 master and publication copy to a project, record feed enclosure handoff fields,
 prepare a feed-entry sidecar under `feeds/entries/`, and expose attachment in
 the Qt Create pane. It also validates publication-copy and feed-entry handoff
-metadata in project context. It still does not record audio, export Opus,
+metadata in project context and exposes feed-entry preparation plus validation
+status in the Qt Create pane. It still does not record audio, export Opus,
 generate feed files, update existing feed XML, or merge-update existing audio
 metadata.
 
@@ -72,7 +73,7 @@ or approved scope changes.
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run scope | Dry-run plans, blocked states, planned history generation, saved preview records, and Publish-pane inspection exist. Remote comparison, transfer, verification, and completed history are not implemented. |
-| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, feed-entry metadata sidecars, publication/feed-entry handoff validation, local sidecar attachment, Qt Create-pane attachment controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, metadata replacement, and feed XML generation are not implemented. |
+| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, feed-entry metadata sidecars, publication/feed-entry handoff validation, local sidecar attachment, Qt Create-pane attachment/feed-entry controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, metadata replacement, and feed XML generation are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
 
@@ -93,10 +94,10 @@ Version 0.1 scope defines this local flow:
 | Perform a dry-run publish | Implemented for local plans without remote mutation |
 | Show publication history or planned transfer state | Implemented as planned history previews and saved preview records |
 
-The next useful 0.1 slice should expose feed-entry preparation and validation in
-the Workspace UI through the existing CLI adapter pattern. It should still avoid
-real recording, codec export, packaging, installed services, remote transfer,
-and compositor work.
+The next useful 0.1 slice should start a minimal feed XML generator from
+validated `feeds/entries/` sidecars. It should still avoid real recording,
+codec export, packaging, installed services, remote transfer, and compositor
+work.
 
 ## Deliberate Next Slice
 
@@ -129,6 +130,8 @@ Concrete deliverables should be small and inspectable:
 - Add create-only feed-entry sidecar preparation from existing recording
   metadata, while keeping full feed XML generation deferred.
 - Add local validation for publication-copy and feed-entry handoff metadata.
+- Expose feed-entry preparation and validation status in the Qt Create pane
+  through CLI adapters.
 
 ## Explicitly Still Deferred
 

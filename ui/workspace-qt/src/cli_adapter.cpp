@@ -818,6 +818,42 @@ RecordingAttachResult CliAdapter::attachRecording(
     return attached;
 }
 
+FeedEntryPrepareResult CliAdapter::prepareFeedEntry(
+    const QString &projectPath, const QString &recordingId, const QString &updated,
+    const QString &summary) const {
+    FeedEntryPrepareResult prepared;
+    const CommandResult result =
+        runCommand("record", {"prepare-feed-entry", "--json", projectPath,
+                              recordingId, updated, summary});
+
+    if (!result.error.isEmpty()) {
+        prepared.error = result.error;
+        return prepared;
+    }
+
+    if (result.exitCode != 0) {
+        prepared.error = commandFailureDetail(result, "record prepare-feed-entry failed");
+        return prepared;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        prepared.error = "record prepare-feed-entry returned unreadable JSON";
+        return prepared;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    prepared.recordingId = data.value("recording_id").toString();
+    prepared.title = data.value("title").toString();
+    prepared.outputPath = data.value("output_path").toString();
+    prepared.outputRelativePath = data.value("output_relative_path").toString();
+    prepared.published = data.value("published").toString();
+    prepared.feed = data.value("feed").toString();
+    prepared.ok = true;
+    return prepared;
+}
+
 QString CliAdapter::inspectRecording(const QString &path) const {
     const CommandResult result = runCommand("record", {"inspect", "--json", path});
     if (result.exitCode != 0) {
@@ -837,6 +873,42 @@ QString CliAdapter::inspectRecording(const QString &path) const {
         .arg(data.value("id").toString())
         .arg(data.value("master").toString())
         .arg(data.value("published").toString("none"));
+}
+
+QString CliAdapter::publicationValidationState(const QString &projectPath,
+                                               const QString &recordingId) const {
+    const CommandResult result =
+        runCommand("record", {"validate-publication", "--json", projectPath, recordingId});
+    if (result.exitCode != 0) {
+        return "invalid";
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        return "unknown";
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    return data.value("valid").toBool(false) ? "valid" : "invalid";
+}
+
+QString CliAdapter::feedEntryValidationState(const QString &projectPath,
+                                             const QString &recordingId) const {
+    const CommandResult result =
+        runCommand("record", {"validate-feed-entry", "--json", projectPath, recordingId});
+    if (result.exitCode != 0) {
+        return "invalid";
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        return "unknown";
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    return data.value("valid").toBool(false) ? "valid" : "invalid";
 }
 
 QString CliAdapter::recordingValidationState(const QString &path) const {

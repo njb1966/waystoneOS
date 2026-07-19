@@ -160,7 +160,7 @@ if [ "$recording_status" -ne 0 ]; then
 fi
 
 case "$recording_output" in
-  *"workspace recording smoke: attachment controls succeeded"*) ;;
+  *"workspace recording smoke: attachment and feed-entry controls succeeded"*) ;;
   *)
     echo "workspace project smoke: recording diagnostic mode failed"
     echo "$recording_output"
@@ -170,8 +170,13 @@ esac
 
 recording_project_path="$projects_root/$recording_project_id.wayproject"
 recording_metadata_path="$recording_project_path/audio/metadata/field-note.toml"
+feed_entry_path="$recording_project_path/feeds/entries/field-note.toml"
 if [ ! -f "$recording_metadata_path" ]; then
   echo "workspace project smoke: recording metadata sidecar was not created"
+  exit 1
+fi
+if [ ! -f "$feed_entry_path" ]; then
+  echo "workspace project smoke: feed-entry sidecar was not created"
   exit 1
 fi
 
@@ -181,6 +186,24 @@ case "$recording_inspect_output" in
   *)
     echo "workspace project smoke: attached recording was not inspectable"
     echo "$recording_inspect_output"
+    exit 1
+    ;;
+esac
+recording_publication_validation="$(cargo run -q -p waystone-record-cli -- validate-publication --json "$recording_project_path" field-note)"
+case "$recording_publication_validation" in
+  *'"valid":true'*) ;;
+  *)
+    echo "workspace project smoke: publication validation failed"
+    echo "$recording_publication_validation"
+    exit 1
+    ;;
+esac
+recording_feed_validation="$(cargo run -q -p waystone-record-cli -- validate-feed-entry --json "$recording_project_path" field-note)"
+case "$recording_feed_validation" in
+  *'"valid":true'*) ;;
+  *)
+    echo "workspace project smoke: feed-entry validation failed"
+    echo "$recording_feed_validation"
     exit 1
     ;;
 esac

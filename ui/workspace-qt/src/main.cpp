@@ -296,14 +296,25 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     auto *recordingFeed = page->findChild<QLineEdit *>("createRecordingFeed");
     auto *recordingEntryId = page->findChild<QLineEdit *>("createRecordingEntryId");
     auto *recordingMime = page->findChild<QLineEdit *>("createRecordingMimeType");
+    auto *feedUpdated = page->findChild<QLineEdit *>("createFeedEntryUpdated");
+    auto *feedSummary = page->findChild<QLineEdit *>("createFeedEntrySummary");
     auto *attach = page->findChild<QPushButton *>("createAttachRecording");
+    auto *prepareFeedEntry = page->findChild<QPushButton *>("createPrepareFeedEntry");
+    auto *validatePublication =
+        page->findChild<QPushButton *>("createValidatePublication");
+    auto *validateFeedEntry =
+        page->findChild<QPushButton *>("createValidateFeedEntry");
     auto *status = page->findChild<QLabel *>("createRecordingAttachStatus");
+    auto *feedStatus = page->findChild<QLabel *>("createFeedEntryStatus");
     auto *details = page->findChild<QPlainTextEdit *>("createRecordingDetails");
     if (projects == nullptr || recordingId == nullptr ||
         recordingTitle == nullptr || recordingMaster == nullptr ||
         recordingPublished == nullptr || recordingFeed == nullptr ||
         recordingEntryId == nullptr || recordingMime == nullptr ||
-        attach == nullptr || status == nullptr || details == nullptr) {
+        feedUpdated == nullptr || feedSummary == nullptr || attach == nullptr ||
+        prepareFeedEntry == nullptr || validatePublication == nullptr ||
+        validateFeedEntry == nullptr || status == nullptr ||
+        feedStatus == nullptr || details == nullptr) {
         err << "workspace recording smoke: recording widgets were not discoverable"
             << Qt::endl;
         delete page;
@@ -327,6 +338,8 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     recordingFeed->setText("feeds/feed.xml");
     recordingEntryId->setText("tag:example.invalid,2026:field-note");
     recordingMime->setText("audio/ogg; codecs=opus");
+    feedUpdated->setText("2026-07-19T00:00:00Z");
+    feedSummary->setText("Workspace feed entry smoke");
     attach->click();
     QApplication::processEvents();
 
@@ -344,8 +357,45 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
+    prepareFeedEntry->click();
+    QApplication::processEvents();
+    const QString feedEntryPath =
+        projectDir.filePath("feeds/entries/field-note.toml");
+    if (!QFileInfo::exists(feedEntryPath) ||
+        !feedStatus->text().contains("feeds/entries/field-note.toml") ||
+        !feedStatus->text().contains("publication valid") ||
+        !feedStatus->text().contains("feed entry valid") ||
+        !details->toPlainText().contains("Feed entry: feeds/entries/field-note.toml")) {
+        err << "workspace recording smoke: feed entry preparation was not reflected"
+            << Qt::endl;
+        err << "feed status: " << feedStatus->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    validatePublication->click();
+    QApplication::processEvents();
+    if (!feedStatus->text().contains("Publication: valid")) {
+        err << "workspace recording smoke: publication validation was not reflected"
+            << Qt::endl;
+        err << "feed status: " << feedStatus->text() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    validateFeedEntry->click();
+    QApplication::processEvents();
+    if (!feedStatus->text().contains("Feed entry: valid")) {
+        err << "workspace recording smoke: feed-entry validation was not reflected"
+            << Qt::endl;
+        err << "feed status: " << feedStatus->text() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     delete page;
-    out << "workspace recording smoke: attachment controls succeeded "
+    out << "workspace recording smoke: attachment and feed-entry controls succeeded "
         << metadataPath << Qt::endl;
     return 0;
 }

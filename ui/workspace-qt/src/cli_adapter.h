@@ -145,6 +145,17 @@ struct RecordingAttachResult {
     QString error;
 };
 
+struct FeedEntryPrepareResult {
+    bool ok = false;
+    QString recordingId;
+    QString title;
+    QString outputPath;
+    QString outputRelativePath;
+    QString published;
+    QString feed;
+    QString error;
+};
+
 class CliAdapter {
 public:
     explicit CliAdapter(WorkspaceConfig config);
@@ -186,6 +197,14 @@ public:
                                           const QString &feed,
                                           const QString &entryId,
                                           const QString &mimeType) const;
+    FeedEntryPrepareResult prepareFeedEntry(const QString &projectPath,
+                                            const QString &recordingId,
+                                            const QString &updated,
+                                            const QString &summary) const;
+    QString publicationValidationState(const QString &projectPath,
+                                       const QString &recordingId) const;
+    QString feedEntryValidationState(const QString &projectPath,
+                                     const QString &recordingId) const;
     QString inspectRecording(const QString &path) const;
     QString recordingValidationState(const QString &path) const;
 
