@@ -422,6 +422,50 @@ PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,
     return preview;
 }
 
+PlannedHistorySaveResult CliAdapter::savePlannedPublicationHistoryPreview(
+    const QString &path, const QString &target, const QString &date) const {
+    const CommandResult result = runCommand(
+        "publish",
+        {"--save-planned-history-preview",
+         "--project",
+         path,
+         "--target",
+         target,
+         "--date",
+         date,
+         "--hosts",
+         config_.hostsRoot,
+         "--identities",
+         config_.identitiesRoot,
+         "--json"});
+
+    PlannedHistorySaveResult saved;
+    if (!result.error.isEmpty()) {
+        saved.error = result.error;
+        return saved;
+    }
+
+    if (result.exitCode != 0) {
+        saved.error =
+            commandFailureDetail(result, "publish save planned-history preview failed");
+        return saved;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        saved.error = "publish save planned-history preview returned unreadable JSON";
+        return saved;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    saved.ok = true;
+    saved.project = data.value("project").toString();
+    saved.target = data.value("target").toString();
+    saved.outputPath = data.value("output_path").toString();
+    return saved;
+}
+
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
     if (rootMissing(config_.hostsRoot, "hosts", error)) {
         return {};

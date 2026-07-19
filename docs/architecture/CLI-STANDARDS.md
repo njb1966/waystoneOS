@@ -203,6 +203,7 @@ project inspect
 project validate
 publish --dry-run
 publish --planned-history
+publish --save-planned-history-preview
 host list
 host inspect
 identity list

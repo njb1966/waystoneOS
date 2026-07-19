@@ -975,15 +975,22 @@ QWidget *publishPage(const CliAdapter *adapter) {
     target->setObjectName("publishTargetSelector");
     target->setEnabled(false);
     auto *preview = new QPushButton("Preview");
+    auto *savePreview = new QPushButton("Save Preview");
+    savePreview->setObjectName("publishSavePreview");
     auto *refresh = new QPushButton("Refresh");
     auto *previewStatus = new QLabel("Preview: idle");
     previewStatus->setObjectName("publishPreviewStatus");
     previewStatus->setWordWrap(true);
+    auto *saveStatus = new QLabel("Save: idle");
+    saveStatus->setObjectName("publishSavePreviewStatus");
+    saveStatus->setWordWrap(true);
     toolbarLayout->addWidget(new QLabel("Target"));
     toolbarLayout->addWidget(target);
     toolbarLayout->addWidget(preview);
+    toolbarLayout->addWidget(savePreview);
     toolbarLayout->addWidget(refresh);
     toolbarLayout->addWidget(previewStatus, 1);
+    toolbarLayout->addWidget(saveStatus, 1);
     toolbarLayout->addStretch();
     layout->addWidget(toolbar);
 
@@ -1071,6 +1078,37 @@ QWidget *publishPage(const CliAdapter *adapter) {
     });
 
     QObject::connect(preview, &QPushButton::clicked, runPreview);
+
+    auto runSavePreview = [=]() {
+        const int row = projectsTable->currentRow();
+        if (row < 0) {
+            saveStatus->setText("Save: no project selected");
+            return;
+        }
+        auto *item = projectsTable->item(row, 0);
+        if (item == nullptr) {
+            saveStatus->setText("Save: no project selected");
+            return;
+        }
+
+        const QString targetName = selectedPublishTarget(target);
+        if (targetName.isEmpty()) {
+            saveStatus->setText("Save: no target configured");
+            return;
+        }
+
+        const PlannedHistorySaveResult saved =
+            adapter->savePlannedPublicationHistoryPreview(
+                item->data(Qt::UserRole).toString(), targetName, plannedHistoryDate());
+        if (!saved.ok) {
+            saveStatus->setText("Save failed: " + saved.error);
+            return;
+        }
+
+        saveStatus->setText("Saved: " + saved.outputPath);
+    };
+
+    QObject::connect(savePreview, &QPushButton::clicked, runSavePreview);
 
     QObject::connect(target, &QComboBox::currentTextChanged, [=](const QString &) {
         runPreview();

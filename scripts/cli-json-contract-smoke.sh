@@ -14,8 +14,11 @@ cargo build \
 
 python3 - "$repo_root" <<'PY'
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
 repo_root = sys.argv[1]
 
@@ -68,6 +71,21 @@ require(planned_history["data"]["transfer_result"] == "planned",
 require(planned_history["data"]["files"] and
         {"path", "action"} <= planned_history["data"]["files"][0].keys(),
         "publish planned-history file contract changed")
+
+with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_root:
+    temp_project = Path(temp_root) / "audio-capsule.wayproject"
+    shutil.copytree(Path(repo_root) / project_path, temp_project)
+    saved_history = run([
+        "target/debug/publish", "--save-planned-history-preview", "--project", str(temp_project),
+        "--target", "export", "--date", "2026-07-19T00:00:00Z", "--json"
+    ])
+    require({"project", "target", "output_path", "transfer_result", "verification_result", "files"}
+            <= saved_history["data"].keys(),
+            "publish save planned-history preview contract changed")
+    output_path = Path(saved_history["data"]["output_path"])
+    require(output_path.exists(), "publish save planned-history preview did not write output")
+    require((temp_project / "history" / "previews") in output_path.parents,
+            "publish save planned-history preview escaped project previews directory")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]

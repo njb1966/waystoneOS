@@ -77,6 +77,14 @@ struct PlannedHistoryPreview {
     QString error;
 };
 
+struct PlannedHistorySaveResult {
+    bool ok = false;
+    QString project;
+    QString target;
+    QString outputPath;
+    QString error;
+};
+
 struct HostSummary {
     QString id;
     QString displayName;
@@ -120,6 +128,8 @@ public:
     PlannedHistoryPreview plannedPublicationHistory(const QString &path,
                                                     const QString &target,
                                                     const QString &date) const;
+    PlannedHistorySaveResult savePlannedPublicationHistoryPreview(
+        const QString &path, const QString &target, const QString &date) const;
     QList<HostSummary> listHosts(QString *error) const;
     QString inspectHost(const QString &path) const;
     QString hostValidationState(const QString &path) const;

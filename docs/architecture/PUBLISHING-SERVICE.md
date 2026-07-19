@@ -218,7 +218,7 @@ Future methods may include `PreparePublication`, `ValidatePublication`,
 
 For version 0.1, define and test dry-run behavior before real remote mutation.
 
-The current implementation supports a local, non-mutating dry-run plan that lists publishable project files for a selected target. It can also resolve host and identity metadata when local metadata roots are provided, and it can generate planned publication history records without writing them as completed history. These operations are available through both the `publish` CLI and `waystone-publishd` D-Bus adapter. It does not compare remote state, perform transfer, delete files, access credentials, probe SSH host keys, or verify a remote result.
+The current implementation supports a local, non-mutating dry-run plan that lists publishable project files for a selected target. It can also resolve host and identity metadata when local metadata roots are provided, generate planned publication history records without writing them as completed history, and save planned preview records under project `history/previews/` through the `publish` CLI. Preview saving is a local project write only. These preview operations are available through the `publish` CLI; non-mutating preview and planned-history generation are also available through the `waystone-publishd` D-Bus adapter. It does not compare remote state, perform transfer, delete files, access credentials, probe SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

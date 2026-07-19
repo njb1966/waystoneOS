@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
@@ -204,12 +205,14 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
 
     auto *selector = page->findChild<QComboBox *>("publishTargetSelector");
     auto *status = page->findChild<QLabel *>("publishPreviewStatus");
+    auto *savePreview = page->findChild<QPushButton *>("publishSavePreview");
+    auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
-    if (selector == nullptr || status == nullptr || plan == nullptr ||
-        historySummary == nullptr || history == nullptr ||
+    if (selector == nullptr || status == nullptr || savePreview == nullptr ||
+        saveStatus == nullptr || plan == nullptr || historySummary == nullptr || history == nullptr ||
         projects == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
@@ -277,6 +280,25 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !history->toPlainText().contains("target = \"production\"") ||
         !history->toPlainText().contains("verification_result = \"not-run\"")) {
         err << "workspace publish smoke: production preview was not blocked"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    savePreview->click();
+    QApplication::processEvents();
+    const QString savePrefix = "Saved: ";
+    if (!saveStatus->text().startsWith(savePrefix)) {
+        err << "workspace publish smoke: planned history preview was not saved"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    const QString savedPath = saveStatus->text().mid(savePrefix.size());
+    if (!QFileInfo::exists(savedPath) ||
+        !QDir::cleanPath(savedPath).startsWith(
+            QDir::cleanPath(created.projectPath + "/history/previews/"))) {
+        err << "workspace publish smoke: saved preview path was outside project"
             << Qt::endl;
         delete page;
         return 1;

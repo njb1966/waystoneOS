@@ -1,3 +1,6 @@
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
 use waystone_publish_plan::PublishDryRun;
 
 pub const HISTORY_SCHEMA: u32 = 1;
@@ -113,6 +116,47 @@ impl PublicationHistoryRecord {
     }
 }
 
+pub fn write_planned_history_preview(
+    project_root: impl AsRef<Path>,
+    record: &PublicationHistoryRecord,
+) -> io::Result<PathBuf> {
+    let preview_dir = project_root.as_ref().join("history").join("previews");
+    fs::create_dir_all(&preview_dir)?;
+
+    let filename = format!(
+        "{}-{}-planned.toml",
+        safe_filename_segment(&record.date),
+        safe_filename_segment(&record.target)
+    );
+    let output_path = preview_dir.join(filename);
+    let temp_path = output_path.with_extension("toml.tmp");
+    fs::write(&temp_path, record.to_toml())?;
+    fs::rename(&temp_path, &output_path)?;
+    Ok(output_path)
+}
+
+fn safe_filename_segment(value: &str) -> String {
+    let mut segment = String::new();
+    let mut previous_dash = false;
+
+    for character in value.chars() {
+        if character.is_ascii_alphanumeric() || matches!(character, '-' | '_') {
+            segment.push(character);
+            previous_dash = false;
+        } else if !previous_dash {
+            segment.push('-');
+            previous_dash = true;
+        }
+    }
+
+    let segment = segment.trim_matches('-').to_string();
+    if segment.is_empty() {
+        "unknown".to_string()
+    } else {
+        segment
+    }
+}
+
 fn toml_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
@@ -120,7 +164,7 @@ fn toml_escape(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
     use waystone_publish_plan::dry_run_publish_with_context;
     use waystone_publish_plan::PublishContext;
 
@@ -172,5 +216,39 @@ mod tests {
         assert!(toml.contains("transfer_result = \"planned\""));
         assert!(toml.contains("[[files]]"));
         assert!(toml.contains("[rollback]"));
+    }
+
+    #[test]
+    fn writes_planned_history_preview_under_project_history_previews() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-history-preview-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be available")
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).expect("temp project root should be created");
+
+        let plan = dry_run_publish_with_context(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+            &PublishContext {
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+            },
+        )
+        .expect("dry-run should plan");
+        let record = PublicationHistoryRecord::planned_from_dry_run(&plan, "2026-07-19T00:00:00Z");
+
+        let output =
+            write_planned_history_preview(&root, &record).expect("preview should be written");
+        assert!(output.starts_with(root.join("history").join("previews")));
+        assert_eq!(
+            output.file_name().and_then(|name| name.to_str()),
+            Some("2026-07-19T00-00-00Z-production-planned.toml")
+        );
+        assert!(fs::read_to_string(output)
+            .expect("preview should be readable")
+            .contains("transfer_result = \"planned\""));
     }
 }
