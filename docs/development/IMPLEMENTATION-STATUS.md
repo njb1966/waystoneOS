@@ -61,6 +61,7 @@ Current behavior:
 - Checks supported publish target methods
 - Checks duplicate publish target names
 - Creates a minimal `.wayproject`
+- Creates audio/feed scaffold defaults for `audio-series` and `mixed-publication` projects
 - Lists projects with bounded category-depth discovery
 
 Current tests cover:
@@ -71,6 +72,7 @@ Current tests cover:
 - Absolute path rejection
 - Project inspection
 - Minimal project creation
+- Audio-capable project creation defaults
 - Removable publish-target metadata setup
 - Invalid project ID rejection
 - Duplicate publish-target rejection
@@ -467,7 +469,8 @@ Current behavior:
 - Renders the first Waystone Workspace frame
 - Provides a top menu bar, workspace selectors, left activity navigation, stacked main panes, and status bar
 - Uses the existing `project` CLI JSON output for Create-pane create, removable target setup, list, inspect, and validate
-- Creates minimal projects under the configured projects root, adds a default removable `export` target, refreshes the project list, and opens the new project in the editor
+- Creates projects under the configured projects root, adds a default removable `export` target, refreshes the project list, and opens the new project in the editor
+- Creates `audio-series` and `mixed-publication` projects with audio/feed scaffold defaults through the same `project create --json` path
 - Lets the Create pane add removable publish targets to the selected project
 - Loads, edits, saves, validates, previews, and locally link-checks the selected project's content index file in the Create pane
 - Lists files under the selected project's content root in the Create pane without changing the editable content index binding

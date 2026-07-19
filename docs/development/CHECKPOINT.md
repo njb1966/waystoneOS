@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Create-pane recording attachment
+Status: current after audio-capable project creation defaults
 Date: 2026-07-19
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, and Create-pane recording attachment controls.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, and audio-capable project creation defaults.
 
 ## Current Position
 
@@ -27,7 +27,8 @@ The Qt Workspace currently has:
 - Explore pane with static placeholder data
 - Explore pane active-root display for the loaded Workspace configuration
 - Create pane backed by `project`, `record`, and `listen` CLI JSON output
-- Create pane can create minimal projects under the configured projects root using `project create --json`
+- Create pane can create projects under the configured projects root using `project create --json`
+- `audio-series` and `mixed-publication` projects receive audio/feed scaffold defaults from the project creation contract
 - Newly created Qt projects receive a default removable `export` target at `publish/export`
 - Create pane can add removable publish targets to the selected project using `project target add-removable --json`
 - Newly created projects refresh into the project list and open in the editor
@@ -61,7 +62,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, and reads selected preview TOML only from that project-local preview directory; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, and creates selected project audio metadata sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 The Create-pane audio attachment controls call `record attach --json`. They
 create metadata sidecars for existing project-local master and publication-copy
@@ -94,8 +95,8 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after Create-pane recording attachment pass: focused Qt and relevant
-Rust checks passed on 2026-07-19.
+Result after audio-capable project creation defaults: all relevant checks passed
+on 2026-07-19.
 
 ## Important Boundaries
 
@@ -113,6 +114,7 @@ Rust checks passed on 2026-07-19.
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
+- `project create` scaffolds audio/feed defaults for `audio-series` and `mixed-publication` projects.
 - `waystone-hostd` and `waystone-identityd` fail cleanly without a session bus and reject duplicate bus ownership.
 - `waystone-hostd` and `waystone-identityd` D-Bus service files and systemd user units are present in the repo.
 - `waystone-audiod` fails cleanly without a session bus and rejects duplicate bus ownership.
@@ -127,10 +129,10 @@ Rust checks passed on 2026-07-19.
 
 Recommended next implementation step:
 
-1. Review the remaining 0.1 vertical-flow gap and choose between narrow feed metadata preparation or audio-capable project creation defaults.
+1. Add a narrow feed metadata preparation command or contract, keeping full feed generation deferred.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Add additional Create-pane validation/error-state refinements for recording attachment.
+- Add additional Create-pane validation/error-state refinements for audio-capable project creation and recording attachment.

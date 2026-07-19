@@ -99,32 +99,6 @@ bool appendBlockedPublishTarget(const QString &projectPath, QString *error) {
     return true;
 }
 
-bool appendAudioProjectSections(const QString &projectPath, QString *error) {
-    QFile manifest(QDir(projectPath).filePath("project.toml"));
-    if (!manifest.open(QIODevice::Append | QIODevice::Text)) {
-        if (error != nullptr) {
-            *error = "could not open project manifest for audio append";
-        }
-        return false;
-    }
-
-    QTextStream stream(&manifest);
-    stream << "\n";
-    stream << "[audio]\n";
-    stream << "masters = \"audio/masters\"\n";
-    stream << "published = \"audio/published\"\n";
-    stream << "metadata = \"audio/metadata\"\n";
-    stream << "master_format = \"flac\"\n";
-    stream << "publish_format = \"opus\"\n";
-    stream << "publish_bitrate = 96000\n\n";
-    stream << "[feed]\n";
-    stream << "enabled = true\n";
-    stream << "type = \"atom\"\n";
-    stream << "path = \"feeds/feed.xml\"\n";
-    stream << "title = \"Workspace Audio Smoke\"\n";
-    return true;
-}
-
 bool writeFile(const QString &path, const QByteArray &content, QString *error) {
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -290,22 +264,17 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
-    QString setupError;
-    if (!appendAudioProjectSections(created.projectPath, &setupError)) {
-        err << "workspace recording smoke: audio manifest setup failed: "
-            << setupError << Qt::endl;
-        return 1;
-    }
-
     QDir projectDir(created.projectPath);
-    if (!projectDir.mkpath("audio/masters") ||
-        !projectDir.mkpath("audio/published") ||
-        !projectDir.mkpath("feeds")) {
-        err << "workspace recording smoke: audio directories could not be created"
+    if (!QFileInfo(projectDir.filePath("audio/masters")).isDir() ||
+        !QFileInfo(projectDir.filePath("audio/published")).isDir() ||
+        !QFileInfo(projectDir.filePath("audio/metadata")).isDir() ||
+        !QFileInfo(projectDir.filePath("feeds/feed.xml")).isFile()) {
+        err << "workspace recording smoke: audio project defaults were not created"
             << Qt::endl;
         return 1;
     }
 
+    QString setupError;
     if (!writeFile(projectDir.filePath("audio/masters/field-note.flac"), "master",
                    &setupError) ||
         !writeFile(projectDir.filePath("audio/published/field-note.opus"),

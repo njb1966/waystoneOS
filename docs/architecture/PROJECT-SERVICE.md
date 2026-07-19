@@ -114,7 +114,8 @@ Rules:
 
 - Refuse to overwrite an existing directory.
 - Refuse project IDs with path separators.
-- Create only the minimum required structure.
+- Create the minimum required structure for text projects.
+- Create audio/feed scaffold defaults for `audio-series` and `mixed-publication` projects.
 
 ### ListProjects
 

@@ -51,7 +51,8 @@ Current contract:
 
 Current behavior:
 
-- Creates minimal `.wayproject` directories through `waystone-project-format`.
+- Creates `.wayproject` directories through `waystone-project-format`.
+- Adds audio/feed scaffold defaults for audio-capable project types.
 - Lists project manifests below a root.
 - Inspects project identity, schema, type, and content paths.
 - Validates project manifests and content entrypoints.

@@ -244,6 +244,10 @@ pub fn create_project(
         source,
     })?;
 
+    if audio_capable_project_type(&options.project_type) {
+        create_audio_project_defaults(&project_path)?;
+    }
+
     let manifest_path = project_path.join("project.toml");
     let temp_manifest_path = project_path.join("project.toml.tmp");
     fs::write(&temp_manifest_path, render_manifest(options)).map_err(|source| {
@@ -263,6 +267,29 @@ pub fn create_project(
         project_path,
         schema: SUPPORTED_SCHEMA,
     })
+}
+
+fn create_audio_project_defaults(project_path: &Path) -> Result<(), ProjectFormatError> {
+    for relative in [
+        "audio/masters",
+        "audio/published",
+        "audio/metadata",
+        "feeds",
+    ] {
+        let path = project_path.join(relative);
+        fs::create_dir_all(&path)
+            .map_err(|source| ProjectFormatError::CreateDirectoryFailed { path, source })?;
+    }
+
+    let feed_path = project_path.join("feeds/feed.xml");
+    fs::write(&feed_path, initial_feed_placeholder()).map_err(|source| {
+        ProjectFormatError::WriteFileFailed {
+            path: feed_path,
+            source,
+        }
+    })?;
+
+    Ok(())
 }
 
 pub fn list_projects(root: impl AsRef<Path>) -> Result<Vec<ProjectSummary>, ProjectFormatError> {
@@ -712,6 +739,20 @@ fn render_manifest(options: &ProjectCreateOptions) -> String {
         "index = \"{}\"\n",
         toml_escape(&options.content_index)
     ));
+    if audio_capable_project_type(&options.project_type) {
+        manifest.push_str("\n[audio]\n");
+        manifest.push_str("masters = \"audio/masters\"\n");
+        manifest.push_str("published = \"audio/published\"\n");
+        manifest.push_str("metadata = \"audio/metadata\"\n");
+        manifest.push_str("master_format = \"flac\"\n");
+        manifest.push_str("publish_format = \"opus\"\n");
+        manifest.push_str("publish_bitrate = 96000\n");
+        manifest.push_str("\n[feed]\n");
+        manifest.push_str("enabled = true\n");
+        manifest.push_str("type = \"atom\"\n");
+        manifest.push_str("path = \"feeds/feed.xml\"\n");
+        manifest.push_str(&format!("title = \"{}\"\n", toml_escape(&options.name)));
+    }
     manifest
 }
 
@@ -733,6 +774,14 @@ fn supported_project_type(project_type: &str) -> bool {
             | "classroom-assignment"
             | "mixed-publication"
     )
+}
+
+fn audio_capable_project_type(project_type: &str) -> bool {
+    matches!(project_type, "audio-series" | "mixed-publication")
+}
+
+fn initial_feed_placeholder() -> &'static str {
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- WaystoneOS feed placeholder; feed entry generation is not implemented yet. -->\n"
 }
 
 fn supported_publish_method(method: &str) -> bool {
@@ -850,6 +899,68 @@ mod tests {
         .expect("project should be created");
 
         assert_eq!(created.schema, SUPPORTED_SCHEMA);
+        assert!(!created.project_path.join("audio").exists());
+        assert!(!created.project_path.join("feeds").exists());
+        let report = validate_project(&created.project_path).expect("created project should load");
+        assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn creates_audio_capable_project_defaults() {
+        let root = unique_temp_root("create-audio-project");
+        fs::create_dir_all(&root).expect("temp root should be created");
+
+        let created = create_project(&ProjectCreateOptions {
+            parent: root.clone(),
+            id: "created-audio".to_string(),
+            name: "Created Audio".to_string(),
+            project_type: "audio-series".to_string(),
+            content_index: "index.gmi".to_string(),
+            language: Some("en".to_string()),
+            author: Some("WaystoneOS".to_string()),
+        })
+        .expect("audio project should be created");
+
+        assert!(created.project_path.join("audio/masters").is_dir());
+        assert!(created.project_path.join("audio/published").is_dir());
+        assert!(created.project_path.join("audio/metadata").is_dir());
+        assert!(created.project_path.join("feeds").is_dir());
+        assert!(created.project_path.join("feeds/feed.xml").is_file());
+
+        let manifest = fs::read_to_string(created.project_path.join("project.toml"))
+            .expect("manifest should read");
+        assert!(manifest.contains("[audio]"));
+        assert!(manifest.contains("metadata = \"audio/metadata\""));
+        assert!(manifest.contains("[feed]"));
+        assert!(manifest.contains("path = \"feeds/feed.xml\""));
+
+        let report = validate_project(&created.project_path).expect("created project should load");
+        assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn creates_mixed_publication_audio_defaults() {
+        let root = unique_temp_root("create-mixed-project");
+        fs::create_dir_all(&root).expect("temp root should be created");
+
+        let created = create_project(&ProjectCreateOptions {
+            parent: root.clone(),
+            id: "created-mixed".to_string(),
+            name: "Created Mixed".to_string(),
+            project_type: "mixed-publication".to_string(),
+            content_index: "index.gmi".to_string(),
+            language: Some("en".to_string()),
+            author: None,
+        })
+        .expect("mixed project should be created");
+
+        assert!(created.project_path.join("audio/metadata").is_dir());
+        assert!(created.project_path.join("feeds/feed.xml").is_file());
+
         let report = validate_project(&created.project_path).expect("created project should load");
         assert!(report.valid, "{report:#?}");
 

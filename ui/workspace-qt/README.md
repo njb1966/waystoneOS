@@ -37,7 +37,8 @@ Current UI data is limited to:
 - `record inspect --json`
 - `record validate --json`
 - `listen library --json`
-- local creation of minimal projects under the configured projects root
+- local creation of projects under the configured projects root
+- local audio/feed scaffold defaults for `audio-series` and `mixed-publication`
 - local removable publish-target metadata setup
 - local reads and writes of the selected project's content index file
 - local content-root file listing, filtering, and selected-file detail for the selected project

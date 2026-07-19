@@ -52,6 +52,23 @@ require("publish_targets" in project_inspect["data"],
 project_validate = run(["target/debug/project", "validate", "--json", project_path])
 require("valid" in project_validate["data"], "project validate contract changed")
 
+with tempfile.TemporaryDirectory(prefix="waystone-project-create-contract-") as temp_root:
+    audio_create = run([
+        "target/debug/project", "create", "--json", temp_root,
+        "contract-audio", "Contract Audio", "audio-series"
+    ])
+    require({"project_path", "project_schema"} <= audio_create["data"].keys(),
+            "project create contract changed")
+    audio_project = Path(audio_create["data"]["project_path"])
+    require((audio_project / "audio" / "masters").is_dir(),
+            "audio project create did not scaffold masters directory")
+    require((audio_project / "audio" / "published").is_dir(),
+            "audio project create did not scaffold published directory")
+    require((audio_project / "audio" / "metadata").is_dir(),
+            "audio project create did not scaffold metadata directory")
+    require((audio_project / "feeds" / "feed.xml").is_file(),
+            "audio project create did not scaffold feed placeholder")
+
 publish = run([
     "target/debug/publish", "--dry-run", "--project", project_path,
     "--target", "export", "--json"

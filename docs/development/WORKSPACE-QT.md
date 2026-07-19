@@ -21,7 +21,8 @@ Implemented:
 - Main stacked workspace panes
 - Bottom status bar
 - Create-pane adapter using `project` CLI JSON output for create, removable target setup, list, inspect, and validate
-- Create-pane project creation form for minimal projects under the configured projects root
+- Create-pane project creation form for projects under the configured projects root
+- Audio-capable project creation defaults for `audio-series` and `mixed-publication` through `project create --json`
 - Default removable `export` target setup for newly created Qt projects
 - Create-pane removable target setup for the selected project
 - Create-pane editor for the selected project's content index file
@@ -155,7 +156,7 @@ Focused project create/save, recording attachment, and Publish-pane target/statu
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, verifies the Create pane content-file list, filter, and selected-file detail, and verifies a removable publish dry-run preview without touching repository examples. It also creates an audio-capable temporary project and verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering without remote publication.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, verifies the Create pane content-file list, filter, and selected-file detail, and verifies a removable publish dry-run preview without touching repository examples. It also creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, and verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering without remote publication.
 
 CLI JSON contract smoke test:
 

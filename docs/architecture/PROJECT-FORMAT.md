@@ -45,8 +45,10 @@ example.wayproject/
 ```
 
 Only `project.toml` and `content/` are required for a minimal text project.
+`audio-series` and `mixed-publication` projects are created with the audio and
+feed directories shown above so recording attachment has a stable local target.
 
-Directories should be created lazily when a workflow needs them.
+Other optional directories should be created lazily when a workflow needs them.
 
 ## Manifest Versioning
 
@@ -142,6 +144,11 @@ Initial project types:
 - mixed-publication
 
 Unknown project types should produce a validation warning or error depending on the operation. They should not be silently treated as ordinary folders.
+
+`audio-series` and `mixed-publication` are audio-capable project types. New
+projects of those types receive `[audio]` and `[feed]` manifest defaults plus
+`audio/masters`, `audio/published`, `audio/metadata`, and `feeds/feed.xml`.
+The feed file is a placeholder only; feed entry generation is not implemented.
 
 ## Required Fields
 
