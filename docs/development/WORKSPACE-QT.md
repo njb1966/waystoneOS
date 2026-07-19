@@ -20,8 +20,10 @@ Implemented:
 - Left activity navigation
 - Main stacked workspace panes
 - Bottom status bar
-- Create-pane adapter using `project` CLI JSON output for create, list, inspect, and validate
+- Create-pane adapter using `project` CLI JSON output for create, removable target setup, list, inspect, and validate
 - Create-pane project creation form for minimal projects under the configured projects root
+- Default removable `export` target setup for newly created Qt projects
+- Create-pane removable target setup for the selected project
 - Create-pane editor for the selected project's content index file
 - Local Gemtext preview, link validation, and save validation status for the selected project's content index file
 - Read-only recording adapter using `record` and `listen` CLI JSON output
@@ -136,7 +138,7 @@ Focused project create/save smoke test:
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, saves edited content through the same adapter, and validates the result without touching repository examples.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, and validates the result without touching repository examples.
 
 CLI JSON contract smoke test:
 
@@ -149,6 +151,7 @@ scripts/cli-json-contract-smoke.sh
 The first adapter path is CLI JSON for project, recording, publish preview, host, and identity data, plus local file access for project creation, selected content editing, and Gemtext link validation:
 
 - `project create --json`
+- `project target add-removable --json`
 - `project list --json`
 - `project inspect --json`
 - `project validate --json`

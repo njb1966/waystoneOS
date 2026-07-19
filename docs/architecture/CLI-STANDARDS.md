@@ -197,6 +197,7 @@ Version 0.1 should prioritize:
 
 ```text
 project create
+project target add-removable
 project list
 project inspect
 project validate

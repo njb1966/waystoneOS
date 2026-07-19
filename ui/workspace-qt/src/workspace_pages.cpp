@@ -656,6 +656,24 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *contentStatus = new QLabel("Content: idle", authorArea);
     contentStatus->setWordWrap(true);
     authorLayout->addWidget(contentStatus);
+
+    auto *targetSetup = new QWidget(authorArea);
+    auto *targetSetupLayout = new QHBoxLayout(targetSetup);
+    targetSetupLayout->setContentsMargins(0, 0, 0, 0);
+    auto *targetName = new QLineEdit("export", targetSetup);
+    auto *targetPath = new QLineEdit("publish/export", targetSetup);
+    auto *addTarget = new QPushButton("Add Export Target", targetSetup);
+    auto *targetStatus = new QLabel("Target: idle", targetSetup);
+    targetStatus->setWordWrap(true);
+    addTarget->setEnabled(false);
+    targetSetupLayout->addWidget(new QLabel("Target", targetSetup));
+    targetSetupLayout->addWidget(targetName);
+    targetSetupLayout->addWidget(new QLabel("Path", targetSetup));
+    targetSetupLayout->addWidget(targetPath);
+    targetSetupLayout->addWidget(addTarget);
+    targetSetupLayout->addWidget(targetStatus, 1);
+    authorLayout->addWidget(targetSetup);
+
     auto *linkDetails = new QPlainTextEdit(authorArea);
     linkDetails->setReadOnly(true);
     linkDetails->setMaximumHeight(96);
@@ -689,6 +707,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             linkDetails->setPlainText("Links: no project content loaded");
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
+            addTarget->setEnabled(false);
             return;
         }
 
@@ -700,6 +719,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             renderGemtextLinkValidation(*currentDocument, currentDocument->text));
         saveContent->setEnabled(true);
         reloadContent->setEnabled(true);
+        addTarget->setEnabled(true);
     };
 
     QObject::connect(createProject, &QPushButton::clicked, [=]() {
@@ -718,7 +738,15 @@ QWidget *createPage(const CliAdapter *adapter) {
             return;
         }
 
-        createStatus->setText("Created: " + created.projectPath);
+        const ProjectTargetResult target = adapter->addRemovablePublishTarget(
+            created.projectPath, "export", "publish/export");
+        if (target.ok) {
+            createStatus->setText("Created: " + created.projectPath +
+                                  " with export target");
+        } else {
+            createStatus->setText("Created: " + created.projectPath +
+                                  "; target failed: " + target.error);
+        }
         newProjectId->clear();
         newProjectName->clear();
         populateProjectTable(projectsTable, projectDetails, adapter);
@@ -726,6 +754,33 @@ QWidget *createPage(const CliAdapter *adapter) {
             projectDetails->setPlainText(adapter->inspectProject(created.projectPath));
             loadProjectContent(created.projectPath);
         }
+    });
+
+    QObject::connect(addTarget, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            targetStatus->setText("Target: no project selected");
+            return;
+        }
+
+        const QString name = targetName->text().trimmed();
+        const QString path = targetPath->text().trimmed();
+        if (name.isEmpty() || path.isEmpty()) {
+            targetStatus->setText("Target name and path are required");
+            return;
+        }
+
+        const ProjectTargetResult target =
+            adapter->addRemovablePublishTarget(currentDocument->projectPath, name, path);
+        if (!target.ok) {
+            targetStatus->setText(target.error);
+            return;
+        }
+
+        targetStatus->setText("Added: " + target.name + " (" + target.path + ")");
+        projectDetails->setPlainText(
+            adapter->inspectProject(currentDocument->projectPath) +
+            "\n\nValidation: " +
+            adapter->projectValidationState(currentDocument->projectPath));
     });
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {

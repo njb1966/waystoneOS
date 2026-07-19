@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use waystone_project_format::{
-    create_project, inspect_project, list_projects, validate_project, ProjectCreateOptions,
-    ProjectFormatError, ProjectInspection, ProjectSummary, ValidationReport,
+    add_removable_publish_target, create_project, inspect_project, list_projects, validate_project,
+    AddRemovablePublishTargetOptions, ProjectCreateOptions, ProjectFormatError, ProjectInspection,
+    ProjectSummary, ValidationReport,
 };
 
 #[derive(Debug, Default)]
@@ -22,6 +23,13 @@ pub struct CreateProjectRequest {
 pub struct CreateProjectResponse {
     pub project_path: PathBuf,
     pub schema: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddRemovablePublishTargetRequest {
+    pub project_root: PathBuf,
+    pub name: String,
+    pub path: String,
 }
 
 #[derive(Debug, Clone)]
@@ -67,6 +75,17 @@ impl ProjectService {
         list_projects(request.root)
     }
 
+    pub fn add_removable_publish_target(
+        &self,
+        request: AddRemovablePublishTargetRequest,
+    ) -> Result<(), ProjectFormatError> {
+        add_removable_publish_target(&AddRemovablePublishTargetOptions {
+            project_root: request.project_root,
+            name: request.name,
+            path: request.path,
+        })
+    }
+
     pub fn inspect_project(
         &self,
         request: InspectProjectRequest,
@@ -108,10 +127,18 @@ mod tests {
 
         let report = service
             .validate_project(ValidateProjectRequest {
-                path: created.project_path,
+                path: created.project_path.clone(),
             })
             .expect("created project should validate");
         assert!(report.valid, "{report:#?}");
+
+        service
+            .add_removable_publish_target(AddRemovablePublishTargetRequest {
+                project_root: created.project_path,
+                name: "export".to_string(),
+                path: "publish/export".to_string(),
+            })
+            .expect("target should be added");
 
         let projects = service
             .list_projects(ListProjectsRequest { root: root.clone() })

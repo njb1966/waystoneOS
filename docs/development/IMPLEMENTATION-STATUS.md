@@ -67,7 +67,9 @@ Current tests cover:
 - Absolute path rejection
 - Project inspection
 - Minimal project creation
+- Removable publish-target metadata setup
 - Invalid project ID rejection
+- Duplicate publish-target rejection
 - Bounded project listing
 
 ## Project CLI
@@ -82,6 +84,7 @@ Current commands:
 
 ```text
 project create [--json] PARENT ID NAME TYPE
+project target add-removable [--json] PATH NAME EXPORT_PATH
 project list [--json] ROOT
 project inspect [--json] PATH
 project validate [--json] PATH
@@ -108,6 +111,7 @@ Current behavior:
 
 - Wraps project-format operations behind request/response structs
 - Provides a service boundary for create/list/inspect/validate
+- Provides a service boundary for adding removable publish-target metadata
 - Does not implement D-Bus activation
 
 Current tests cover:
@@ -438,8 +442,9 @@ Current behavior:
 - Builds as a standalone Qt 6 C++ CMake project when Qt 6 development files are installed
 - Renders the first Waystone Workspace frame
 - Provides a top menu bar, workspace selectors, left activity navigation, stacked main panes, and status bar
-- Uses the existing `project` CLI JSON output for Create-pane create, list, inspect, and validate
-- Creates minimal projects under the configured projects root, refreshes the project list, and opens the new project in the editor
+- Uses the existing `project` CLI JSON output for Create-pane create, removable target setup, list, inspect, and validate
+- Creates minimal projects under the configured projects root, adds a default removable `export` target, refreshes the project list, and opens the new project in the editor
+- Lets the Create pane add removable publish targets to the selected project
 - Loads, edits, saves, validates, previews, and locally link-checks the selected project's content index file in the Create pane
 - Uses the existing `record` and `listen` CLI JSON output for read-only Create-pane recording list, inspect, validate, and playable state
 - Uses the existing `publish` CLI JSON output for read-only Publish-pane dry-run previews
@@ -455,7 +460,7 @@ Current behavior:
 - Provides `--check-roots` diagnostics for bad config paths and missing configured roots
 - Provides a diagnostic project create/save smoke mode for temporary workspace roots
 - Uses static placeholder resource data for Explore
-- Mutates only persistent user root settings, minimal project directories under the configured projects root, and the selected local project content index file
+- Mutates only persistent user root settings, minimal project directories under the configured projects root, removable publish target metadata, and the selected local project content index file
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
 ## Project Service
@@ -612,7 +617,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully, verified root handling, and covered the local Gemtext link validation build. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, loaded its content index, saved edited Gemtext through the Qt CLI adapter, and validated the result. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
+Local result on 2026-07-18: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified `project inspect --json` reported the target, and validated the result. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 

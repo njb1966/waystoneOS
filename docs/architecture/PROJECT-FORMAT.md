@@ -268,6 +268,7 @@ Initial project commands:
 
 ```text
 project create
+project target add-removable
 project list
 project open
 project inspect

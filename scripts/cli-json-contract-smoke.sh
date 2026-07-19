@@ -43,6 +43,8 @@ project_path = "examples/projects/audio-capsule.wayproject"
 project_inspect = run(["target/debug/project", "inspect", "--json", project_path])
 require({"id", "name", "type", "project_schema", "content_root", "content_index"}
         <= project_inspect["data"].keys(), "project inspect contract changed")
+require("publish_targets" in project_inspect["data"],
+        "project inspect publish target contract changed")
 
 project_validate = run(["target/debug/project", "validate", "--json", project_path])
 require("valid" in project_validate["data"], "project validate contract changed")

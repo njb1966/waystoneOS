@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after local Gemtext link validation
+Status: current after removable publish-target setup
 Date: 2026-07-18
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, and local Gemtext link validation.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, and removable publish-target setup.
 
 ## Current Position
 
@@ -26,6 +26,8 @@ The Qt Workspace currently has:
 - Explore pane active-root display for the loaded Workspace configuration
 - Create pane backed by `project`, `record`, and `listen` CLI JSON output
 - Create pane can create minimal projects under the configured projects root using `project create --json`
+- Newly created Qt projects receive a default removable `export` target at `publish/export`
+- Create pane can add removable publish targets to the selected project using `project target add-removable --json`
 - Newly created projects refresh into the project list and open in the editor
 - Create pane loads the selected project content index through `project inspect --json`
 - Create pane provides basic Gemtext editing, saving, validation status, local preview, and local link validation
@@ -41,7 +43,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, and edits selected project content index files only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates minimal projects under the configured projects root, adds removable publish target metadata, and edits selected project content index files only; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 ## Verification Marker
 
@@ -68,7 +70,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Result after local Gemtext link validation pass: all passed on 2026-07-18.
+Result after removable publish-target setup pass: all passed on 2026-07-18.
 
 ## Important Boundaries
 
@@ -97,10 +99,10 @@ Result after local Gemtext link validation pass: all passed on 2026-07-18.
 
 Recommended next implementation step:
 
-1. Add publish-target setup for newly created projects.
+1. Add Publish-pane selection of newly created/local projects and removable export previews.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Add deeper editor diagnostics or a dedicated content-file list before publish-target setup.
+- Add deeper editor diagnostics or a dedicated content-file list before expanding publish preview workflow.

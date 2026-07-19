@@ -80,6 +80,13 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
         return 1;
     }
 
+    const ProjectTargetResult target =
+        adapter.addRemovablePublishTarget(created.projectPath, "export", "publish/export");
+    if (!target.ok) {
+        err << "workspace project smoke: target failed: " << target.error << Qt::endl;
+        return 1;
+    }
+
     ProjectDocument document = adapter.loadProjectDocument(created.projectPath);
     if (!document.ok) {
         err << "workspace project smoke: load failed: " << document.error << Qt::endl;
@@ -106,7 +113,7 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
         return 1;
     }
 
-    out << "workspace project smoke: created, saved, and validated "
+    out << "workspace project smoke: created, targeted, saved, and validated "
         << created.projectPath << Qt::endl;
     return 0;
 }

@@ -141,6 +141,13 @@ pub struct ProjectCreateOptions {
 }
 
 #[derive(Debug, Clone)]
+pub struct AddRemovablePublishTargetOptions {
+    pub project_root: PathBuf,
+    pub name: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct CreatedProject {
     pub project_path: PathBuf,
     pub schema: u32,
@@ -198,6 +205,12 @@ pub enum ProjectFormatError {
 
     #[error("project directory could not be read: {path}: {source}")]
     ReadDirectoryFailed { path: PathBuf, source: io::Error },
+
+    #[error("duplicate publish target: {0}")]
+    DuplicatePublishTarget(String),
+
+    #[error("invalid publish target name: {0}")]
+    InvalidPublishTargetName(String),
 }
 
 pub fn create_project(
@@ -265,6 +278,58 @@ pub fn list_projects(root: impl AsRef<Path>) -> Result<Vec<ProjectSummary>, Proj
     collect_projects_bounded(root, 0, &mut projects)?;
     projects.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(projects)
+}
+
+pub fn add_removable_publish_target(
+    options: &AddRemovablePublishTargetOptions,
+) -> Result<(), ProjectFormatError> {
+    validate_publish_target_name(&options.name)?;
+    validate_portable_path("publish target path", &options.path)?;
+
+    let manifest = load_manifest(&options.project_root)?;
+    if manifest
+        .publish
+        .as_ref()
+        .and_then(|publish| publish.targets.as_ref())
+        .is_some_and(|targets| targets.iter().any(|target| target.name == options.name))
+    {
+        return Err(ProjectFormatError::DuplicatePublishTarget(
+            options.name.clone(),
+        ));
+    }
+
+    let manifest_path = options.project_root.join("project.toml");
+    let mut manifest_text = fs::read_to_string(&manifest_path).map_err(|source| {
+        ProjectFormatError::ManifestUnreadable {
+            path: manifest_path.clone(),
+            source,
+        }
+    })?;
+    if !manifest_text.ends_with('\n') {
+        manifest_text.push('\n');
+    }
+    manifest_text.push('\n');
+    manifest_text.push_str("[[publish.targets]]\n");
+    manifest_text.push_str(&format!("name = \"{}\"\n", toml_escape(&options.name)));
+    manifest_text.push_str("method = \"removable\"\n");
+    manifest_text.push_str(&format!("path = \"{}\"\n", toml_escape(&options.path)));
+    manifest_text.push_str("delete_policy = \"forbid\"\n");
+
+    let temp_manifest_path = options.project_root.join("project.toml.tmp");
+    fs::write(&temp_manifest_path, manifest_text).map_err(|source| {
+        ProjectFormatError::WriteFileFailed {
+            path: temp_manifest_path.clone(),
+            source,
+        }
+    })?;
+    fs::rename(&temp_manifest_path, &manifest_path).map_err(|source| {
+        ProjectFormatError::InstallManifestFailed {
+            path: manifest_path,
+            source,
+        }
+    })?;
+
+    Ok(())
 }
 
 pub fn load_manifest(project_root: impl AsRef<Path>) -> Result<Manifest, ProjectFormatError> {
@@ -591,6 +656,21 @@ fn validate_project_id(id: &str) -> Result<(), ProjectFormatError> {
     }
 }
 
+fn validate_publish_target_name(name: &str) -> Result<(), ProjectFormatError> {
+    let valid = !name.is_empty()
+        && name
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'));
+
+    if valid {
+        Ok(())
+    } else {
+        Err(ProjectFormatError::InvalidPublishTargetName(
+            name.to_string(),
+        ))
+    }
+}
+
 fn validate_portable_path(field: &str, value: &str) -> Result<(), ProjectFormatError> {
     let path = Path::new(value);
     let invalid = path.is_absolute()
@@ -772,6 +852,70 @@ mod tests {
         assert_eq!(created.schema, SUPPORTED_SCHEMA);
         let report = validate_project(&created.project_path).expect("created project should load");
         assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn adds_removable_publish_target() {
+        let root = unique_temp_root("add-removable-target");
+        fs::create_dir_all(&root).expect("temp root should be created");
+
+        let created = create_project(&ProjectCreateOptions {
+            parent: root.clone(),
+            id: "target-capsule".to_string(),
+            name: "Target Capsule".to_string(),
+            project_type: "capsule".to_string(),
+            content_index: "index.gmi".to_string(),
+            language: Some("en".to_string()),
+            author: None,
+        })
+        .expect("project should be created");
+
+        add_removable_publish_target(&AddRemovablePublishTargetOptions {
+            project_root: created.project_path.clone(),
+            name: "export".to_string(),
+            path: "publish/export".to_string(),
+        })
+        .expect("target should be added");
+
+        let inspection =
+            inspect_project(&created.project_path).expect("created project should inspect");
+        assert_eq!(inspection.publish_targets, vec!["export".to_string()]);
+        let report = validate_project(&created.project_path).expect("project should validate");
+        assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn refuses_duplicate_publish_target() {
+        let root = unique_temp_root("duplicate-removable-target");
+        fs::create_dir_all(&root).expect("temp root should be created");
+
+        let created = create_project(&ProjectCreateOptions {
+            parent: root.clone(),
+            id: "target-capsule".to_string(),
+            name: "Target Capsule".to_string(),
+            project_type: "capsule".to_string(),
+            content_index: "index.gmi".to_string(),
+            language: Some("en".to_string()),
+            author: None,
+        })
+        .expect("project should be created");
+
+        let options = AddRemovablePublishTargetOptions {
+            project_root: created.project_path,
+            name: "export".to_string(),
+            path: "publish/export".to_string(),
+        };
+        add_removable_publish_target(&options).expect("target should be added");
+        let error =
+            add_removable_publish_target(&options).expect_err("duplicate target should fail");
+        assert!(matches!(
+            error,
+            ProjectFormatError::DuplicatePublishTarget(_)
+        ));
 
         let _ = fs::remove_dir_all(root);
     }

@@ -154,6 +154,37 @@ ProjectCreateResult CliAdapter::createProject(const QString &id, const QString &
     return created;
 }
 
+ProjectTargetResult CliAdapter::addRemovablePublishTarget(
+    const QString &projectPath, const QString &name, const QString &exportPath) const {
+    ProjectTargetResult target;
+    const CommandResult result =
+        runCommand("project", {"target", "add-removable", "--json", projectPath, name, exportPath});
+
+    if (!result.error.isEmpty()) {
+        target.error = result.error;
+        return target;
+    }
+
+    if (result.exitCode != 0) {
+        target.error = commandFailureDetail(result, "project target add-removable failed");
+        return target;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        target.error = "project target add-removable returned unreadable JSON";
+        return target;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    target.name = data.value("name").toString();
+    target.method = data.value("method").toString();
+    target.path = data.value("path").toString();
+    target.ok = true;
+    return target;
+}
+
 QString CliAdapter::inspectProject(const QString &path) const {
     const CommandResult result = runCommand("project", {"inspect", "--json", path});
     if (result.exitCode != 0) {
@@ -168,13 +199,16 @@ QString CliAdapter::inspectProject(const QString &path) const {
     }
 
     const QJsonObject data = root.value("data").toObject();
-    return QString("Project: %1\nID: %2\nType: %3\nSchema: %4\nContent: %5/%6")
+    const QStringList targets = jsonStringArray(data.value("publish_targets").toArray());
+    const QString targetText = targets.isEmpty() ? "none" : targets.join(", ");
+    return QString("Project: %1\nID: %2\nType: %3\nSchema: %4\nContent: %5/%6\nPublish targets: %7")
         .arg(data.value("name").toString())
         .arg(data.value("id").toString())
         .arg(data.value("type").toString())
         .arg(data.value("project_schema").toInt())
         .arg(data.value("content_root").toString())
-        .arg(data.value("content_index").toString());
+        .arg(data.value("content_index").toString())
+        .arg(targetText);
 }
 
 QString CliAdapter::projectValidationState(const QString &path) const {

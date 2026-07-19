@@ -17,6 +17,7 @@ It is intentionally separate from the Rust workspace. The UI renders the operati
 Current UI data is limited to:
 
 - `project create --json`
+- `project target add-removable --json`
 - `project list --json`
 - `project inspect --json` for project metadata and selected content index location
 - `project validate --json`
@@ -32,6 +33,7 @@ Current UI data is limited to:
 - `record validate --json`
 - `listen library --json`
 - local creation of minimal projects under the configured projects root
+- local removable publish-target metadata setup
 - local reads and writes of the selected project's content index file
 - local Gemtext preview rendering in the Create pane
 - local Gemtext link validation for external, missing, invalid, and content-root-local links

@@ -38,6 +38,14 @@ struct ProjectCreateResult {
     QString error;
 };
 
+struct ProjectTargetResult {
+    bool ok = false;
+    QString name;
+    QString method;
+    QString path;
+    QString error;
+};
+
 struct PublishPreview {
     bool ok = false;
     bool blocked = false;
@@ -83,6 +91,9 @@ public:
     QList<ProjectSummary> listProjects(QString *error) const;
     ProjectCreateResult createProject(const QString &id, const QString &name,
                                       const QString &projectType) const;
+    ProjectTargetResult addRemovablePublishTarget(const QString &projectPath,
+                                                  const QString &name,
+                                                  const QString &exportPath) const;
     QString inspectProject(const QString &path) const;
     QString projectValidationState(const QString &path) const;
     ProjectDocument loadProjectDocument(const QString &path) const;

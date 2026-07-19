@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use std::process;
 use waystone_cli_output::{escape_json, print_command_error};
 use waystone_project_format::{
-    create_project, inspect_project, list_projects, validate_project, ProjectCreateOptions,
+    add_removable_publish_target, create_project, inspect_project, list_projects, validate_project,
+    AddRemovablePublishTargetOptions, ProjectCreateOptions,
 };
 
 fn main() {
@@ -22,6 +23,9 @@ fn run(args: &[String]) -> i32 {
 
     match positional.as_slice() {
         ["create", parent, id, name, project_type] => create(parent, id, name, project_type, json),
+        ["target", "add-removable", path, name, export_path] => {
+            add_removable_target(path, name, export_path, json)
+        }
         ["list", root] => list(root, json),
         ["inspect", path] => inspect(path, json),
         ["validate", path] => validate(path, json),
@@ -41,14 +45,21 @@ fn inspect(path: &str, json: bool) -> i32 {
     match inspect_project(Path::new(path)) {
         Ok(inspection) => {
             if json {
+                let publish_targets = inspection
+                    .publish_targets
+                    .iter()
+                    .map(|target| format!("\"{}\"", escape_json(target)))
+                    .collect::<Vec<_>>()
+                    .join(",");
                 println!(
-                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"id\":\"{}\",\"name\":\"{}\",\"type\":\"{}\",\"project_schema\":{},\"content_root\":\"{}\",\"content_index\":\"{}\"}}}}",
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"id\":\"{}\",\"name\":\"{}\",\"type\":\"{}\",\"project_schema\":{},\"content_root\":\"{}\",\"content_index\":\"{}\",\"publish_targets\":[{}]}}}}",
                     escape_json(&inspection.id),
                     escape_json(&inspection.name),
                     escape_json(&inspection.project_type),
                     inspection.schema,
                     escape_json(&inspection.content_root),
-                    escape_json(&inspection.content_index)
+                    escape_json(&inspection.content_index),
+                    publish_targets
                 );
             } else {
                 println!("Project: {}", inspection.name);
@@ -59,6 +70,11 @@ fn inspect(path: &str, json: bool) -> i32 {
                     "Content: {}/{}",
                     inspection.content_root, inspection.content_index
                 );
+                if inspection.publish_targets.is_empty() {
+                    println!("Publish targets: none");
+                } else {
+                    println!("Publish targets: {}", inspection.publish_targets.join(", "));
+                }
             }
             0
         }
@@ -91,6 +107,32 @@ fn create(parent: &str, id: &str, name: &str, project_type: &str, json: bool) ->
             0
         }
         Err(error) => print_command_error("project", "create", &error.to_string(), json),
+    }
+}
+
+fn add_removable_target(path: &str, name: &str, export_path: &str, json: bool) -> i32 {
+    let options = AddRemovablePublishTargetOptions {
+        project_root: PathBuf::from(path),
+        name: name.to_string(),
+        path: export_path.to_string(),
+    };
+
+    match add_removable_publish_target(&options) {
+        Ok(()) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"name\":\"{}\",\"method\":\"removable\",\"path\":\"{}\"}}}}",
+                    escape_json(name),
+                    escape_json(export_path)
+                );
+            } else {
+                println!("Added removable publish target: {name}");
+            }
+            0
+        }
+        Err(error) => {
+            print_command_error("project", "target add-removable", &error.to_string(), json)
+        }
     }
 }
 
@@ -196,6 +238,7 @@ fn validate(path: &str, json: bool) -> i32 {
 fn print_help() {
     println!("Usage:");
     println!("  project create [--json] PARENT ID NAME TYPE");
+    println!("  project target add-removable [--json] PATH NAME EXPORT_PATH");
     println!("  project list [--json] ROOT");
     println!("  project inspect [--json] PATH");
     println!("  project validate [--json] PATH");

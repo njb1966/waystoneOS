@@ -48,7 +48,7 @@ if [ "$status" -ne 0 ]; then
 fi
 
 case "$output" in
-  *"workspace project smoke: created, saved, and validated"*) ;;
+  *"workspace project smoke: created, targeted, saved, and validated"*) ;;
   *)
     echo "workspace project smoke: diagnostic mode failed"
     echo "$output"
@@ -78,5 +78,14 @@ case "$(cat "$content_path")" in
 esac
 
 cargo run -q -p waystone-project-cli -- validate "$project_path" >/dev/null
+inspect_output="$(cargo run -q -p waystone-project-cli -- inspect --json "$project_path")"
+case "$inspect_output" in
+  *'"publish_targets":["export"]'*) ;;
+  *)
+    echo "workspace project smoke: export target was not reported by inspect"
+    echo "$inspect_output"
+    exit 1
+    ;;
+esac
 
-echo "workspace project smoke: create/load/save/validate succeeded"
+echo "workspace project smoke: create/target/load/save/validate succeeded"

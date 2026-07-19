@@ -142,7 +142,7 @@ The first source scaffold exists in:
 ui/workspace-qt/
 ```
 
-It currently renders the operating frame and wires the Create pane to `project`, `record`, and `listen` CLI JSON output for project and recording metadata. The Create pane can create minimal projects under the configured projects root, refresh the project list, open the new project in the editor, and load, edit, save, validate, locally preview, and locally link-check the selected project's content index file. The Publish pane uses read-only `publish --dry-run --json` previews. The Operate pane uses read-only `host` and `identity` CLI JSON output for list, inspect, and validate.
+It currently renders the operating frame and wires the Create pane to `project`, `record`, and `listen` CLI JSON output for project and recording metadata. The Create pane can create minimal projects under the configured projects root, add removable publish-target metadata, refresh the project list, open the new project in the editor, and load, edit, save, validate, locally preview, and locally link-check the selected project's content index file. The Publish pane uses read-only `publish --dry-run --json` previews. The Operate pane uses read-only `host` and `identity` CLI JSON output for list, inspect, and validate.
 
 The UI accepts local root configuration through `--config` using an INI file. Without an explicit config file, it checks Qt's user app config location for `workspace.ini`; if absent, it defaults to repository examples. The Explore pane displays the active roots and can write persistent user root settings for later launches. The same binary also exposes a local `--check-roots` diagnostic mode for startup and smoke-test verification.
 
