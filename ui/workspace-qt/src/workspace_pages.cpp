@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include <QDateTime>
 #include <QDir>
+#include <QDirIterator>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
@@ -28,6 +29,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <algorithm>
 #include <memory>
 
 namespace {
@@ -239,6 +241,49 @@ QString renderGemtextLinkValidation(const ProjectDocument &document,
         .arg(missing)
         .arg(invalid)
         .arg(details.join('\n'));
+}
+
+QString contentRelativePath(const ProjectDocument &document, const QString &path) {
+    const QString cleanRoot = QDir::cleanPath(document.contentRootPath);
+    const QString cleanPath = QDir::cleanPath(path);
+    if (!pathIsInsideRoot(cleanPath, cleanRoot)) {
+        return {};
+    }
+    return QDir(cleanRoot).relativeFilePath(cleanPath);
+}
+
+void populateContentFiles(QTableWidget *contentFiles,
+                          const ProjectDocument &document) {
+    contentFiles->setRowCount(0);
+    if (!document.ok || document.contentRootPath.isEmpty()) {
+        return;
+    }
+
+    QList<QFileInfo> files;
+    QDirIterator iterator(document.contentRootPath, QDir::Files,
+                          QDirIterator::Subdirectories);
+    while (iterator.hasNext()) {
+        iterator.next();
+        const QFileInfo info(iterator.fileInfo());
+        if (pathIsInsideRoot(info.absoluteFilePath(), document.contentRootPath)) {
+            files.append(info);
+        }
+    }
+    std::sort(files.begin(), files.end(), [](const QFileInfo &left,
+                                             const QFileInfo &right) {
+        return left.absoluteFilePath() < right.absoluteFilePath();
+    });
+
+    contentFiles->setRowCount(files.size());
+    for (int row = 0; row < files.size(); ++row) {
+        const QFileInfo &file = files.at(row);
+        const QString relative = contentRelativePath(document, file.absoluteFilePath());
+        auto *name = new QTableWidgetItem(relative);
+        name->setData(Qt::UserRole, file.absoluteFilePath());
+        contentFiles->setItem(row, 0, name);
+        contentFiles->setItem(row, 1, new QTableWidgetItem(QString::number(file.size())));
+        contentFiles->setItem(row, 2, new QTableWidgetItem(file.absoluteFilePath()));
+    }
 }
 
 QWidget *rootEditorRow(QWidget *parent, const QString &label, QLineEdit *edit) {
@@ -898,6 +943,12 @@ QWidget *createPage(const CliAdapter *adapter) {
     contentSplitter->setStretchFactor(1, 1);
     authorLayout->addWidget(contentSplitter, 1);
 
+    auto *contentFiles =
+        table({"File", "Size", "Path"}, {});
+    contentFiles->setObjectName("createContentFilesTable");
+    contentFiles->setMaximumHeight(120);
+    authorLayout->addWidget(contentFiles);
+
     auto *contentStatus = new QLabel("Content: idle", authorArea);
     contentStatus->setWordWrap(true);
     authorLayout->addWidget(contentStatus);
@@ -949,6 +1000,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             contentStatus->setText(currentDocument->error);
             editor->clear();
             preview->setHtml(renderGemtextPreview(""));
+            contentFiles->setRowCount(0);
             linkDetails->setPlainText("Links: no project content loaded");
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
@@ -960,6 +1012,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         contentStatus->setText("Loaded: " + currentDocument->title);
         editor->setPlainText(currentDocument->text);
         preview->setHtml(renderGemtextPreview(currentDocument->text));
+        populateContentFiles(contentFiles, *currentDocument);
         linkDetails->setPlainText(
             renderGemtextLinkValidation(*currentDocument, currentDocument->text));
         saveContent->setEnabled(true);
@@ -1077,6 +1130,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         }
 
         currentDocument->text = editor->toPlainText();
+        populateContentFiles(contentFiles, *currentDocument);
         const QString validation =
             adapter->projectValidationState(currentDocument->projectPath);
         contentStatus->setText("Saved: " + currentDocument->contentPath +

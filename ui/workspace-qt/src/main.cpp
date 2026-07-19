@@ -165,6 +165,22 @@ int runProjectCreateSaveSmoke(const CliAdapter &adapter, const QApplication &app
         return 1;
     }
 
+    QWidget *page = createPage(&adapter);
+    QApplication::processEvents();
+    auto *contentFiles = page->findChild<QTableWidget *>("createContentFilesTable");
+    const int contentIndexRow =
+        contentFiles == nullptr ? -1 : tableRowWithText(contentFiles, 0, "index.gmi");
+    if (contentFiles == nullptr || contentIndexRow < 0 ||
+        contentFiles->item(contentIndexRow, 2) == nullptr ||
+        QDir::cleanPath(contentFiles->item(contentIndexRow, 2)->text()) !=
+            QDir::cleanPath(document.contentPath)) {
+        err << "workspace project smoke: content file list did not include index.gmi"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    delete page;
+
     out << "workspace project smoke: created, targeted, saved, and validated "
         << created.projectPath << Qt::endl;
     return 0;
