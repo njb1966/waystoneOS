@@ -97,6 +97,46 @@ title = "Attach Audio"
     assert!(metadata.contains("feed = \"feeds/feed.xml\""));
     assert!(metadata.contains("mime_type = \"audio/ogg; codecs=opus\""));
 
+    let feed_output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "prepare-feed-entry",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+            "2026-07-19T00:00:00Z",
+            "Field note summary",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(feed_output.status.code(), Some(0));
+    let feed_stdout = String::from_utf8_lossy(&feed_output.stdout);
+    assert!(feed_stdout.contains("\"output_relative_path\":\"feeds/entries/field-note.toml\""));
+    let feed_entry_path = project.join("feeds/entries/field-note.toml");
+    assert!(feed_entry_path.is_file());
+
+    let feed_entry = fs::read_to_string(&feed_entry_path).expect("feed entry sidecar");
+    assert!(feed_entry.contains("[entry]"));
+    assert!(feed_entry.contains("recording_metadata = \"audio/metadata/field-note.toml\""));
+    assert!(feed_entry.contains("[enclosure]"));
+    assert!(feed_entry.contains("path = \"audio/published/field-note.opus\""));
+
+    let duplicate_feed_output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "prepare-feed-entry",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+            "2026-07-19T00:00:00Z",
+            "Field note summary",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(duplicate_feed_output.status.code(), Some(1));
+    let duplicate_feed_stdout = String::from_utf8_lossy(&duplicate_feed_output.stdout);
+    assert!(duplicate_feed_stdout.contains("already exists"));
+
     let duplicate = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([
             "attach",

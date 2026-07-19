@@ -102,6 +102,38 @@ pub struct AttachedRecording {
     pub mime_type: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct PrepareFeedEntryOptions {
+    pub project_root: PathBuf,
+    pub recording_metadata_path: PathBuf,
+    pub updated: String,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PreparedFeedEntry {
+    pub recording_id: String,
+    pub title: String,
+    pub entry_id: String,
+    pub feed: String,
+    pub output_path: PathBuf,
+    pub output_relative_path: String,
+    pub published: String,
+    pub mime_type: String,
+    pub updated: String,
+}
+
+struct PreparedFeedEntryRender<'a> {
+    metadata: &'a AudioMetadata,
+    recording_metadata_path: &'a str,
+    feed: &'a str,
+    entry_id: &'a str,
+    published: &'a str,
+    mime_type: &'a str,
+    updated: &'a str,
+    summary: &'a str,
+}
+
 #[derive(Debug, Error)]
 pub enum AudioMetadataError {
     #[error("project path does not exist: {0}")]
@@ -157,6 +189,18 @@ pub enum AudioMetadataError {
 
     #[error("metadata file could not be installed: {path}: {source}")]
     InstallMetadataFailed { path: PathBuf, source: io::Error },
+
+    #[error("recording metadata is missing publication field: {0}")]
+    MissingPublicationField(&'static str),
+
+    #[error("feed entry metadata already exists: {0}")]
+    FeedEntryAlreadyExists(PathBuf),
+
+    #[error("feed entry metadata could not be written: {path}: {source}")]
+    WriteFeedEntryFailed { path: PathBuf, source: io::Error },
+
+    #[error("feed entry metadata could not be installed: {path}: {source}")]
+    InstallFeedEntryFailed { path: PathBuf, source: io::Error },
 }
 
 pub fn load_audio_metadata(path: impl AsRef<Path>) -> Result<AudioMetadata, AudioMetadataError> {
@@ -278,6 +322,123 @@ pub fn attach_recording(
         feed: options.feed.clone(),
         entry_id: options.entry_id.clone(),
         mime_type: options.mime_type.clone(),
+    })
+}
+
+pub fn prepare_feed_entry(
+    options: &PrepareFeedEntryOptions,
+) -> Result<PreparedFeedEntry, AudioMetadataError> {
+    if !options.project_root.exists() {
+        return Err(AudioMetadataError::ProjectNotFound(
+            options.project_root.clone(),
+        ));
+    }
+    if !options.project_root.is_dir() {
+        return Err(AudioMetadataError::ProjectNotDirectory(
+            options.project_root.clone(),
+        ));
+    }
+
+    let metadata = load_audio_metadata(&options.recording_metadata_path)?;
+    let relative_metadata_path =
+        relative_project_path(&options.project_root, &options.recording_metadata_path).ok_or_else(
+            || AudioMetadataError::InvalidAudioPath {
+                field: "recording.metadata".to_string(),
+                value: options.recording_metadata_path.display().to_string(),
+            },
+        )?;
+    validate_audio_path_for_write("recording.metadata", &relative_metadata_path)?;
+
+    let Some(publication) = &metadata.publication else {
+        return Err(AudioMetadataError::MissingPublicationField("publication"));
+    };
+    let Some(feed) = publication.feed.as_deref() else {
+        return Err(AudioMetadataError::MissingPublicationField(
+            "publication.feed",
+        ));
+    };
+    let Some(entry_id) = publication.entry_id.as_deref() else {
+        return Err(AudioMetadataError::MissingPublicationField(
+            "publication.entry_id",
+        ));
+    };
+    let Some(mime_type) = publication.mime_type.as_deref() else {
+        return Err(AudioMetadataError::MissingPublicationField(
+            "publication.mime_type",
+        ));
+    };
+    let Some(published) = metadata.recording.published.as_deref() else {
+        return Err(AudioMetadataError::MissingPublicationField(
+            "recording.published",
+        ));
+    };
+    let feed = feed.to_string();
+    let entry_id = entry_id.to_string();
+    let mime_type = mime_type.to_string();
+    let published = published.to_string();
+
+    validate_audio_path_for_write("publication.feed", &feed)?;
+    validate_audio_path_for_write("recording.published", &published)?;
+    validate_audio_path_for_write("feed-entry.output", "feeds/entries")?;
+    if !options.project_root.join(&published).is_file() {
+        return Err(AudioMetadataError::AudioFileMissing {
+            path: published.clone(),
+        });
+    }
+
+    let output_relative_path = Path::new("feeds/entries")
+        .join(format!("{}.toml", metadata.recording.id))
+        .to_string_lossy()
+        .to_string();
+    let output_path = options.project_root.join(&output_relative_path);
+    if output_path.exists() {
+        return Err(AudioMetadataError::FeedEntryAlreadyExists(output_path));
+    }
+
+    let output_dir = output_path
+        .parent()
+        .expect("feed entry output has a parent directory");
+    fs::create_dir_all(output_dir).map_err(|source| AudioMetadataError::CreateDirectoryFailed {
+        path: output_dir.to_path_buf(),
+        source,
+    })?;
+
+    let temp_output_path =
+        output_path.with_file_name(format!("{}.toml.tmp", metadata.recording.id));
+    fs::write(
+        &temp_output_path,
+        render_prepared_feed_entry(&PreparedFeedEntryRender {
+            metadata: &metadata,
+            recording_metadata_path: &relative_metadata_path,
+            feed: &feed,
+            entry_id: &entry_id,
+            published: &published,
+            mime_type: &mime_type,
+            updated: &options.updated,
+            summary: &options.summary,
+        }),
+    )
+    .map_err(|source| AudioMetadataError::WriteFeedEntryFailed {
+        path: temp_output_path.clone(),
+        source,
+    })?;
+    fs::rename(&temp_output_path, &output_path).map_err(|source| {
+        AudioMetadataError::InstallFeedEntryFailed {
+            path: output_path.clone(),
+            source,
+        }
+    })?;
+
+    Ok(PreparedFeedEntry {
+        recording_id: metadata.recording.id,
+        title: metadata.recording.title,
+        entry_id,
+        feed,
+        output_path,
+        output_relative_path,
+        published,
+        mime_type,
+        updated: options.updated.clone(),
     })
 }
 
@@ -407,6 +568,25 @@ fn validate_audio_path_for_write(field: &str, value: &str) -> Result<(), AudioMe
     }
 }
 
+fn relative_project_path(project_root: &Path, path: &Path) -> Option<String> {
+    let absolute_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(path)
+    };
+    let absolute_project = if project_root.is_absolute() {
+        project_root.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(project_root)
+    };
+    let relative = absolute_path
+        .strip_prefix(absolute_project)
+        .ok()?
+        .to_string_lossy()
+        .to_string();
+    Some(relative)
+}
+
 fn render_attached_recording(options: &AttachRecordingOptions) -> String {
     let mut metadata = String::new();
     metadata.push_str("[recording]\n");
@@ -428,6 +608,34 @@ fn render_attached_recording(options: &AttachRecordingOptions) -> String {
         toml_escape(&options.mime_type)
     ));
     metadata
+}
+
+fn render_prepared_feed_entry(fields: &PreparedFeedEntryRender<'_>) -> String {
+    let mut entry = String::new();
+    entry.push_str("[entry]\n");
+    entry.push_str(&format!("id = \"{}\"\n", toml_escape(fields.entry_id)));
+    entry.push_str(&format!(
+        "title = \"{}\"\n",
+        toml_escape(&fields.metadata.recording.title)
+    ));
+    entry.push_str(&format!("updated = \"{}\"\n", toml_escape(fields.updated)));
+    entry.push_str(&format!("summary = \"{}\"\n", toml_escape(fields.summary)));
+    entry.push_str(&format!("feed = \"{}\"\n", toml_escape(fields.feed)));
+    entry.push_str(&format!(
+        "recording = \"{}\"\n",
+        toml_escape(&fields.metadata.recording.id)
+    ));
+    entry.push_str(&format!(
+        "recording_metadata = \"{}\"\n\n",
+        toml_escape(fields.recording_metadata_path)
+    ));
+    entry.push_str("[enclosure]\n");
+    entry.push_str(&format!("path = \"{}\"\n", toml_escape(fields.published)));
+    entry.push_str(&format!(
+        "mime_type = \"{}\"\n",
+        toml_escape(fields.mime_type)
+    ));
+    entry
 }
 
 fn toml_escape(value: &str) -> String {
@@ -528,6 +736,65 @@ mod tests {
         assert!(matches!(
             error,
             AudioMetadataError::InvalidAudioPath { field, .. } if field == "audio.metadata"
+        ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn prepare_feed_entry_writes_metadata_sidecar() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-metadata-feed-{}",
+            std::process::id()
+        ));
+        let project = root.join("feed.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+        fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::write(project.join("audio/published/note.opus"), b"published").expect("published file");
+        let metadata_path = project.join("audio/metadata/note.toml");
+        fs::write(
+            &metadata_path,
+            r#"[recording]
+id = "note"
+title = "Note"
+master = "audio/masters/note.flac"
+published = "audio/published/note.opus"
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:note"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("recording metadata");
+
+        let prepared = prepare_feed_entry(&PrepareFeedEntryOptions {
+            project_root: project.clone(),
+            recording_metadata_path: metadata_path.clone(),
+            updated: "2026-07-19T00:00:00Z".to_string(),
+            summary: "Prepared by metadata test".to_string(),
+        })
+        .expect("feed entry should prepare");
+
+        assert_eq!(prepared.output_relative_path, "feeds/entries/note.toml");
+        assert!(prepared.output_path.is_file());
+        let feed_entry = fs::read_to_string(&prepared.output_path).expect("feed entry metadata");
+        assert!(feed_entry.contains("[entry]"));
+        assert!(feed_entry.contains("recording_metadata = \"audio/metadata/note.toml\""));
+        assert!(feed_entry.contains("[enclosure]"));
+        assert!(feed_entry.contains("path = \"audio/published/note.opus\""));
+
+        let duplicate = prepare_feed_entry(&PrepareFeedEntryOptions {
+            project_root: project,
+            recording_metadata_path: metadata_path,
+            updated: "2026-07-19T00:00:00Z".to_string(),
+            summary: "Prepared by metadata test".to_string(),
+        })
+        .expect_err("duplicate feed entry should fail");
+        assert!(matches!(
+            duplicate,
+            AudioMetadataError::FeedEntryAlreadyExists(_)
         ));
 
         let _ = fs::remove_dir_all(root);

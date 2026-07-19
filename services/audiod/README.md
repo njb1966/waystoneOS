@@ -2,7 +2,8 @@
 
 `waystone-audiod` owns recording metadata listing, inspection, and validation.
 The audio service crate also supports local sidecar attachment for `record
-attach`, but that mutating operation is not exposed over D-Bus yet.
+attach` and feed-entry sidecar preparation for `record prepare-feed-entry`, but
+those mutating operations are not exposed over D-Bus yet.
 
 Current D-Bus service:
 

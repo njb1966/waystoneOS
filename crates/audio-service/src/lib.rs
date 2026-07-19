@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use waystone_audio_metadata::{
-    attach_recording, list_recordings, load_audio_metadata, validate_audio_metadata,
-    AttachRecordingOptions, AttachedRecording, AudioMetadata, AudioMetadataError, RecordingSummary,
+    attach_recording, list_recordings, load_audio_metadata, prepare_feed_entry,
+    validate_audio_metadata, AttachRecordingOptions, AttachedRecording, AudioMetadata,
+    AudioMetadataError, PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary,
     ValidationReport,
 };
 
@@ -34,6 +35,14 @@ pub struct AttachRecordingRequest {
     pub feed: String,
     pub entry_id: String,
     pub mime_type: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PrepareFeedEntryRequest {
+    pub project_root: PathBuf,
+    pub recording_metadata_path: PathBuf,
+    pub updated: String,
+    pub summary: String,
 }
 
 impl AudioService {
@@ -72,6 +81,18 @@ impl AudioService {
             feed: request.feed,
             entry_id: request.entry_id,
             mime_type: request.mime_type,
+        })
+    }
+
+    pub fn prepare_feed_entry(
+        &self,
+        request: PrepareFeedEntryRequest,
+    ) -> Result<PreparedFeedEntry, AudioMetadataError> {
+        prepare_feed_entry(&PrepareFeedEntryOptions {
+            project_root: request.project_root,
+            recording_metadata_path: request.recording_metadata_path,
+            updated: request.updated,
+            summary: request.summary,
         })
     }
 }
@@ -143,6 +164,49 @@ mod tests {
             })
             .expect("attached recording should validate");
         assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn service_prepares_feed_entry_metadata() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-service-feed-{}",
+            std::process::id()
+        ));
+        let project = root.join("audio-project.wayproject");
+        fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+        fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::write(project.join("audio/published/note.opus"), b"published").expect("published file");
+        let metadata_path = project.join("audio/metadata/note.toml");
+        fs::write(
+            &metadata_path,
+            r#"[recording]
+id = "note"
+title = "Note"
+master = "audio/masters/note.flac"
+published = "audio/published/note.opus"
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:note"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("recording metadata");
+
+        let service = AudioService;
+        let prepared = service
+            .prepare_feed_entry(PrepareFeedEntryRequest {
+                project_root: project.clone(),
+                recording_metadata_path: metadata_path,
+                updated: "2026-07-19T00:00:00Z".to_string(),
+                summary: "Prepared by service test".to_string(),
+            })
+            .expect("feed entry should prepare");
+
+        assert_eq!(prepared.output_relative_path, "feeds/entries/note.toml");
+        assert!(prepared.output_path.is_file());
 
         let _ = fs::remove_dir_all(root);
     }

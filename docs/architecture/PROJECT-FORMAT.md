@@ -35,6 +35,7 @@ example.wayproject/
 |-- assets/
 |-- feeds/
 |   |-- feed.xml
+|   |-- entries/
 |   `-- gemsub.gmi
 |-- templates/
 |-- publish/
@@ -148,7 +149,8 @@ Unknown project types should produce a validation warning or error depending on 
 `audio-series` and `mixed-publication` are audio-capable project types. New
 projects of those types receive `[audio]` and `[feed]` manifest defaults plus
 `audio/masters`, `audio/published`, `audio/metadata`, and `feeds/feed.xml`.
-The feed file is a placeholder only; feed entry generation is not implemented.
+The feed file is a placeholder only. Feed-entry sidecar preparation is
+implemented under `feeds/entries/`, but full feed XML generation is not.
 
 ## Required Fields
 
@@ -228,6 +230,23 @@ sample_rate = 48000
 [publication]
 feed = "feeds/feed.xml"
 entry_id = "tag:example.org,2026:field-note"
+mime_type = "audio/ogg; codecs=opus"
+```
+
+Prepared feed-entry sidecars may be stored under `feeds/entries/`:
+
+```toml
+[entry]
+id = "tag:example.org,2026:field-note"
+title = "Field Note"
+updated = "2026-07-19T00:00:00Z"
+summary = "Field note summary"
+feed = "feeds/feed.xml"
+recording = "2026-07-17-field-note"
+recording_metadata = "audio/metadata/2026-07-17-field-note.toml"
+
+[enclosure]
+path = "audio/published/2026-07-17-field-note.opus"
 mime_type = "audio/ogg; codecs=opus"
 ```
 

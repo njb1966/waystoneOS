@@ -146,6 +146,19 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record attach metadata path changed")
     require((temp_project / "audio" / "metadata" / "second-note.toml").exists(),
             "record attach did not write metadata sidecar")
+    prepared_feed_entry = run([
+        "target/debug/record", "prepare-feed-entry", "--json", str(temp_project),
+        "second-note", "2026-07-19T00:00:00Z", "Second note summary",
+    ])
+    require({"recording_id", "title", "entry_id", "feed", "output_path",
+             "output_relative_path", "published", "mime_type", "updated"}
+            <= prepared_feed_entry["data"].keys(),
+            "record prepare-feed-entry contract changed")
+    require(prepared_feed_entry["data"]["output_relative_path"]
+            == "feeds/entries/second-note.toml",
+            "record prepare-feed-entry output path changed")
+    require((temp_project / "feeds" / "entries" / "second-note.toml").exists(),
+            "record prepare-feed-entry did not write feed entry sidecar")
 
 host_list = run(["target/debug/host", "list", "--json", "examples/connections/hosts"])
 hosts = host_list["data"]["hosts"]

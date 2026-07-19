@@ -2,7 +2,7 @@ use std::env;
 use std::path::Path;
 use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
-use waystone_audio_service::{AttachRecordingRequest, AudioService};
+use waystone_audio_service::{AttachRecordingRequest, AudioService, PrepareFeedEntryRequest};
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
 use waystone_project_format::load_manifest;
 
@@ -15,6 +15,13 @@ struct AttachArgs<'a> {
     feed: &'a str,
     entry_id: &'a str,
     mime_type: &'a str,
+}
+
+struct PrepareFeedEntryArgs<'a> {
+    project: &'a str,
+    recording_id: &'a str,
+    updated: &'a str,
+    summary: &'a str,
 }
 
 fn main() {
@@ -47,6 +54,15 @@ fn run(args: &[String]) -> i32 {
             },
             json,
         ),
+        ["prepare-feed-entry", project, recording_id, updated, summary] => prepare_feed_entry(
+            PrepareFeedEntryArgs {
+                project,
+                recording_id,
+                updated,
+                summary,
+            },
+            json,
+        ),
         ["help"] | ["--help"] | [] => {
             print_help();
             0
@@ -60,22 +76,9 @@ fn run(args: &[String]) -> i32 {
 }
 
 fn attach(args: AttachArgs<'_>, json: bool) -> i32 {
-    let manifest = match load_manifest(Path::new(args.project)) {
-        Ok(manifest) => manifest,
-        Err(error) => return print_command_error("record", "attach", &error.to_string(), json),
-    };
-
-    let Some(metadata_root) = manifest
-        .audio
-        .and_then(|audio| audio.metadata)
-        .filter(|path| !path.trim().is_empty())
-    else {
-        return print_command_error(
-            "record",
-            "attach",
-            "project audio metadata root is not configured",
-            json,
-        );
+    let metadata_root = match project_audio_metadata_root(args.project, "attach", json) {
+        Ok(metadata_root) => metadata_root,
+        Err(exit_code) => return exit_code,
     };
 
     let service = AudioService;
@@ -115,6 +118,67 @@ fn attach(args: AttachArgs<'_>, json: bool) -> i32 {
         }
         Err(error) => print_command_error("record", "attach", &error.to_string(), json),
     }
+}
+
+fn prepare_feed_entry(args: PrepareFeedEntryArgs<'_>, json: bool) -> i32 {
+    let metadata_root = match project_audio_metadata_root(args.project, "prepare-feed-entry", json)
+    {
+        Ok(metadata_root) => metadata_root,
+        Err(exit_code) => return exit_code,
+    };
+    let recording_metadata_path = Path::new(args.project)
+        .join(metadata_root)
+        .join(format!("{}.toml", args.recording_id));
+
+    let service = AudioService;
+    match service.prepare_feed_entry(PrepareFeedEntryRequest {
+        project_root: Path::new(args.project).to_path_buf(),
+        recording_metadata_path,
+        updated: args.updated.to_string(),
+        summary: args.summary.to_string(),
+    }) {
+        Ok(prepared) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"recording_id\":\"{}\",\"title\":\"{}\",\"entry_id\":\"{}\",\"feed\":\"{}\",\"output_path\":\"{}\",\"output_relative_path\":\"{}\",\"published\":\"{}\",\"mime_type\":\"{}\",\"updated\":\"{}\"}}}}",
+                    escape_json(&prepared.recording_id),
+                    escape_json(&prepared.title),
+                    escape_json(&prepared.entry_id),
+                    escape_json(&prepared.feed),
+                    escape_json(&prepared.output_path.display().to_string()),
+                    escape_json(&prepared.output_relative_path),
+                    escape_json(&prepared.published),
+                    escape_json(&prepared.mime_type),
+                    escape_json(&prepared.updated)
+                );
+            } else {
+                println!("Prepared feed entry: {}", prepared.recording_id);
+                println!("Metadata: {}", prepared.output_path.display());
+                println!("Published: {}", prepared.published);
+                println!("Feed: {}", prepared.feed);
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "prepare-feed-entry", &error.to_string(), json),
+    }
+}
+
+fn project_audio_metadata_root(project: &str, command: &str, json: bool) -> Result<String, i32> {
+    let manifest = load_manifest(Path::new(project))
+        .map_err(|error| print_command_error("record", command, &error.to_string(), json))?;
+
+    manifest
+        .audio
+        .and_then(|audio| audio.metadata)
+        .filter(|path| !path.trim().is_empty())
+        .ok_or_else(|| {
+            print_command_error(
+                "record",
+                command,
+                "project audio metadata root is not configured",
+                json,
+            )
+        })
 }
 
 fn list(root: &str, json: bool) -> i32 {
@@ -203,6 +267,7 @@ fn validate(path: &str, json: bool) -> i32 {
 fn print_help() {
     println!("Usage:");
     println!("  record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE");
+    println!("  record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
     println!("  record list [--json] ROOT");
     println!("  record inspect [--json] PATH");
     println!("  record validate [--json] PATH");

@@ -325,22 +325,25 @@ crates/audio-metadata/
 Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files
+- Creates feed-entry metadata sidecars under `feeds/entries/` from existing recording metadata
 - Loads audio metadata TOML sidecars
 - Lists recording metadata from a directory
 - Validates recording IDs
 - Validates required title
 - Validates project-relative master, published, and feed paths
 - Refuses metadata sidecar paths that escape the project root
-- Refuses to overwrite existing metadata sidecars
+- Refuses to overwrite existing metadata and feed-entry sidecars
 - Validates positive channel count and sample rate when present
 - Warns on unusual MIME type shape
 - Does not copy audio files
+- Does not generate or update feed XML files
 - Does not inspect real audio codecs
 - Does not access audio devices
 
 Current tests cover:
 
 - Metadata sidecar creation
+- Feed-entry sidecar preparation
 - Valid audio metadata example
 - Recording metadata listing
 - Invalid upward path rejection
@@ -356,15 +359,16 @@ crates/audio-service/
 Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
-- Provides a service boundary for attach/list/inspect/validate
+- Provides a service boundary for attach/prepare-feed-entry/list/inspect/validate
 - Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not capture or play audio
+- Does not capture, play audio, or generate feed XML
 
 Current tests cover:
 
 - List and validate through the service wrapper
 - Recording metadata attachment through the service wrapper
+- Feed-entry metadata preparation through the service wrapper
 
 ## Host CLI
 
@@ -410,6 +414,7 @@ Current commands:
 
 ```text
 record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
+record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY
 record list [--json] ROOT
 record inspect [--json] PATH
 record validate [--json] PATH
@@ -419,6 +424,11 @@ record validate [--json] PATH
 configured `[audio].metadata` root for existing project-relative master and
 publication-copy files. It records feed enclosure handoff metadata but does not
 copy files, generate feeds, transcode audio, or overwrite an existing sidecar.
+
+`record prepare-feed-entry` creates a feed-entry metadata sidecar under
+`feeds/entries/` for an existing recording sidecar. It requires the recording
+sidecar to include published audio and publication fields and requires the
+published audio file to exist. It does not generate or update feed XML.
 
 ## Listen CLI
 
@@ -601,6 +611,7 @@ Current tests cover:
 - `host validate` rejects invalid trust state
 - `identity validate` rejects private-key material
 - `record validate` rejects invalid audio paths
+- `record attach --json` creates recording metadata and `record prepare-feed-entry --json` creates feed-entry metadata
 - `listen library --json` lists recording metadata
 - `way --help` lists current core commands
 
@@ -660,7 +671,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-19: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same focused smoke now creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, or no target, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without writing completed history or mutating remotes. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
+Local result on 2026-07-19: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same focused smoke now creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, or no target, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without writing completed history or mutating remotes. The CLI JSON contract smoke verifies `record attach --json` and `record prepare-feed-entry --json` against temporary project data. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Useful CLI smoke checks:
 
@@ -708,6 +719,7 @@ scripts/workspace-qt-project-smoke.sh
 - Audio playback
 - Audio trimming, normalization, or export
 - Audio metadata replacement or merge editing
+- Full feed generation or existing feed XML updates
 - Deeper Workspace actions beyond local inspect, authoring, and preview
 - Live reload after editing persistent user settings
 - Browser, Helm, or Comm integration
