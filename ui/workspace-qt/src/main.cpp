@@ -304,6 +304,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         page->findChild<QPushButton *>("createValidatePublication");
     auto *validateFeedEntry =
         page->findChild<QPushButton *>("createValidateFeedEntry");
+    auto *generateFeed = page->findChild<QPushButton *>("createGenerateFeed");
     auto *status = page->findChild<QLabel *>("createRecordingAttachStatus");
     auto *feedStatus = page->findChild<QLabel *>("createFeedEntryStatus");
     auto *details = page->findChild<QPlainTextEdit *>("createRecordingDetails");
@@ -313,7 +314,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         recordingEntryId == nullptr || recordingMime == nullptr ||
         feedUpdated == nullptr || feedSummary == nullptr || attach == nullptr ||
         prepareFeedEntry == nullptr || validatePublication == nullptr ||
-        validateFeedEntry == nullptr || status == nullptr ||
+        validateFeedEntry == nullptr || generateFeed == nullptr || status == nullptr ||
         feedStatus == nullptr || details == nullptr) {
         err << "workspace recording smoke: recording widgets were not discoverable"
             << Qt::endl;
@@ -394,8 +395,24 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
+    generateFeed->click();
+    QApplication::processEvents();
+    const QString feedPath = projectDir.filePath("feeds/feed.xml");
+    if (!QFileInfo::exists(feedPath) ||
+        !feedStatus->text().contains("Feed generated: feeds/feed.xml") ||
+        !feedStatus->text().contains("1 entries") ||
+        !details->toPlainText().contains("Feed: feeds/feed.xml") ||
+        !details->toPlainText().contains("Entries: 1")) {
+        err << "workspace recording smoke: feed generation was not reflected"
+            << Qt::endl;
+        err << "feed status: " << feedStatus->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     delete page;
-    out << "workspace recording smoke: attachment and feed-entry controls succeeded "
+    out << "workspace recording smoke: attachment, feed-entry, and feed generation controls succeeded "
         << metadataPath << Qt::endl;
     return 0;
 }

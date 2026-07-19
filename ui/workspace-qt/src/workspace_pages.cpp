@@ -1088,11 +1088,15 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *validateFeedEntry = new QPushButton("Validate Feed Entry", feedActions);
     validateFeedEntry->setObjectName("createValidateFeedEntry");
     validateFeedEntry->setEnabled(false);
+    auto *generateFeed = new QPushButton("Generate Feed", feedActions);
+    generateFeed->setObjectName("createGenerateFeed");
+    generateFeed->setEnabled(false);
     auto *feedStatus = new QLabel("Feed entry: no project selected", feedActions);
     feedStatus->setObjectName("createFeedEntryStatus");
     feedStatus->setWordWrap(true);
     feedActionsLayout->addWidget(validatePublication);
     feedActionsLayout->addWidget(validateFeedEntry);
+    feedActionsLayout->addWidget(generateFeed);
     feedActionsLayout->addWidget(feedStatus, 1);
     attachLayout->addRow("ID", recordingId);
     attachLayout->addRow("Title", recordingTitle);
@@ -1165,6 +1169,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             prepareFeedEntry->setEnabled(false);
             validatePublication->setEnabled(false);
             validateFeedEntry->setEnabled(false);
+            generateFeed->setEnabled(false);
             attachStatus->setText("Attachment: no project selected");
             feedStatus->setText("Feed entry: no project selected");
             return;
@@ -1184,6 +1189,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         prepareFeedEntry->setEnabled(true);
         validatePublication->setEnabled(true);
         validateFeedEntry->setEnabled(true);
+        generateFeed->setEnabled(true);
         attachStatus->setText("Attachment: ready");
         feedStatus->setText("Feed entry: ready");
     };
@@ -1364,6 +1370,29 @@ QWidget *createPage(const CliAdapter *adapter) {
         const QString state =
             adapter->feedEntryValidationState(currentDocument->projectPath, id);
         feedStatus->setText("Feed entry: " + state);
+    });
+
+    QObject::connect(generateFeed, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            feedStatus->setText("Feed: no project selected");
+            return;
+        }
+
+        const FeedGenerateResult generated =
+            adapter->generateFeed(currentDocument->projectPath);
+        if (!generated.ok) {
+            feedStatus->setText("Feed failed: " + generated.error);
+            return;
+        }
+
+        feedStatus->setText(QString("Feed generated: %1 (%2 entries)")
+                                .arg(generated.feedRelativePath)
+                                .arg(generated.entries));
+        recordingDetails->setPlainText(
+            "Feed: " + generated.feedRelativePath + "\n" +
+            "Path: " + generated.feedPath + "\n" +
+            QString("Entries: %1\n").arg(generated.entries) +
+            "Updated: " + generated.updated);
     });
 
     QObject::connect(refresh, &QPushButton::clicked, [=]() {

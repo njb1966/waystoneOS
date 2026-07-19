@@ -52,6 +52,7 @@ Implemented:
 - Explore pane active-root display for the loaded Workspace configuration
 - Explore pane editing for persistent user root settings
 - Missing root preflight errors shown in affected panes
+- Create-pane feed XML generation through the local `record generate-feed --json` adapter
 - Static placeholder resource data for Explore only
 
 Not implemented:
@@ -60,7 +61,7 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
-- Audio capture, playback, transcoding, or UI-triggered feed XML generation
+- Audio capture, playback, or transcoding
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 

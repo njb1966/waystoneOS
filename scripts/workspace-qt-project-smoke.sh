@@ -160,7 +160,7 @@ if [ "$recording_status" -ne 0 ]; then
 fi
 
 case "$recording_output" in
-  *"workspace recording smoke: attachment and feed-entry controls succeeded"*) ;;
+  *"workspace recording smoke: attachment, feed-entry, and feed generation controls succeeded"*) ;;
   *)
     echo "workspace project smoke: recording diagnostic mode failed"
     echo "$recording_output"
@@ -171,12 +171,17 @@ esac
 recording_project_path="$projects_root/$recording_project_id.wayproject"
 recording_metadata_path="$recording_project_path/audio/metadata/field-note.toml"
 feed_entry_path="$recording_project_path/feeds/entries/field-note.toml"
+feed_path="$recording_project_path/feeds/feed.xml"
 if [ ! -f "$recording_metadata_path" ]; then
   echo "workspace project smoke: recording metadata sidecar was not created"
   exit 1
 fi
 if [ ! -f "$feed_entry_path" ]; then
   echo "workspace project smoke: feed-entry sidecar was not created"
+  exit 1
+fi
+if [ ! -f "$feed_path" ]; then
+  echo "workspace project smoke: feed XML was not generated"
   exit 1
 fi
 
@@ -207,5 +212,13 @@ case "$recording_feed_validation" in
     exit 1
     ;;
 esac
+case "$(cat "$feed_path")" in
+  *'<feed xmlns="http://www.w3.org/2005/Atom">'*'<id>tag:example.invalid,2026:field-note</id>'*) ;;
+  *)
+    echo "workspace project smoke: generated feed XML did not contain expected entry"
+    cat "$feed_path"
+    exit 1
+    ;;
+esac
 
-echo "workspace project smoke: create/target/load/save/validate/preview/status/recording succeeded"
+echo "workspace project smoke: create/target/load/save/validate/preview/status/recording/feed succeeded"

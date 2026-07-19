@@ -156,6 +156,15 @@ struct FeedEntryPrepareResult {
     QString error;
 };
 
+struct FeedGenerateResult {
+    bool ok = false;
+    QString feedPath;
+    QString feedRelativePath;
+    int entries = 0;
+    QString updated;
+    QString error;
+};
+
 class CliAdapter {
 public:
     explicit CliAdapter(WorkspaceConfig config);
@@ -201,6 +210,7 @@ public:
                                             const QString &recordingId,
                                             const QString &updated,
                                             const QString &summary) const;
+    FeedGenerateResult generateFeed(const QString &projectPath) const;
     QString publicationValidationState(const QString &projectPath,
                                        const QString &recordingId) const;
     QString feedEntryValidationState(const QString &projectPath,

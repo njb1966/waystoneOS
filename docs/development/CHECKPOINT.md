@@ -63,7 +63,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project audio metadata sidecars, and creates selected project feed-entry sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, expose feed XML generation, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project audio metadata sidecars, creates selected project feed-entry sidecars, and generates the selected project's feed XML from prepared sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 The Create-pane audio attachment controls call `record attach --json`. They
 create metadata sidecars for existing project-local master and publication-copy
@@ -83,7 +83,8 @@ Atom generator. It reads enabled `[feed]` project configuration, validates every
 `feeds/entries/*.toml` sidecar, sorts entries by descending update time, and
 atomically writes the configured feed XML file. It does not merge existing XML,
 support non-Atom feeds, copy audio, transcode audio, publish remotely, or expose
-the operation through Qt or D-Bus yet.
+the operation through D-Bus yet. The Qt Create pane exposes it through the local
+CLI adapter.
 
 The `record validate-publication --json` and `record validate-feed-entry
 --json` commands validate local publication-copy and feed-entry handoff metadata
@@ -142,7 +143,7 @@ smoke, audiod smoke checks, and Qt project smoke.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
 - `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars without merging existing XML or publishing remotely.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
-- The Qt Create pane exposes feed-entry preparation and publication/feed-entry validation status through local CLI adapters.
+- The Qt Create pane exposes feed-entry preparation, publication/feed-entry validation status, and feed XML generation through local CLI adapters.
 - `project create` scaffolds audio/feed defaults for `audio-series` and `mixed-publication` projects.
 - `waystone-hostd` and `waystone-identityd` fail cleanly without a session bus and reject duplicate bus ownership.
 - `waystone-hostd` and `waystone-identityd` D-Bus service files and systemd user units are present in the repo.
@@ -150,7 +151,7 @@ smoke, audiod smoke checks, and Qt project smoke.
 - `waystone-audiod` D-Bus service file and systemd user unit are present in the repo.
 - D-Bus autostart is verified on a private test session bus with generated temporary service files.
 - Activation files have not been installed into user or system service directories.
-- `waystone-audiod` remains read-only over D-Bus; the new attachment, feed-entry preparation, and project-context publication validation operations are not exposed through IPC yet.
+- `waystone-audiod` remains read-only over D-Bus; the new attachment, feed-entry preparation, project-context publication validation, and feed generation operations are not exposed through IPC yet.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -158,10 +159,10 @@ smoke, audiod smoke checks, and Qt project smoke.
 
 Recommended next implementation step:
 
-1. Run full verification for the minimal feed XML generator slice and commit/push it.
+1. Connect generated feed state into Publish-pane preview/status reporting.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Expose `record generate-feed` in the Qt Create pane after the CLI/service generator is committed.
+- Start the remaining audio export gap by modeling an Opus publication-copy command without real recording.

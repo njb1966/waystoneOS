@@ -854,6 +854,37 @@ FeedEntryPrepareResult CliAdapter::prepareFeedEntry(
     return prepared;
 }
 
+FeedGenerateResult CliAdapter::generateFeed(const QString &projectPath) const {
+    FeedGenerateResult generated;
+    const CommandResult result =
+        runCommand("record", {"generate-feed", "--json", projectPath});
+
+    if (!result.error.isEmpty()) {
+        generated.error = result.error;
+        return generated;
+    }
+
+    if (result.exitCode != 0) {
+        generated.error = commandFailureDetail(result, "record generate-feed failed");
+        return generated;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        generated.error = "record generate-feed returned unreadable JSON";
+        return generated;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    generated.feedPath = data.value("feed_path").toString();
+    generated.feedRelativePath = data.value("feed_relative_path").toString();
+    generated.entries = data.value("entries").toInt();
+    generated.updated = data.value("updated").toString();
+    generated.ok = true;
+    return generated;
+}
+
 QString CliAdapter::inspectRecording(const QString &path) const {
     const CommandResult result = runCommand("record", {"inspect", "--json", path});
     if (result.exitCode != 0) {
