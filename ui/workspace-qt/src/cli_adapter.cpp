@@ -509,6 +509,48 @@ CliAdapter::listPlannedPublicationHistoryPreviews(const QString &path) const {
     return list;
 }
 
+PlannedHistorySavedPreviewDetail
+CliAdapter::readPlannedPublicationHistoryPreview(const QString &projectPath,
+                                                 const QString &previewPath) const {
+    const CommandResult result =
+        runCommand("publish",
+                   {"--read-planned-history-preview",
+                    "--project",
+                    projectPath,
+                    "--preview",
+                    previewPath,
+                    "--json"});
+
+    PlannedHistorySavedPreviewDetail detail;
+    if (!result.error.isEmpty()) {
+        detail.error = result.error;
+        return detail;
+    }
+
+    if (result.exitCode != 0) {
+        detail.error =
+            commandFailureDetail(result, "publish read planned-history preview failed");
+        return detail;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        detail.error = "publish read planned-history preview returned unreadable JSON";
+        return detail;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    detail.ok = true;
+    detail.projectPath = data.value("project_path").toString();
+    detail.path = data.value("path").toString();
+    detail.filename = data.value("filename").toString();
+    detail.modifiedUnix = data.value("modified_unix").toInteger();
+    detail.sizeBytes = data.value("size_bytes").toInteger();
+    detail.recordToml = data.value("record_toml").toString();
+    return detail;
+}
+
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
     if (rootMissing(config_.hostsRoot, "hosts", error)) {
         return {};

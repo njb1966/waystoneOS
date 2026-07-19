@@ -176,3 +176,83 @@ fn list_planned_history_previews_reports_saved_previews() {
     assert!(stdout.contains("\"size_bytes\":"));
     assert!(stdout.contains("history/previews"));
 }
+
+#[test]
+fn read_planned_history_preview_reports_saved_preview_detail() {
+    let project_root = unique_temp_project_root("history-preview-read");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+
+    let save_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--save-planned-history-preview",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--target",
+            "production",
+            "--date",
+            "2026-07-19T00:00:00Z",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+    assert!(save_output.status.success());
+
+    let saved_path = project_root
+        .join("history")
+        .join("previews")
+        .join("2026-07-19T00-00-00Z-production-planned.toml");
+    let read_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--read-planned-history-preview",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--preview",
+            saved_path.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(read_output.status.success());
+    let stdout = String::from_utf8_lossy(&read_output.stdout);
+    assert!(stdout.contains("\"record_toml\":\"[publication]\\n"));
+    assert!(stdout.contains("\"filename\":\"2026-07-19T00-00-00Z-production-planned.toml\""));
+    assert!(stdout.contains("transfer_result = \\\"planned\\\""));
+}
+
+#[test]
+fn read_planned_history_preview_rejects_outside_project_previews() {
+    let project_root = unique_temp_project_root("history-preview-read-reject");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+    std::fs::create_dir_all(project_root.join("history").join("previews"))
+        .expect("preview directory should be created");
+    let outside = project_root.join("outside.toml");
+    std::fs::write(&outside, "[publication]\n").expect("outside file should be written");
+
+    let read_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--read-planned-history-preview",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--preview",
+            outside.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(!read_output.status.success());
+    let stdout = String::from_utf8_lossy(&read_output.stdout);
+    assert!(stdout.contains("\"status\":\"error\""));
+    assert!(stdout.contains("outside project preview directory"));
+}

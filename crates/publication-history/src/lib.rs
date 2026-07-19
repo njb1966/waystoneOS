@@ -41,6 +41,12 @@ pub struct PlannedHistoryPreviewEntry {
     pub size_bytes: u64,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PlannedHistoryPreviewDetail {
+    pub entry: PlannedHistoryPreviewEntry,
+    pub record_toml: String,
+}
+
 impl PublicationHistoryRecord {
     pub fn planned_from_dry_run(plan: &PublishDryRun, date: impl Into<String>) -> Self {
         let files = plan
@@ -186,6 +192,54 @@ pub fn list_planned_history_previews(
     Ok(previews)
 }
 
+pub fn read_planned_history_preview(
+    project_root: impl AsRef<Path>,
+    preview_path: impl AsRef<Path>,
+) -> io::Result<PlannedHistoryPreviewDetail> {
+    let preview_dir = project_root.as_ref().join("history").join("previews");
+    let preview_dir = fs::canonicalize(preview_dir)?;
+    let preview_path = fs::canonicalize(preview_path)?;
+
+    if !preview_path.starts_with(&preview_dir)
+        || preview_path.extension().and_then(|value| value.to_str()) != Some("toml")
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "planned history preview path is outside project preview directory",
+        ));
+    }
+
+    let metadata = fs::metadata(&preview_path)?;
+    if !metadata.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "planned history preview path is not a file",
+        ));
+    }
+
+    let modified_unix = metadata
+        .modified()
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0);
+    let record_toml = fs::read_to_string(&preview_path)?;
+    let filename = preview_path
+        .file_name()
+        .map(|filename| filename.to_string_lossy().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    Ok(PlannedHistoryPreviewDetail {
+        entry: PlannedHistoryPreviewEntry {
+            path: preview_path,
+            filename,
+            modified_unix,
+            size_bytes: metadata.len(),
+        },
+        record_toml,
+    })
+}
+
 fn safe_filename_segment(value: &str) -> String {
     let mut segment = String::new();
     let mut previous_dash = false;
@@ -329,5 +383,52 @@ mod tests {
         );
         assert!(previews[0].path.starts_with(previews_dir));
         assert_eq!(previews[0].size_bytes, 3);
+    }
+
+    #[test]
+    fn reads_planned_history_preview_detail_inside_project_boundary() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-history-preview-read-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be available")
+                .as_nanos()
+        ));
+        let previews_dir = root.join("history").join("previews");
+        fs::create_dir_all(&previews_dir).expect("preview directory should be created");
+        let preview_path = previews_dir.join("2026-07-19T00-00-00Z-export-planned.toml");
+        fs::write(
+            &preview_path,
+            "[publication]\ntransfer_result = \"planned\"\n",
+        )
+        .expect("preview should be written");
+
+        let detail =
+            read_planned_history_preview(&root, &preview_path).expect("preview should read");
+        assert_eq!(
+            detail.entry.filename,
+            "2026-07-19T00-00-00Z-export-planned.toml"
+        );
+        assert!(detail.entry.path.starts_with(previews_dir));
+        assert!(detail.record_toml.contains("transfer_result = \"planned\""));
+    }
+
+    #[test]
+    fn rejects_planned_history_preview_detail_outside_project_boundary() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-history-preview-reject-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be available")
+                .as_nanos()
+        ));
+        let previews_dir = root.join("history").join("previews");
+        fs::create_dir_all(&previews_dir).expect("preview directory should be created");
+        let outside = root.join("outside.toml");
+        fs::write(&outside, "[publication]\n").expect("outside file should be written");
+
+        let error = read_planned_history_preview(&root, outside)
+            .expect_err("outside preview should be rejected");
+        assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
     }
 }

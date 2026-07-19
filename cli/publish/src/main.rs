@@ -5,8 +5,8 @@ use waystone_cli_output::{
     escape_json, json_optional_string, json_string_array, print_command_error,
 };
 use waystone_publication_history::{
-    list_planned_history_previews, write_planned_history_preview, PlannedHistoryPreviewEntry,
-    PublicationHistoryRecord,
+    list_planned_history_previews, read_planned_history_preview, write_planned_history_preview,
+    PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
 use waystone_publish_plan::{dry_run_publish_with_context, PublishContext, Resolution};
 
@@ -30,6 +30,9 @@ fn run(args: &[String]) -> i32 {
         }
         _ if positional.contains(&"--list-planned-history-previews") => {
             list_planned_history_preview_files(&positional, json)
+        }
+        _ if positional.contains(&"--read-planned-history-preview") => {
+            read_planned_history_preview_file(&positional, json)
         }
         _ if positional.contains(&"--save-planned-history-preview") => {
             save_planned_history_preview(&positional, json)
@@ -235,6 +238,47 @@ fn list_planned_history_preview_files(args: &[&str], json: bool) -> i32 {
     }
 }
 
+fn read_planned_history_preview_file(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(preview) = option_value(args, "--preview") else {
+        return usage_error("missing --preview");
+    };
+
+    match read_planned_history_preview(Path::new(project), Path::new(preview)) {
+        Ok(detail) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project_path\":\"{}\",{}}}}}",
+                    escape_json(project),
+                    json_planned_history_preview_detail(&detail)
+                );
+            } else {
+                print!("{}", detail.record_toml);
+            }
+            0
+        }
+        Err(error) => print_command_error(
+            "publish",
+            "read_planned_history_preview",
+            &error.to_string(),
+            json,
+        ),
+    }
+}
+
+fn json_planned_history_preview_detail(detail: &PlannedHistoryPreviewDetail) -> String {
+    format!(
+        "\"path\":\"{}\",\"filename\":\"{}\",\"modified_unix\":{},\"size_bytes\":{},\"record_toml\":\"{}\"",
+        escape_json(&detail.entry.path.display().to_string()),
+        escape_json(&detail.entry.filename),
+        detail.entry.modified_unix,
+        detail.entry.size_bytes,
+        escape_json(&detail.record_toml)
+    )
+}
+
 fn json_planned_history_previews(previews: &[PlannedHistoryPreviewEntry]) -> String {
     previews
         .iter()
@@ -272,6 +316,7 @@ fn print_help() {
     println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
     println!("  publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
     println!("  publish --list-planned-history-previews --project PATH [--json]");
+    println!("  publish --read-planned-history-preview --project PATH --preview PATH [--json]");
 }
 
 fn usage_error(message: &str) -> i32 {

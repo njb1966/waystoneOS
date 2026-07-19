@@ -33,6 +33,7 @@ Implemented:
 - Publish-pane planned history summary and raw record preview using `publish --planned-history --json`
 - Publish-pane planned history preview save using `publish --save-planned-history-preview --json`
 - Publish-pane saved preview listing using `publish --list-planned-history-previews --json`
+- Publish-pane selected saved preview detail loading using `publish --read-planned-history-preview --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
@@ -143,7 +144,7 @@ Focused project create/save and Publish-pane target/status smoke test:
 scripts/workspace-qt-project-smoke.sh
 ```
 
-The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, and saved-preview listing without remote publication.
+The project smoke test uses a generated `/tmp` workspace root, creates a minimal project through the Qt CLI adapter, adds a removable export target, saves edited content through the same adapter, validates the result, and verifies a removable publish dry-run preview without touching repository examples. It also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, and selected saved-preview detail loading without remote publication.
 
 CLI JSON contract smoke test:
 
@@ -164,6 +165,7 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `publish --planned-history --json`
 - `publish --save-planned-history-preview --json`
 - `publish --list-planned-history-previews --json`
+- `publish --read-planned-history-preview --json`
 - `host list --json`
 - `host inspect --json`
 - `host validate --json`

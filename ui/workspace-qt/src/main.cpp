@@ -209,12 +209,15 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
-    auto *savedPreviews = page->findChild<QPlainTextEdit *>("publishSavedPreviews");
+    auto *savedPreviews = page->findChild<QTableWidget *>("publishSavedPreviewsTable");
+    auto *savedPreviewDetail =
+        page->findChild<QPlainTextEdit *>("publishSavedPreviewDetail");
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
         saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
-        savedPreviews == nullptr || history == nullptr || projects == nullptr) {
+        savedPreviews == nullptr || savedPreviewDetail == nullptr ||
+        history == nullptr || projects == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
         delete page;
@@ -305,8 +308,17 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         return 1;
     }
     const QString savedFilename = QFileInfo(savedPath).fileName();
-    if (!savedPreviews->toPlainText().contains(savedFilename)) {
+    if (savedPreviews->rowCount() < 1 || savedPreviews->item(0, 0) == nullptr ||
+        savedPreviews->item(0, 0)->text() != savedFilename) {
         err << "workspace publish smoke: saved preview was not listed"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    if (!savedPreviewDetail->toPlainText().contains(savedFilename) ||
+        !savedPreviewDetail->toPlainText().contains(
+            "transfer_result = \"planned\"")) {
+        err << "workspace publish smoke: saved preview detail was not loaded"
             << Qt::endl;
         delete page;
         return 1;
