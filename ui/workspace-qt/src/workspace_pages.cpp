@@ -19,6 +19,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 #include <QSplitter>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -1084,7 +1085,22 @@ QWidget *publishPage(const CliAdapter *adapter) {
             renderSavedPlannedHistoryPreviewDetail(detail));
     };
 
+    auto selectedSavedPreviewPath = [=]() -> QString {
+        const int row = savedPreviews->currentRow();
+        if (row < 0) {
+            return {};
+        }
+        auto *item = savedPreviews->item(row, 0);
+        if (item == nullptr) {
+            return {};
+        }
+        return item->data(Qt::UserRole).toString();
+    };
+
     auto refreshSavedPreviews = [=]() {
+        const QString previousPreviewPath = selectedSavedPreviewPath();
+        int rowToSelect = 0;
+        QSignalBlocker blocker(savedPreviews);
         savedPreviews->setRowCount(0);
         const QString projectPath = currentProjectPath();
         if (projectPath.isEmpty()) {
@@ -1106,6 +1122,10 @@ QWidget *publishPage(const CliAdapter *adapter) {
         savedPreviews->setRowCount(previews.previews.size());
         for (int row = 0; row < previews.previews.size(); ++row) {
             const PlannedHistorySavedPreview &preview = previews.previews.at(row);
+            if (!previousPreviewPath.isEmpty() &&
+                QDir::cleanPath(preview.path) == QDir::cleanPath(previousPreviewPath)) {
+                rowToSelect = row;
+            }
             const QString modified =
                 preview.modifiedUnix > 0
                     ? QDateTime::fromSecsSinceEpoch(preview.modifiedUnix)
@@ -1120,8 +1140,9 @@ QWidget *publishPage(const CliAdapter *adapter) {
                 row, 2, new QTableWidgetItem(QString::number(preview.sizeBytes)));
             savedPreviews->setItem(row, 3, new QTableWidgetItem(preview.path));
         }
-        savedPreviews->selectRow(0);
-        loadSavedPreviewDetail(0);
+        savedPreviews->selectRow(rowToSelect);
+        blocker.unblock();
+        loadSavedPreviewDetail(rowToSelect);
     };
 
     auto runPreview = [=]() {

@@ -307,7 +307,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Add a small read-only history comparison/selection refinement, such as preserving selected saved preview rows across refreshes.
+1. Add a read-only saved-preview comparison aid, such as showing generated planned history beside the selected saved preview.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Add install/package automation only when the repo has a broader install layout.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

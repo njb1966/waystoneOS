@@ -324,6 +324,21 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         return 1;
     }
 
+    selector->setCurrentText("backup");
+    QApplication::processEvents();
+    savePreview->click();
+    QApplication::processEvents();
+    if (savedPreviews->rowCount() < 2 || savedPreviews->currentRow() < 0 ||
+        savedPreviews->item(savedPreviews->currentRow(), 0) == nullptr ||
+        QDir::cleanPath(savedPreviews->item(savedPreviews->currentRow(), 0)
+                            ->data(Qt::UserRole)
+                            .toString()) != QDir::cleanPath(savedPath)) {
+        err << "workspace publish smoke: saved preview selection was not preserved"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     delete page;
     out << "workspace publish smoke: target selector and status transitions succeeded"
         << Qt::endl;
