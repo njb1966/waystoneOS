@@ -77,7 +77,7 @@ require({"project", "target", "method", "destination", "blocked", "changes",
          "verification", "confirmations", "feed"} <= publish["data"].keys(),
         "publish dry-run contract changed")
 require({"configured", "enabled", "type", "path", "exists", "prepared_entries",
-         "invalid_entries"} <= publish["data"]["feed"].keys(),
+         "invalid_entries", "invalid_entry_diagnostics"} <= publish["data"]["feed"].keys(),
         "publish dry-run feed contract changed")
 
 planned_history = run([
@@ -215,7 +215,7 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
         "--target", "export", "--json",
     ])
     require({"configured", "enabled", "path", "exists", "prepared_entries",
-             "invalid_entries"} <= generated_publish["data"]["feed"].keys(),
+             "invalid_entries", "invalid_entry_diagnostics"} <= generated_publish["data"]["feed"].keys(),
             "publish dry-run generated feed state contract changed")
     require(generated_publish["data"]["feed"]["path"] == "feeds/feed.xml",
             "publish dry-run generated feed path changed")

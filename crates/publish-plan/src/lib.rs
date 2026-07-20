@@ -34,6 +34,13 @@ pub struct FeedPublicationState {
     pub exists: bool,
     pub prepared_entries: usize,
     pub invalid_entries: usize,
+    pub invalid_entry_diagnostics: Vec<FeedEntryDiagnostic>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FeedEntryDiagnostic {
+    pub path: String,
+    pub issues: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -301,6 +308,7 @@ fn feed_publication_state(
             exists: false,
             prepared_entries: 0,
             invalid_entries: 0,
+            invalid_entry_diagnostics: Vec::new(),
         };
     };
 
@@ -308,7 +316,7 @@ fn feed_publication_state(
     let exists = path
         .as_ref()
         .is_some_and(|path| project_root.join(path).is_file());
-    let (prepared_entries, invalid_entries) =
+    let (prepared_entries, invalid_entries, invalid_entry_diagnostics) =
         prepared_feed_entry_counts(project_root, path.as_deref());
 
     FeedPublicationState {
@@ -319,24 +327,40 @@ fn feed_publication_state(
         exists,
         prepared_entries,
         invalid_entries,
+        invalid_entry_diagnostics,
     }
 }
 
-fn prepared_feed_entry_counts(project_root: &Path, feed_path: Option<&str>) -> (usize, usize) {
+fn prepared_feed_entry_counts(
+    project_root: &Path,
+    feed_path: Option<&str>,
+) -> (usize, usize, Vec<FeedEntryDiagnostic>) {
     let entries_root = project_root.join("feeds/entries");
     if !entries_root.is_dir() {
-        return (0, 0);
+        return (0, 0, Vec::new());
     }
 
     let Ok(entries) = fs::read_dir(&entries_root) else {
-        return (0, 0);
+        return (
+            0,
+            1,
+            vec![FeedEntryDiagnostic {
+                path: "feeds/entries".to_string(),
+                issues: vec!["feed entries directory could not be read".to_string()],
+            }],
+        );
     };
 
     let mut prepared = 0;
     let mut invalid = 0;
+    let mut diagnostics = Vec::new();
     for entry in entries {
         let Ok(entry) = entry else {
             invalid += 1;
+            diagnostics.push(FeedEntryDiagnostic {
+                path: "feeds/entries".to_string(),
+                issues: vec!["feed entry directory item could not be read".to_string()],
+            });
             continue;
         };
         let path = entry.path();
@@ -349,15 +373,31 @@ fn prepared_feed_entry_counts(project_root: &Path, feed_path: Option<&str>) -> (
             feed_entry_path: path.clone(),
         }) else {
             invalid += 1;
+            diagnostics.push(FeedEntryDiagnostic {
+                path: relative_project_path(project_root, &path),
+                issues: vec!["feed entry could not be validated".to_string()],
+            });
             continue;
         };
         if !report.valid {
             invalid += 1;
+            diagnostics.push(FeedEntryDiagnostic {
+                path: relative_project_path(project_root, &path),
+                issues: report
+                    .errors
+                    .iter()
+                    .map(|issue| issue.message.clone())
+                    .collect(),
+            });
             continue;
         }
 
         let Ok(metadata) = load_feed_entry_metadata(&path) else {
             invalid += 1;
+            diagnostics.push(FeedEntryDiagnostic {
+                path: relative_project_path(project_root, &path),
+                issues: vec!["feed entry metadata could not be loaded".to_string()],
+            });
             continue;
         };
         let entry_feed = metadata.entry.and_then(|entry| entry.feed);
@@ -366,7 +406,13 @@ fn prepared_feed_entry_counts(project_root: &Path, feed_path: Option<&str>) -> (
         }
     }
 
-    (prepared, invalid)
+    (prepared, invalid, diagnostics)
+}
+
+fn relative_project_path(project_root: &Path, path: &Path) -> String {
+    path.strip_prefix(project_root)
+        .map(|relative| relative.to_string_lossy().to_string())
+        .unwrap_or_else(|_| path.to_string_lossy().to_string())
 }
 
 fn collect_relative_files(
@@ -455,6 +501,7 @@ mod tests {
         assert!(plan.feed.exists);
         assert_eq!(plan.feed.prepared_entries, 0);
         assert_eq!(plan.feed.invalid_entries, 0);
+        assert!(plan.feed.invalid_entry_diagnostics.is_empty());
         assert!(plan.delete.is_empty());
     }
 
@@ -544,6 +591,22 @@ mime_type = "audio/ogg; codecs=opus"
 "#,
         )
         .expect("feed entry");
+        fs::write(
+            project.join("feeds/entries/broken.toml"),
+            r#"[entry]
+id = "tag:example.invalid,2026:broken"
+title = "Broken"
+updated = "2026-07-19T00:00:00Z"
+summary = "Broken summary"
+feed = "feeds/feed.xml"
+recording = "broken"
+
+[enclosure]
+path = "audio/published/missing.opus"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("broken feed entry");
 
         let plan = dry_run_publish(&project, "export").expect("dry-run should plan");
 
@@ -551,7 +614,16 @@ mime_type = "audio/ogg; codecs=opus"
         assert_eq!(plan.feed.feed_type.as_deref(), Some("atom"));
         assert!(plan.feed.exists);
         assert_eq!(plan.feed.prepared_entries, 1);
-        assert_eq!(plan.feed.invalid_entries, 0);
+        assert_eq!(plan.feed.invalid_entries, 1);
+        assert_eq!(plan.feed.invalid_entry_diagnostics.len(), 1);
+        assert_eq!(
+            plan.feed.invalid_entry_diagnostics[0].path,
+            "feeds/entries/broken.toml"
+        );
+        assert!(plan.feed.invalid_entry_diagnostics[0]
+            .issues
+            .iter()
+            .any(|issue| issue.contains("entry.recording_metadata")));
 
         let _ = fs::remove_dir_all(project.parent().expect("temp project has parent"));
     }

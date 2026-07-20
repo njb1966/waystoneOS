@@ -160,7 +160,8 @@ configured local projects, derives target choices from project metadata, filters
 visible projects by project name, ID, type, path, or target names, offers a
 target selector for projects with multiple targets, shows
 ready/blocked/failed/feed-aware preview status, uses read-only `publish
---dry-run --json` previews, renders feed readiness from dry-run output, shows a
+--dry-run --json` previews, renders feed readiness and invalid feed-entry
+diagnostics from dry-run output, shows a
 compact per-target overview for the selected project, lets overview row
 selection update the active target and existing preview panes, shows planned
 publication history file-action summaries plus raw records through `publish

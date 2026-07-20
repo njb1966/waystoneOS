@@ -9,7 +9,8 @@ use waystone_publication_history::{
     PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
-    dry_run_publish_with_context, FeedPublicationState, PublishContext, Resolution,
+    dry_run_publish_with_context, FeedEntryDiagnostic, FeedPublicationState, PublishContext,
+    Resolution,
 };
 
 fn main() {
@@ -104,6 +105,15 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
                     println!("Blocked: yes");
                 }
                 println!("Feed: {}", human_feed_state(&plan.feed));
+                if !plan.feed.invalid_entry_diagnostics.is_empty() {
+                    println!("Feed diagnostics:");
+                    for diagnostic in &plan.feed.invalid_entry_diagnostics {
+                        println!("  {}", diagnostic.path);
+                        for issue in &diagnostic.issues {
+                            println!("    {issue}");
+                        }
+                    }
+                }
                 println!("Upload:");
                 for path in plan.upload {
                     println!("  {path}");
@@ -350,15 +360,30 @@ fn json_resolution(resolution: Option<&Resolution>) -> String {
 
 fn json_feed_state(feed: &FeedPublicationState) -> String {
     format!(
-        "{{\"configured\":{},\"enabled\":{},\"type\":{},\"path\":{},\"exists\":{},\"prepared_entries\":{},\"invalid_entries\":{}}}",
+        "{{\"configured\":{},\"enabled\":{},\"type\":{},\"path\":{},\"exists\":{},\"prepared_entries\":{},\"invalid_entries\":{},\"invalid_entry_diagnostics\":[{}]}}",
         feed.configured,
         feed.enabled,
         json_optional_string(feed.feed_type.as_deref()),
         json_optional_string(feed.path.as_deref()),
         feed.exists,
         feed.prepared_entries,
-        feed.invalid_entries
+        feed.invalid_entries,
+        json_feed_diagnostics(&feed.invalid_entry_diagnostics)
     )
+}
+
+fn json_feed_diagnostics(diagnostics: &[FeedEntryDiagnostic]) -> String {
+    diagnostics
+        .iter()
+        .map(|diagnostic| {
+            format!(
+                "{{\"path\":\"{}\",\"issues\":[{}]}}",
+                escape_json(&diagnostic.path),
+                json_string_array(&diagnostic.issues)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn human_feed_state(feed: &FeedPublicationState) -> String {

@@ -439,6 +439,24 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
+    if (!writeFile(projectDir.filePath("feeds/entries/broken.toml"),
+                   "[entry]\n"
+                   "id = \"tag:example.invalid,2026:broken\"\n"
+                   "title = \"Broken\"\n"
+                   "updated = \"2026-07-20T00:00:00Z\"\n"
+                   "summary = \"Broken summary\"\n"
+                   "feed = \"feeds/feed.xml\"\n"
+                   "recording = \"missing\"\n\n"
+                   "[enclosure]\n"
+                   "path = \"audio/published/missing.opus\"\n"
+                   "mime_type = \"audio/ogg; codecs=opus\"\n",
+                   &setupError)) {
+        err << "workspace recording smoke: broken feed-entry setup failed: "
+            << setupError << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     QWidget *publish = publishPage(&adapter);
     QApplication::processEvents();
     auto *publishFilter = publish->findChild<QLineEdit *>("publishProjectFilter");
@@ -465,10 +483,14 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     }
     publishProjects->selectRow(publishRow);
     QApplication::processEvents();
-    if (!publishStatus->text().contains("feed ready") ||
+    if (!publishStatus->text().contains("feed entries invalid") ||
         !publishPlan->toPlainText().contains("Feed:") ||
         !publishPlan->toPlainText().contains("Path: feeds/feed.xml") ||
-        !publishPlan->toPlainText().contains("Prepared entries: 1")) {
+        !publishPlan->toPlainText().contains("Prepared entries: 1") ||
+        !publishPlan->toPlainText().contains("Invalid entries: 1") ||
+        !publishPlan->toPlainText().contains("Diagnostics:") ||
+        !publishPlan->toPlainText().contains("feeds/entries/broken.toml") ||
+        !publishPlan->toPlainText().contains("entry.recording_metadata")) {
         err << "workspace recording smoke: publish feed state was not reflected"
             << Qt::endl;
         err << "publish status: " << publishStatus->text() << Qt::endl;

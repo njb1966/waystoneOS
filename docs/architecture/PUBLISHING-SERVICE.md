@@ -222,8 +222,9 @@ The current implementation supports a local, non-mutating dry-run plan that
 lists publishable project files for a selected target and reports feed
 readiness for configured feeds. Feed readiness includes the configured feed
 path, whether the feed XML file exists, how many valid prepared feed-entry
-sidecars target that feed, and how many feed-entry sidecars are invalid. It can
-also resolve host and identity metadata when local metadata roots are provided,
+sidecars target that feed, how many feed-entry sidecars are invalid, and
+per-invalid-sidecar diagnostic paths with validation issue text. It can also
+resolve host and identity metadata when local metadata roots are provided,
 generate planned publication history records without writing them as completed
 history, save planned preview records under project `history/previews/`, list
 saved planned preview records, and read selected saved preview TOML through the

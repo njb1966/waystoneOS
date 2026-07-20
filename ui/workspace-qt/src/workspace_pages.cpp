@@ -539,7 +539,17 @@ QString renderPublishPreview(const PublishPreview &preview) {
         text += "  Enabled: " + QString(preview.feedEnabled ? "yes" : "no") + "\n";
         text += "  Exists: " + QString(preview.feedExists ? "yes" : "no") + "\n";
         text += QString("  Prepared entries: %1\n").arg(preview.feedPreparedEntries);
-        text += QString("  Invalid entries: %1\n\n").arg(preview.feedInvalidEntries);
+        text += QString("  Invalid entries: %1\n").arg(preview.feedInvalidEntries);
+        if (!preview.feedDiagnostics.isEmpty()) {
+            text += "  Diagnostics:\n";
+            for (const auto &diagnostic : preview.feedDiagnostics) {
+                text += "    " + diagnostic.path + "\n";
+                for (const auto &issue : diagnostic.issues) {
+                    text += "      " + issue + "\n";
+                }
+            }
+        }
+        text += "\n";
     }
     text += "Uploads:\n";
     if (preview.uploads.isEmpty()) {

@@ -46,6 +46,11 @@ struct ProjectTargetResult {
     QString error;
 };
 
+struct FeedEntryDiagnostic {
+    QString path;
+    QStringList issues;
+};
+
 struct PublishPreview {
     bool ok = false;
     bool blocked = false;
@@ -60,6 +65,7 @@ struct PublishPreview {
     QString destination;
     QString feedPath;
     QString feedType;
+    QList<FeedEntryDiagnostic> feedDiagnostics;
     QString hostResolution;
     QString identityResolution;
     QStringList uploads;

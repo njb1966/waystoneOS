@@ -33,6 +33,18 @@ QStringList jsonStringArray(const QJsonArray &array) {
     return values;
 }
 
+QList<FeedEntryDiagnostic> feedDiagnostics(const QJsonArray &array) {
+    QList<FeedEntryDiagnostic> diagnostics;
+    for (const auto &item : array) {
+        const QJsonObject object = item.toObject();
+        FeedEntryDiagnostic diagnostic;
+        diagnostic.path = object.value("path").toString();
+        diagnostic.issues = jsonStringArray(object.value("issues").toArray());
+        diagnostics.append(diagnostic);
+    }
+    return diagnostics;
+}
+
 QString resolutionText(const QJsonObject &object) {
     if (object.isEmpty()) {
         return "none";
@@ -365,6 +377,8 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
     preview.feedExists = feed.value("exists").toBool(false);
     preview.feedPreparedEntries = feed.value("prepared_entries").toInt();
     preview.feedInvalidEntries = feed.value("invalid_entries").toInt();
+    preview.feedDiagnostics =
+        feedDiagnostics(feed.value("invalid_entry_diagnostics").toArray());
 
     const QJsonObject changes = data.value("changes").toObject();
     preview.uploads = jsonStringArray(changes.value("upload").toArray());

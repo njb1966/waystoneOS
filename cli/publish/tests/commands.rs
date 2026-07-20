@@ -81,6 +81,56 @@ fn dry_run_json_reports_feed_state() {
     assert!(stdout.contains("\"exists\":true"));
     assert!(stdout.contains("\"prepared_entries\":0"));
     assert!(stdout.contains("\"invalid_entries\":0"));
+    assert!(stdout.contains("\"invalid_entry_diagnostics\":[]"));
+}
+
+#[test]
+fn dry_run_json_reports_invalid_feed_entry_diagnostics() {
+    let project_root = unique_temp_project_root("feed-diagnostics");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/audio-capsule.wayproject")),
+        &project_root,
+    );
+    std::fs::create_dir_all(project_root.join("feeds/entries")).expect("feed entries directory");
+    std::fs::write(
+        project_root.join("feeds/entries/broken.toml"),
+        r#"[entry]
+id = "tag:example.invalid,2026:broken"
+title = "Broken"
+updated = "2026-07-20T00:00:00Z"
+summary = "Broken summary"
+feed = "feeds/feed.xml"
+recording = "missing"
+
+[enclosure]
+path = "audio/published/missing.opus"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+    )
+    .expect("broken feed entry");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--dry-run",
+            "--project",
+            project_root
+                .to_str()
+                .expect("temp project path should be utf-8"),
+            "--target",
+            "export",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"invalid_entries\":1"));
+    assert!(stdout.contains("\"invalid_entry_diagnostics\":["));
+    assert!(stdout.contains("\"path\":\"feeds/entries/broken.toml\""));
+    assert!(stdout.contains("entry.recording_metadata"));
+
+    let _ = std::fs::remove_dir_all(project_root);
 }
 
 #[test]

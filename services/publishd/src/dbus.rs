@@ -153,6 +153,12 @@ fn plan_response(
             "exists": plan.feed.exists,
             "prepared_entries": plan.feed.prepared_entries,
             "invalid_entries": plan.feed.invalid_entries,
+            "invalid_entry_diagnostics": plan.feed.invalid_entry_diagnostics.into_iter().map(|diagnostic| {
+                json!({
+                    "path": diagnostic.path,
+                    "issues": diagnostic.issues,
+                })
+            }).collect::<Vec<_>>(),
         },
         "changes": {
             "upload": plan.upload,

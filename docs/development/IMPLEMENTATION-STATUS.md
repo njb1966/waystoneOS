@@ -176,7 +176,7 @@ Current behavior:
 - Selects a named publish target
 - Builds a non-mutating dry-run plan
 - Lists publishable content, feed files, and published audio files
-- Reports configured feed readiness, feed XML existence, prepared feed-entry count, and invalid feed-entry count
+- Reports configured feed readiness, feed XML existence, prepared feed-entry count, invalid feed-entry count, and per-invalid-sidecar diagnostics
 - Resolves local host metadata when `--hosts` is provided
 - Resolves local identity metadata when `--identities` is provided
 - Marks dry-run plans blocked when required host or identity metadata is missing or invalid
@@ -190,7 +190,7 @@ Current behavior:
 Current tests cover:
 
 - Audio capsule removable-export dry-run
-- Feed readiness state for a dry-run with prepared feed-entry metadata
+- Feed readiness state for a dry-run with prepared and invalid feed-entry metadata
 - Missing publish target rejection
 - SSH target host and identity resolution
 - Blocked dry-run when host metadata is not provided
@@ -526,6 +526,7 @@ Current behavior:
 - Uses configured local projects plus existing `publish` CLI JSON output for read-only Publish-pane dry-run previews
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
 - Shows Publish-pane preview status as ready, blocked, failed, no project, no target, and feed readiness when feed metadata is configured
+- Shows invalid feed-entry diagnostic paths and validation issue text in Publish-pane dry-run detail
 - Filters visible Publish-pane projects by project name, ID, type, path, or target names
 - Shows a compact per-target Publish-pane overview for the selected project using read-only dry-run status, method, upload count, verification count, and destination
 - Lets Publish-pane target overview row selection update the active target and refresh the existing preview/history panes
@@ -643,7 +644,7 @@ Current tests cover:
 
 - `project validate` reports invalid fixtures
 - `publish --dry-run --json` reports resolved host and identity metadata
-- `publish --dry-run --json` reports configured feed readiness and prepared feed-entry counts
+- `publish --dry-run --json` reports configured feed readiness, prepared feed-entry counts, and invalid feed-entry diagnostics
 - `host validate` rejects invalid trust state
 - `identity validate` rejects private-key material
 - `record validate` rejects invalid audio paths
@@ -712,6 +713,8 @@ Local result on 2026-07-19: Qt 6 was discoverable after installing `qt6-base-dev
 Local result on 2026-07-20: mock Opus publication-copy export passed Rust
 tests, clippy with warnings denied, and the CLI JSON contract smoke. Qt
 Create-pane mock export controls passed Qt build and focused Qt project smoke.
+Publish feed diagnostics passed Rust tests, clippy with warnings denied, CLI
+JSON contract smoke, publishd D-Bus smoke, and focused Qt project smoke.
 
 Useful CLI smoke checks:
 
