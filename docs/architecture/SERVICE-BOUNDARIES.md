@@ -123,6 +123,7 @@ Initial operations:
 PreviewPublication
 ValidatePublication
 BuildPlannedHistory
+BuildCompletedHistory
 ```
 
 Future operations:
@@ -138,12 +139,13 @@ ListPublicationHistory
 ```
 
 Current implementation is limited to non-mutating preview, publication
-readiness validation, planned-history generation, local planned-preview saves
-under project `history/previews/`, read-only saved-preview listing and detail
-loading from that project-local directory, local completed-history record
-construction from explicit result fields, local completed-history saves under
-project `history/completed/`, and read-only completed-record listing and
-detail loading from that project-local directory.
+readiness validation, planned-history generation, completed-history record
+construction from explicit result fields, local planned-preview saves under
+project `history/previews/`, read-only saved-preview listing and detail loading
+from that project-local directory, local completed-history saves under project
+`history/completed/`, and read-only completed-record listing and detail loading
+from that project-local directory. `BuildCompletedHistory` is exposed through
+`waystone-publishd` as a non-mutating record-construction method.
 It does not compare remote state, perform transfers, delete files, unlock
 credentials, verify remote results, or expose completed-history writes over
 D-Bus.

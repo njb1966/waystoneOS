@@ -981,6 +981,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "waystone-publication-history",
  "waystone-publish-plan",
  "waystone-publish-service",
  "zbus",

@@ -224,6 +224,7 @@ Implemented methods:
 PreviewPublication
 ValidatePublication
 BuildPlannedHistory
+BuildCompletedHistory
 ```
 
 Future methods may include `PreparePublication`, `ComparePublication`,
@@ -268,10 +269,12 @@ project writes only. Saved preview reads are constrained to the selected
 project's `history/previews/` directory, and completed-record reads are
 constrained to the selected project's `history/completed/` directory. These
 preview, validation, and local history operations are available through the
-`publish` CLI; non-mutating preview, validation, and planned-history generation
-are also available through the `waystone-publishd` D-Bus adapter. It does not
-generate feeds automatically, compare remote state, perform transfer, delete
-files, access credentials, probe SSH host keys, or verify a remote result.
+`publish` CLI; non-mutating preview, validation, planned-history generation,
+and completed-history result-record generation are also available through the
+`waystone-publishd` D-Bus adapter. D-Bus completed-history generation does not
+write history files. It does not generate feeds automatically, compare remote
+state, perform transfer, delete files, access credentials, probe SSH host keys,
+or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

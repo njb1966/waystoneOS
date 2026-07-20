@@ -1,6 +1,6 @@
 # waystone-publishd
 
-`waystone-publishd` owns non-mutating publication preview, publication readiness validation, and planned-history generation.
+`waystone-publishd` owns non-mutating publication preview, publication readiness validation, planned-history generation, and completed-history result-record generation.
 
 Current D-Bus service:
 
@@ -15,6 +15,7 @@ Implemented methods:
 PreviewPublication
 ValidatePublication
 BuildPlannedHistory
+BuildCompletedHistory
 ```
 
 The current daemon does not compare remote state, transfer files, delete files, verify remote results, unlock credentials, or write completed history records.

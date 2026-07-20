@@ -143,6 +143,40 @@ for expected in planned not-run planned-upload content/index.gmi; do
   esac
 done
 
+completed_history_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  BuildCompletedHistory \
+  s "{\"project_path\":\"examples/projects/ssh-capsule.wayproject\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\",\"date\":\"2026-07-20T00:00:00Z\",\"transfer_result\":\"completed\",\"verification_result\":\"passed\",\"rollback_available\":false,\"rollback_notes\":\"No rollback snapshot recorded\"}")"
+for expected in completed passed planned-upload content/index.gmi "No rollback snapshot recorded"; do
+  case "$completed_history_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: BuildCompletedHistory did not report expected completed record"
+      echo "$completed_history_output"
+      exit 1
+      ;;
+  esac
+done
+
+bad_completed_history_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  BuildCompletedHistory \
+  s "{\"project_path\":\"examples/projects/ssh-capsule.wayproject\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\",\"date\":\"2026-07-20T00:00:00Z\",\"transfer_result\":\"maybe\",\"verification_result\":\"passed\",\"rollback_available\":false,\"rollback_notes\":\"No rollback snapshot recorded\"}")"
+for expected in invalid_request transfer_result; do
+  case "$bad_completed_history_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: invalid completed-history result was not rejected"
+      echo "$bad_completed_history_output"
+      exit 1
+      ;;
+  esac
+done
+
 bad_request_output="$(busctl --user call \
   org.waystone.Publish1 \
   /org/waystone/Publish \

@@ -13,6 +13,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 waystone-publish-plan = { path = "../../crates/publish-plan" }
 waystone-publish-service = { path = "../../crates/publish-service" }
+waystone-publication-history = { path = "../../crates/publication-history" }
 zbus = "=5.13.1"
 zbus_macros = "=5.13.1"
 zbus_names = "=4.3.1"
