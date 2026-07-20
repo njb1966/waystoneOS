@@ -19,6 +19,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSplitter>
+#include <QSpinBox>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTableWidget>
@@ -336,14 +337,6 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
-    QString setupError;
-    if (!writeTestWav(projectDir.filePath("audio/masters/field-note.wav"),
-                      &setupError)) {
-        err << "workspace recording smoke: audio file setup failed: " << setupError
-            << Qt::endl;
-        return 1;
-    }
-
     QWidget *page = createPage(&adapter);
     QApplication::processEvents();
 
@@ -356,10 +349,16 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     auto *recordingFeed = page->findChild<QLineEdit *>("createRecordingFeed");
     auto *recordingEntryId = page->findChild<QLineEdit *>("createRecordingEntryId");
     auto *recordingMime = page->findChild<QLineEdit *>("createRecordingMimeType");
+    auto *captureDuration =
+        page->findChild<QSpinBox *>("createCaptureDurationSeconds");
+    auto *captureInputFormat =
+        page->findChild<QComboBox *>("createCaptureInputFormat");
+    auto *captureInput = page->findChild<QLineEdit *>("createCaptureInput");
     auto *recordingExportPreset =
         page->findChild<QComboBox *>("createRecordingExportPreset");
     auto *feedUpdated = page->findChild<QLineEdit *>("createFeedEntryUpdated");
     auto *feedSummary = page->findChild<QLineEdit *>("createFeedEntrySummary");
+    auto *captureRecording = page->findChild<QPushButton *>("createCaptureRecording");
     auto *exportOpus = page->findChild<QPushButton *>("createExportOpus");
     auto *attach = page->findChild<QPushButton *>("createAttachRecording");
     auto *updateRecording = page->findChild<QPushButton *>("createUpdateRecording");
@@ -377,8 +376,10 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         recordingTitle == nullptr || recordingMaster == nullptr ||
         recordingPublished == nullptr || recordingFeed == nullptr ||
         recordingEntryId == nullptr || recordingMime == nullptr ||
-        recordingExportPreset == nullptr || feedUpdated == nullptr ||
-        feedSummary == nullptr || exportOpus == nullptr || attach == nullptr ||
+        captureDuration == nullptr || captureInputFormat == nullptr ||
+        captureInput == nullptr || recordingExportPreset == nullptr ||
+        feedUpdated == nullptr || feedSummary == nullptr ||
+        captureRecording == nullptr || exportOpus == nullptr || attach == nullptr ||
         updateRecording == nullptr || prepareFeedEntry == nullptr ||
         updateFeedEntry == nullptr || validatePublication == nullptr ||
         validateFeedEntry == nullptr || generateFeed == nullptr ||
@@ -403,12 +404,32 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     recordingTitle->setText("Field Note");
     recordingMaster->setText("audio/masters/field-note.wav");
     recordingPublished->setText("audio/published/field-note.opus");
+    captureDuration->setValue(1);
+    captureInputFormat->setCurrentText("lavfi");
+    captureInput->setText("anullsrc=r=48000:cl=mono");
     recordingExportPreset->setCurrentText("voice-standard");
     recordingFeed->setText("feeds/feed.xml");
     recordingEntryId->setText("tag:example.invalid,2026:field-note");
     recordingMime->setText("audio/ogg; codecs=opus");
     feedUpdated->setText("2026-07-19T00:00:00Z");
     feedSummary->setText("Workspace feed entry smoke");
+    captureRecording->click();
+    QApplication::processEvents();
+
+    const QString masterPath = projectDir.filePath("audio/masters/field-note.wav");
+    if (!QFileInfo::exists(masterPath) ||
+        !status->text().contains("audio/masters/field-note.wav") ||
+        !status->text().contains("ffmpeg") ||
+        !details->toPlainText().contains("Captured master: audio/masters/field-note.wav") ||
+        !details->toPlainText().contains("Sample rate: 48000")) {
+        err << "workspace recording smoke: capture was not reflected"
+            << Qt::endl;
+        err << "status: " << status->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     exportOpus->click();
     QApplication::processEvents();
 
@@ -444,6 +465,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
+    QString setupError;
     if (!writeTestWav(projectDir.filePath("audio/masters/field-note-revised.wav"),
                       &setupError) ||
         !writeFile(projectDir.filePath("audio/published/field-note-revised.opus"),
@@ -671,7 +693,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
 
     delete publish;
     delete page;
-    out << "workspace recording smoke: attachment, feed-entry, feed generation, and publish feed state controls succeeded "
+    out << "workspace recording smoke: capture, attachment, feed-entry, feed generation, and publish feed state controls succeeded "
         << metadataPath << Qt::endl;
     return 0;
 }

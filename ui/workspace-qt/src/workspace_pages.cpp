@@ -22,6 +22,7 @@
 #include <QRegularExpression>
 #include <QSignalBlocker>
 #include <QSplitter>
+#include <QSpinBox>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextBrowser>
@@ -1116,6 +1117,17 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *recordingMime =
         new QLineEdit("audio/ogg; codecs=opus", attachForm);
     recordingMime->setObjectName("createRecordingMimeType");
+    auto *captureDuration = new QSpinBox(attachForm);
+    captureDuration->setObjectName("createCaptureDurationSeconds");
+    captureDuration->setRange(1, 30);
+    captureDuration->setValue(1);
+    auto *captureInputFormat = new QComboBox(attachForm);
+    captureInputFormat->setObjectName("createCaptureInputFormat");
+    captureInputFormat->setEditable(true);
+    captureInputFormat->addItems({"pulse", "alsa", "pipewire", "lavfi"});
+    captureInputFormat->setCurrentText("pulse");
+    auto *captureInput = new QLineEdit("default", attachForm);
+    captureInput->setObjectName("createCaptureInput");
     auto *recordingExportPreset = new QComboBox(attachForm);
     recordingExportPreset->setObjectName("createRecordingExportPreset");
     recordingExportPreset->addItems({"voice-standard", "voice-compact",
@@ -1128,6 +1140,9 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *attachActions = new QWidget(attachForm);
     auto *attachActionsLayout = new QHBoxLayout(attachActions);
     attachActionsLayout->setContentsMargins(0, 0, 0, 0);
+    auto *captureRecording = new QPushButton("Capture WAV", attachActions);
+    captureRecording->setObjectName("createCaptureRecording");
+    captureRecording->setEnabled(false);
     auto *exportOpus = new QPushButton("Export Opus", attachActions);
     exportOpus->setObjectName("createExportOpus");
     exportOpus->setEnabled(false);
@@ -1146,6 +1161,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *attachStatus = new QLabel("Attachment: no project selected", attachActions);
     attachStatus->setObjectName("createRecordingAttachStatus");
     attachStatus->setWordWrap(true);
+    attachActionsLayout->addWidget(captureRecording);
     attachActionsLayout->addWidget(exportOpus);
     attachActionsLayout->addWidget(attachRecording);
     attachActionsLayout->addWidget(updateRecording);
@@ -1175,6 +1191,9 @@ QWidget *createPage(const CliAdapter *adapter) {
     attachLayout->addRow("Title", recordingTitle);
     attachLayout->addRow("Master", recordingMaster);
     attachLayout->addRow("Published", recordingPublished);
+    attachLayout->addRow("Capture Seconds", captureDuration);
+    attachLayout->addRow("Capture Format", captureInputFormat);
+    attachLayout->addRow("Capture Input", captureInput);
     attachLayout->addRow("Export Preset", recordingExportPreset);
     attachLayout->addRow("Feed", recordingFeed);
     attachLayout->addRow("Entry ID", recordingEntryId);
@@ -1239,6 +1258,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
             addTarget->setEnabled(false);
+            captureRecording->setEnabled(false);
             exportOpus->setEnabled(false);
             attachRecording->setEnabled(false);
             updateRecording->setEnabled(false);
@@ -1262,6 +1282,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         saveContent->setEnabled(true);
         reloadContent->setEnabled(true);
         addTarget->setEnabled(true);
+        captureRecording->setEnabled(true);
         exportOpus->setEnabled(true);
         attachRecording->setEnabled(true);
         updateRecording->setEnabled(true);
@@ -1343,6 +1364,41 @@ QWidget *createPage(const CliAdapter *adapter) {
             adapter->inspectProject(currentDocument->projectPath) +
             "\n\nValidation: " +
             adapter->projectValidationState(currentDocument->projectPath));
+    });
+
+    QObject::connect(captureRecording, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            attachStatus->setText("Capture: no project selected");
+            return;
+        }
+
+        const QString master = recordingMaster->text().trimmed();
+        const QString inputFormat = captureInputFormat->currentText().trimmed();
+        const QString input = captureInput->text().trimmed();
+        if (master.isEmpty() || inputFormat.isEmpty() || input.isEmpty()) {
+            attachStatus->setText("Capture master, format, and input are required");
+            return;
+        }
+
+        const RecordingCaptureResult captured = adapter->captureRecording(
+            currentDocument->projectPath, master, captureDuration->value(),
+            inputFormat, input);
+        if (!captured.ok) {
+            attachStatus->setText("Capture failed: " + captured.error);
+            return;
+        }
+
+        recordingMaster->setText(captured.outputRelativePath);
+        attachStatus->setText("Captured: " + captured.outputRelativePath +
+                              " (" + captured.engine + ")");
+        recordingDetails->setPlainText(
+            "Captured master: " + captured.outputRelativePath + "\n" +
+            "Path: " + captured.outputPath + "\n" +
+            QString("Duration: %1 seconds\n").arg(captured.durationSeconds) +
+            QString("Channels: %1\n").arg(captured.channels) +
+            QString("Sample rate: %1\n").arg(captured.sampleRate) +
+            "Format: " + captured.format + "\n" +
+            "Engine: " + captured.engine);
     });
 
     QObject::connect(exportOpus, &QPushButton::clicked, [=]() {

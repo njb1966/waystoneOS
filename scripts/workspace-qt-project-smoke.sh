@@ -160,7 +160,7 @@ if [ "$recording_status" -ne 0 ]; then
 fi
 
 case "$recording_output" in
-  *"workspace recording smoke: attachment, feed-entry, feed generation, and publish feed state controls succeeded"*) ;;
+  *"workspace recording smoke: capture, attachment, feed-entry, feed generation, and publish feed state controls succeeded"*) ;;
   *)
     echo "workspace project smoke: recording diagnostic mode failed"
     echo "$recording_output"

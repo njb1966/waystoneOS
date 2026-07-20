@@ -158,6 +158,19 @@ struct RecordingExportResult {
     QString error;
 };
 
+struct RecordingCaptureResult {
+    bool ok = false;
+    QString master;
+    QString outputPath;
+    QString outputRelativePath;
+    int durationSeconds = 0;
+    int channels = 0;
+    int sampleRate = 0;
+    QString format;
+    QString engine;
+    QString error;
+};
+
 struct RecordingAttachResult {
     bool ok = false;
     QString id;
@@ -235,6 +248,11 @@ public:
     QString inspectIdentity(const QString &path) const;
     QString identityValidationState(const QString &path) const;
     QList<RecordingSummary> listRecordings(QString *error) const;
+    RecordingCaptureResult captureRecording(const QString &projectPath,
+                                            const QString &master,
+                                            int durationSeconds,
+                                            const QString &inputFormat,
+                                            const QString &input) const;
     RecordingExportResult exportOpusPublicationCopy(const QString &projectPath,
                                                     const QString &master,
                                                     const QString &published,
@@ -277,7 +295,8 @@ private:
     WorkspaceConfig config_;
 
     QString commandProgram(const QString &binaryName) const;
-    CommandResult runCommand(const QString &binaryName, const QStringList &arguments) const;
+    CommandResult runCommand(const QString &binaryName, const QStringList &arguments,
+                             int timeoutMs = 5000) const;
     QString commandFailureDetail(const CommandResult &result,
                                  const QString &fallback) const;
 };

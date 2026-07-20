@@ -33,6 +33,7 @@ Current UI data is limited to:
 - `identity inspect --json`
 - `identity validate --json`
 - `record list --json`
+- `record capture --json`
 - `record export-opus --json`
 - `record attach --json`
 - `record update --json`
@@ -48,6 +49,7 @@ Current UI data is limited to:
 - local removable publish-target metadata setup
 - local reads and writes of the selected project's content index file
 - local content-root file listing, filtering, and selected-file detail for the selected project
+- local WAV master capture from explicit `ffmpeg` input sources through `record capture --json`
 - local Opus publication-copy export from existing project-local master files through `record export-opus --json`
 - local audio metadata sidecar attachment for existing project-local master and publication-copy files
 - local audio metadata sidecar updates for existing project recordings

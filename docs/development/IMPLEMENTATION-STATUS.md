@@ -329,6 +329,7 @@ Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files
 - Updates existing recording metadata sidecars in place while preserving recording ID, sidecar path, and optional measurement fields
+- Captures mono 48 kHz PCM WAV masters under configured project `[audio].masters` roots from explicit `ffmpeg` input sources
 - Creates Opus publication-copy files from existing project-local master files through `ffmpeg/libopus`
 - Creates feed-entry metadata sidecars under `feeds/entries/` from existing recording metadata
 - Updates existing feed-entry metadata sidecars from current recording metadata
@@ -339,19 +340,20 @@ Current behavior:
 - Validates required title
 - Validates project-relative master, published, and feed paths
 - Refuses metadata sidecar paths that escape the project root
-- Refuses to overwrite existing metadata, feed-entry sidecars, and publication-copy outputs
+- Refuses to overwrite existing metadata, feed-entry sidecars, captured masters, and publication-copy outputs
 - Generates minimal Atom feed XML from validated `feeds/entries/*.toml` sidecars and preserves unrelated existing Atom entries
 - Validates positive channel count and sample rate when present
 - Warns on unusual MIME type shape
 - Does not copy audio files
 - Does not generate non-Atom feeds or merge remote feed state
 - Does not inspect real audio codecs
-- Does not access audio devices
+- Does not enumerate audio devices
 
 Current tests cover:
 
 - Metadata sidecar creation
 - Metadata sidecar update/replacement
+- WAV master capture
 - Encoded Opus publication-copy export
 - Feed-entry sidecar preparation
 - Feed-entry sidecar update/replacement
@@ -372,16 +374,17 @@ crates/audio-service/
 Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
-- Provides a service boundary for attach/update/export-opus/prepare-feed-entry/update-feed-entry/validate-publication/validate-feed-entry/generate-feed/list/inspect/validate
+- Provides a service boundary for attach/update/capture/export-opus/prepare-feed-entry/update-feed-entry/validate-publication/validate-feed-entry/generate-feed/list/inspect/validate
 - Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not capture, play audio, merge remote feed state, or expose feed generation through D-Bus
+- Does not enumerate audio devices, play audio, merge remote feed state, or expose mutating audio/feed operations through D-Bus
 
 Current tests cover:
 
 - List and validate through the service wrapper
 - Recording metadata attachment through the service wrapper
 - Recording metadata update through the service wrapper
+- WAV master capture through the service wrapper
 - Encoded Opus publication-copy export through the service wrapper
 - Feed-entry metadata preparation through the service wrapper
 - Feed-entry metadata update through the service wrapper
@@ -552,6 +555,7 @@ Current behavior:
 - Filters the Create pane content-root file list by relative path or full path
 - Shows read-only detail for the selected Create pane content-root file, including whether it is the editable content index
 - Uses the existing `record` and `listen` CLI JSON output for Create-pane recording list, inspect, validate, playable state, and local metadata sidecar attachment
+- Uses `record capture --json` in the Create pane to create WAV masters from explicit `ffmpeg` input sources
 - Uses `record export-opus --json` in the Create pane to create encoded Opus publication copies from existing project-local master files
 - Uses `record attach --json` in the Create pane to create audio metadata sidecars for existing project-local master and publication-copy files when the selected project has audio metadata configured
 - Uses `record update --json` in the Create pane to update existing recording metadata sidecars for selected projects
@@ -669,7 +673,7 @@ Current state:
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - D-Bus autostart is smoke-tested through a generated temporary service file
 - Systemd user unit syntax is smoke-tested through a generated temporary daemon path
-- Qt audio capture controls are not implemented
+- Audio device enumeration is not implemented
 - Uses `crates/audio-service/` as its internal boundary
 
 ## CLI Integration Tests
@@ -744,7 +748,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local result on 2026-07-19: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the Create pane content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same smoke creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files, verifies that the Create-pane recording update controls rewrite that sidecar for revised project-local files, prepares a feed-entry sidecar, verifies publication/feed-entry validation status, generates feed XML, verifies that the generated Atom feed contains the expected entry, and verifies that the Publish pane reports the generated feed as ready with one prepared entry. The same focused smoke also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, no target, feed missing, feed entries invalid, feed present, or feed ready, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without writing completed history or mutating remotes. The CLI JSON contract smoke verifies `record attach --json`, `record update --json`, `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, `record validate-feed-entry --json`, `record generate-feed --json`, and publish dry-run feed readiness against temporary project data. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
+Local results through 2026-07-20: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the Create pane content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same smoke creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording capture controls create a WAV master from an explicit `ffmpeg` input source, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for project-local audio files, verifies that the Create-pane recording update controls rewrite that sidecar for revised project-local files, prepares a feed-entry sidecar, verifies publication/feed-entry validation status, generates feed XML, verifies that the generated Atom feed contains the expected entry, and verifies that the Publish pane reports the generated feed as ready with one prepared entry. The same focused smoke also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, no target, feed missing, feed entries invalid, feed present, or feed ready, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without writing completed history or mutating remotes. The CLI JSON contract smoke verifies `record capture --json`, `record attach --json`, `record update --json`, `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, `record validate-feed-entry --json`, `record generate-feed --json`, and publish dry-run feed readiness against temporary project data. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract
@@ -761,6 +765,12 @@ Publish-to-Create feed diagnostic handoff passed Qt build and focused Qt
 project smoke.
 Local Atom feed merge/update passed Rust tests, clippy with warnings denied,
 CLI JSON contract smoke, focused Qt project smoke, and broad Qt smoke.
+Narrow local recording capture passed Rust tests, clippy with warnings denied,
+CLI JSON contract smoke, audiod D-Bus smoke, focused Qt project smoke, broad Qt
+smoke, format checks, and git diff whitespace checks. Qt recording capture
+controls passed Qt build, focused Qt project smoke, broad Qt smoke, Rust tests,
+clippy with warnings denied, CLI JSON contract smoke, format checks, and git
+diff whitespace checks.
 
 Useful CLI smoke checks:
 

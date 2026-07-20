@@ -11,6 +11,8 @@
 #include <QProcess>
 #include <QSet>
 
+#include <algorithm>
+
 namespace {
 
 QJsonObject parseJsonObject(const QByteArray &data, QString *error) {
@@ -816,6 +818,46 @@ QList<RecordingSummary> CliAdapter::listRecordings(QString *error) const {
     return recordings;
 }
 
+RecordingCaptureResult CliAdapter::captureRecording(
+    const QString &projectPath, const QString &master, int durationSeconds,
+    const QString &inputFormat, const QString &input) const {
+    RecordingCaptureResult captured;
+    const int timeoutMs = std::max(5000, (durationSeconds + 5) * 1000);
+    const CommandResult result =
+        runCommand("record", {"capture", "--json", projectPath, master,
+                              QString::number(durationSeconds), inputFormat, input},
+                   timeoutMs);
+
+    if (!result.error.isEmpty()) {
+        captured.error = result.error;
+        return captured;
+    }
+
+    if (result.exitCode != 0) {
+        captured.error = commandFailureDetail(result, "record capture failed");
+        return captured;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        captured.error = "record capture returned unreadable JSON";
+        return captured;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    captured.master = data.value("master").toString();
+    captured.outputPath = data.value("output_path").toString();
+    captured.outputRelativePath = data.value("output_relative_path").toString();
+    captured.durationSeconds = data.value("duration_seconds").toInt();
+    captured.channels = data.value("channels").toInt();
+    captured.sampleRate = data.value("sample_rate").toInt();
+    captured.format = data.value("format").toString();
+    captured.engine = data.value("engine").toString();
+    captured.ok = true;
+    return captured;
+}
+
 RecordingExportResult CliAdapter::exportOpusPublicationCopy(
     const QString &projectPath, const QString &master, const QString &published,
     const QString &preset) const {
@@ -1154,7 +1196,8 @@ QString CliAdapter::commandProgram(const QString &binaryName) const {
 }
 
 CommandResult CliAdapter::runCommand(const QString &binaryName,
-                                     const QStringList &arguments) const {
+                                     const QStringList &arguments,
+                                     int timeoutMs) const {
     QProcess process;
     CommandResult result;
     process.setWorkingDirectory(config_.repoRoot);
@@ -1165,7 +1208,7 @@ CommandResult CliAdapter::runCommand(const QString &binaryName,
         return result;
     }
 
-    if (!process.waitForFinished(5000)) {
+    if (!process.waitForFinished(timeoutMs)) {
         process.kill();
         process.waitForFinished(1000);
         result.error = binaryName + " command timed out";
