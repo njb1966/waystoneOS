@@ -96,6 +96,7 @@ Current commands:
 
 ```text
 record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
+record update PROJECT RECORDING_ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record export-opus PROJECT MASTER PUBLISHED PRESET
 record prepare-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
 record validate-publication PROJECT RECORDING_ID
@@ -112,6 +113,15 @@ configured `[audio].metadata` root. It references an existing project-relative
 master file, an existing project-relative publication copy, and a feed enclosure
 handoff path. It does not copy files, record audio, export real audio, generate
 a feed, or overwrite an existing sidecar.
+
+`record update` rewrites an existing recording sidecar selected from the
+project's configured `[audio].metadata` root. It preserves the existing
+`recording.id`, sidecar path, and optional measurement fields
+`duration_seconds`, `channels`, and `sample_rate`, while replacing title,
+master, publication-copy, feed, entry ID, and MIME fields. It requires the new
+master and publication-copy paths to be existing project-relative files. It
+does not edit audio, create a new sidecar, update prepared feed-entry sidecars,
+or merge feed XML.
 
 `record export-opus` models the master-versus-publication-copy workflow for an
 existing project-local master file. It validates project-relative paths, accepts

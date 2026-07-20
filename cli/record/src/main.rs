@@ -4,7 +4,8 @@ use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
 use waystone_audio_service::{
     AttachRecordingRequest, AudioService, ExportOpusRequest, GenerateFeedRequest,
-    PrepareFeedEntryRequest, ValidateFeedEntryRequest, ValidatePublicationRequest,
+    PrepareFeedEntryRequest, UpdateRecordingRequest, ValidateFeedEntryRequest,
+    ValidatePublicationRequest,
 };
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
 use waystone_project_format::load_manifest;
@@ -25,6 +26,17 @@ struct PrepareFeedEntryArgs<'a> {
     recording_id: &'a str,
     updated: &'a str,
     summary: &'a str,
+}
+
+struct UpdateArgs<'a> {
+    project: &'a str,
+    recording_id: &'a str,
+    title: &'a str,
+    master: &'a str,
+    published: &'a str,
+    feed: &'a str,
+    entry_id: &'a str,
+    mime_type: &'a str,
 }
 
 fn main() {
@@ -57,6 +69,21 @@ fn run(args: &[String]) -> i32 {
             },
             json,
         ),
+        ["update", project, recording_id, title, master, published, feed, entry_id, mime_type] => {
+            update(
+                UpdateArgs {
+                    project,
+                    recording_id,
+                    title,
+                    master,
+                    published,
+                    feed,
+                    entry_id,
+                    mime_type,
+                },
+                json,
+            )
+        }
         ["export-opus", project, master, published, preset] => {
             export_opus(project, master, published, preset, json)
         }
@@ -130,6 +157,53 @@ fn attach(args: AttachArgs<'_>, json: bool) -> i32 {
             0
         }
         Err(error) => print_command_error("record", "attach", &error.to_string(), json),
+    }
+}
+
+fn update(args: UpdateArgs<'_>, json: bool) -> i32 {
+    let metadata_root = match project_audio_metadata_root(args.project, "update", json) {
+        Ok(metadata_root) => metadata_root,
+        Err(exit_code) => return exit_code,
+    };
+    let recording_metadata_path = Path::new(args.project)
+        .join(metadata_root)
+        .join(format!("{}.toml", args.recording_id));
+
+    let service = AudioService;
+    match service.update_recording(UpdateRecordingRequest {
+        project_root: Path::new(args.project).to_path_buf(),
+        recording_metadata_path,
+        title: args.title.to_string(),
+        master: args.master.to_string(),
+        published: args.published.to_string(),
+        feed: args.feed.to_string(),
+        entry_id: args.entry_id.to_string(),
+        mime_type: args.mime_type.to_string(),
+    }) {
+        Ok(updated) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"id\":\"{}\",\"title\":\"{}\",\"metadata_path\":\"{}\",\"metadata_relative_path\":\"{}\",\"master\":\"{}\",\"published\":\"{}\",\"feed\":\"{}\",\"entry_id\":\"{}\",\"mime_type\":\"{}\"}}}}",
+                    escape_json(&updated.id),
+                    escape_json(&updated.title),
+                    escape_json(&updated.metadata_path.display().to_string()),
+                    escape_json(&updated.metadata_relative_path),
+                    escape_json(&updated.master),
+                    escape_json(&updated.published),
+                    escape_json(&updated.feed),
+                    escape_json(&updated.entry_id),
+                    escape_json(&updated.mime_type)
+                );
+            } else {
+                println!("Updated recording: {}", updated.id);
+                println!("Metadata: {}", updated.metadata_path.display());
+                println!("Master: {}", updated.master);
+                println!("Published: {}", updated.published);
+                println!("Feed: {}", updated.feed);
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "update", &error.to_string(), json),
     }
 }
 
@@ -413,6 +487,9 @@ fn print_help() {
     println!("Usage:");
     println!("  record export-opus [--json] PROJECT MASTER PUBLISHED PRESET");
     println!("  record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE");
+    println!(
+        "  record update [--json] PROJECT RECORDING_ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE"
+    );
     println!("  record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
     println!("  record validate-publication [--json] PROJECT RECORDING_ID");
     println!("  record validate-feed-entry [--json] PROJECT RECORDING_ID");

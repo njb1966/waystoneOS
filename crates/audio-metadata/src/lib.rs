@@ -126,6 +126,31 @@ pub struct AttachedRecording {
 }
 
 #[derive(Debug, Clone)]
+pub struct UpdateRecordingOptions {
+    pub project_root: PathBuf,
+    pub recording_metadata_path: PathBuf,
+    pub title: String,
+    pub master: String,
+    pub published: String,
+    pub feed: String,
+    pub entry_id: String,
+    pub mime_type: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdatedRecording {
+    pub id: String,
+    pub title: String,
+    pub metadata_path: PathBuf,
+    pub metadata_relative_path: String,
+    pub master: String,
+    pub published: String,
+    pub feed: String,
+    pub entry_id: String,
+    pub mime_type: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct ExportOpusOptions {
     pub project_root: PathBuf,
     pub master: String,
@@ -249,6 +274,9 @@ pub enum AudioMetadataError {
 
     #[error("audio file is missing: {path}")]
     AudioFileMissing { path: String },
+
+    #[error("recording title is required")]
+    MissingRecordingTitle,
 
     #[error("publication copy already exists: {0}")]
     PublicationCopyAlreadyExists(PathBuf),
@@ -416,6 +444,72 @@ pub fn attach_recording(
         id: options.id.clone(),
         title: options.title.clone(),
         metadata_path,
+        metadata_relative_path,
+        master: options.master.clone(),
+        published: options.published.clone(),
+        feed: options.feed.clone(),
+        entry_id: options.entry_id.clone(),
+        mime_type: options.mime_type.clone(),
+    })
+}
+
+pub fn update_recording_metadata(
+    options: &UpdateRecordingOptions,
+) -> Result<UpdatedRecording, AudioMetadataError> {
+    check_project_root(&options.project_root)?;
+    let existing = load_audio_metadata(&options.recording_metadata_path)?;
+    validate_recording_id_for_write(&existing.recording.id)?;
+    if options.title.trim().is_empty() {
+        return Err(AudioMetadataError::MissingRecordingTitle);
+    }
+    validate_audio_path_for_write("recording.master", &options.master)?;
+    validate_audio_path_for_write("recording.published", &options.published)?;
+    validate_audio_path_for_write("publication.feed", &options.feed)?;
+    validate_required_publication_value("publication.entry_id", &options.entry_id)?;
+    validate_required_publication_value("publication.mime_type", &options.mime_type)?;
+
+    let metadata_relative_path =
+        relative_project_path(&options.project_root, &options.recording_metadata_path).ok_or_else(
+            || AudioMetadataError::InvalidAudioPath {
+                field: "recording.metadata".to_string(),
+                value: options.recording_metadata_path.display().to_string(),
+            },
+        )?;
+    validate_audio_path_for_write("recording.metadata", &metadata_relative_path)?;
+
+    for path in [&options.master, &options.published] {
+        if !options.project_root.join(path).is_file() {
+            return Err(AudioMetadataError::AudioFileMissing { path: path.clone() });
+        }
+    }
+
+    let temp_metadata_path = options.recording_metadata_path.with_file_name(format!(
+        "{}.tmp",
+        options
+            .recording_metadata_path
+            .file_name()
+            .expect("recording metadata path has a file name")
+            .to_string_lossy()
+    ));
+    fs::write(
+        &temp_metadata_path,
+        render_updated_recording(options, &existing),
+    )
+    .map_err(|source| AudioMetadataError::WriteFileFailed {
+        path: temp_metadata_path.clone(),
+        source,
+    })?;
+    fs::rename(&temp_metadata_path, &options.recording_metadata_path).map_err(|source| {
+        AudioMetadataError::InstallMetadataFailed {
+            path: options.recording_metadata_path.clone(),
+            source,
+        }
+    })?;
+
+    Ok(UpdatedRecording {
+        id: existing.recording.id,
+        title: options.title.clone(),
+        metadata_path: options.recording_metadata_path.clone(),
         metadata_relative_path,
         master: options.master.clone(),
         published: options.published.clone(),
@@ -951,6 +1045,17 @@ fn validate_required_publication_field(
     }
 }
 
+fn validate_required_publication_value(
+    field: &'static str,
+    value: &str,
+) -> Result<(), AudioMetadataError> {
+    if value.trim().is_empty() {
+        Err(AudioMetadataError::MissingPublicationField(field))
+    } else {
+        Ok(())
+    }
+}
+
 fn validate_required_feed_entry_field(
     issues: &mut Vec<ValidationIssue>,
     field: &'static str,
@@ -1335,6 +1440,42 @@ fn render_attached_recording(options: &AttachRecordingOptions) -> String {
     metadata
 }
 
+fn render_updated_recording(options: &UpdateRecordingOptions, existing: &AudioMetadata) -> String {
+    let mut metadata = String::new();
+    metadata.push_str("[recording]\n");
+    metadata.push_str(&format!(
+        "id = \"{}\"\n",
+        toml_escape(&existing.recording.id)
+    ));
+    metadata.push_str(&format!("title = \"{}\"\n", toml_escape(&options.title)));
+    metadata.push_str(&format!("master = \"{}\"\n", toml_escape(&options.master)));
+    metadata.push_str(&format!(
+        "published = \"{}\"\n",
+        toml_escape(&options.published)
+    ));
+    if let Some(duration_seconds) = existing.recording.duration_seconds {
+        metadata.push_str(&format!("duration_seconds = {duration_seconds}\n"));
+    }
+    if let Some(channels) = existing.recording.channels {
+        metadata.push_str(&format!("channels = {channels}\n"));
+    }
+    if let Some(sample_rate) = existing.recording.sample_rate {
+        metadata.push_str(&format!("sample_rate = {sample_rate}\n"));
+    }
+    metadata.push('\n');
+    metadata.push_str("[publication]\n");
+    metadata.push_str(&format!("feed = \"{}\"\n", toml_escape(&options.feed)));
+    metadata.push_str(&format!(
+        "entry_id = \"{}\"\n",
+        toml_escape(&options.entry_id)
+    ));
+    metadata.push_str(&format!(
+        "mime_type = \"{}\"\n",
+        toml_escape(&options.mime_type)
+    ));
+    metadata
+}
+
 fn render_prepared_feed_entry(fields: &PreparedFeedEntryRender<'_>) -> String {
     let mut entry = String::new();
     entry.push_str("[entry]\n");
@@ -1523,6 +1664,137 @@ mod tests {
         assert!(matches!(
             error,
             AudioMetadataError::InvalidAudioPath { field, .. } if field == "audio.metadata"
+        ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn update_replaces_recording_metadata_and_preserves_measurements() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-metadata-update-{}",
+            std::process::id()
+        ));
+        let project = root.join("update.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+        fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+        fs::write(project.join("audio/masters/original.flac"), b"master").expect("master file");
+        fs::write(
+            project.join("audio/masters/updated.flac"),
+            b"updated master",
+        )
+        .expect("updated master file");
+        fs::write(project.join("audio/published/original.opus"), b"published")
+            .expect("published file");
+        fs::write(
+            project.join("audio/published/updated.opus"),
+            b"updated published",
+        )
+        .expect("updated published file");
+        let metadata_path = project.join("audio/metadata/note.toml");
+        fs::write(
+            &metadata_path,
+            r#"[recording]
+id = "note"
+title = "Original"
+master = "audio/masters/original.flac"
+published = "audio/published/original.opus"
+duration_seconds = 91
+channels = 2
+sample_rate = 48000
+
+[publication]
+feed = "feeds/original.xml"
+entry_id = "tag:example.invalid,2026:original"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("recording metadata");
+
+        let updated = update_recording_metadata(&UpdateRecordingOptions {
+            project_root: project.clone(),
+            recording_metadata_path: metadata_path.clone(),
+            title: "Updated".to_string(),
+            master: "audio/masters/updated.flac".to_string(),
+            published: "audio/published/updated.opus".to_string(),
+            feed: "feeds/feed.xml".to_string(),
+            entry_id: "tag:example.invalid,2026:updated".to_string(),
+            mime_type: "audio/ogg; codecs=opus".to_string(),
+        })
+        .expect("recording metadata should update");
+
+        assert_eq!(updated.id, "note");
+        assert_eq!(updated.metadata_relative_path, "audio/metadata/note.toml");
+        assert_eq!(updated.metadata_path, metadata_path);
+
+        let metadata = fs::read_to_string(&updated.metadata_path).expect("updated metadata");
+        assert!(metadata.contains("id = \"note\""));
+        assert!(metadata.contains("title = \"Updated\""));
+        assert!(metadata.contains("master = \"audio/masters/updated.flac\""));
+        assert!(metadata.contains("published = \"audio/published/updated.opus\""));
+        assert!(metadata.contains("duration_seconds = 91"));
+        assert!(metadata.contains("channels = 2"));
+        assert!(metadata.contains("sample_rate = 48000"));
+        assert!(metadata.contains("feed = \"feeds/feed.xml\""));
+        assert!(metadata.contains("entry_id = \"tag:example.invalid,2026:updated\""));
+
+        let report = validate_publication_copy(&ValidatePublicationOptions {
+            project_root: project,
+            recording_metadata_path: updated.metadata_path,
+        })
+        .expect("updated publication should validate");
+        assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn update_rejects_project_escape_paths() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-metadata-update-escape-{}",
+            std::process::id()
+        ));
+        let project = root.join("update-escape.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+        fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+        fs::write(project.join("audio/published/note.opus"), b"published").expect("published file");
+        let metadata_path = project.join("audio/metadata/note.toml");
+        fs::write(
+            &metadata_path,
+            r#"[recording]
+id = "note"
+title = "Note"
+master = "audio/masters/note.flac"
+published = "audio/published/note.opus"
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:note"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("recording metadata");
+
+        let error = update_recording_metadata(&UpdateRecordingOptions {
+            project_root: project,
+            recording_metadata_path: metadata_path,
+            title: "Updated".to_string(),
+            master: "../outside.flac".to_string(),
+            published: "audio/published/note.opus".to_string(),
+            feed: "feeds/feed.xml".to_string(),
+            entry_id: "tag:example.invalid,2026:note".to_string(),
+            mime_type: "audio/ogg; codecs=opus".to_string(),
+        })
+        .expect_err("escaping master path should fail");
+
+        assert!(matches!(
+            error,
+            AudioMetadataError::InvalidAudioPath { field, .. } if field == "recording.master"
         ));
 
         let _ = fs::remove_dir_all(root);

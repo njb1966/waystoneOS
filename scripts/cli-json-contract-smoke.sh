@@ -166,6 +166,30 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record attach metadata path changed")
     require((temp_project / "audio" / "metadata" / "second-note.toml").exists(),
             "record attach did not write metadata sidecar")
+    (temp_project / "audio" / "masters" / "second-note-revised.flac").write_bytes(
+        b"revised master"
+    )
+    (temp_project / "audio" / "published" / "second-note-revised.opus").write_bytes(
+        b"revised published"
+    )
+    updated_recording = run([
+        "target/debug/record", "update", "--json", str(temp_project),
+        "second-note", "Second Note Revised",
+        "audio/masters/second-note-revised.flac",
+        "audio/published/second-note-revised.opus",
+        "feeds/feed.xml",
+        "tag:example.invalid,2026:second-note-revised",
+        "audio/ogg; codecs=opus",
+    ])
+    require({"id", "title", "metadata_path", "metadata_relative_path",
+             "master", "published", "feed", "entry_id", "mime_type"}
+            <= updated_recording["data"].keys(),
+            "record update contract changed")
+    require(updated_recording["data"]["id"] == "second-note",
+            "record update changed recording id")
+    require(updated_recording["data"]["metadata_relative_path"]
+            == "audio/metadata/second-note.toml",
+            "record update metadata path changed")
     prepared_feed_entry = run([
         "target/debug/record", "prepare-feed-entry", "--json", str(temp_project),
         "second-note", "2026-07-19T00:00:00Z", "Second note summary",

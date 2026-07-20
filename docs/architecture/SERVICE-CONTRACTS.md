@@ -169,6 +169,7 @@ Current contract:
 - `AttachRecordingRequest`
 - `ExportOpusRequest`
 - `PrepareFeedEntryRequest`
+- `UpdateRecordingRequest`
 - `ValidatePublicationRequest`
 - `ValidateFeedEntryRequest`
 - `GenerateFeedRequest`
@@ -177,6 +178,7 @@ Current contract:
 Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files.
+- Updates existing recording metadata sidecars while preserving sidecar path, embedded recording ID, and optional measurement fields.
 - Creates mock Opus publication-copy files from existing project-local masters for CLI-facing workflow tests.
 - Creates feed-entry sidecars from existing recording metadata and published audio references.
 - Validates publication-copy and feed-entry handoff metadata in project context.

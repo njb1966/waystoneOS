@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Publish-pane feed-entry validation detail action
+Status: current after recording metadata update command
 Date: 2026-07-20
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, Publish-pane invalid feed-entry diagnostics, and Publish-pane validation detail for selected feed-entry diagnostics.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, and the CLI/service recording metadata update command.
 
 ## Current Position
 
@@ -73,6 +73,14 @@ create metadata sidecars for existing project-local master and publication-copy
 files and record feed enclosure handoff fields. They do not copy audio,
 transcode, generate feeds, overwrite existing sidecars, call D-Bus, or access
 audio devices.
+
+The `record update --json` command rewrites an existing recording sidecar under
+the selected project's configured `[audio].metadata` root. It preserves the
+sidecar path, embedded `recording.id`, and optional measurement fields while
+replacing title, master, publication-copy, feed, entry ID, and MIME fields. It
+requires replacement master and publication-copy files to exist inside the
+project. It does not edit audio, create new sidecars, update prepared
+feed-entry sidecars, merge feed XML, call D-Bus, or expose a Qt control yet.
 
 The Create-pane mock export control calls `record export-opus --json`. It
 models publication-copy export for an existing project-local master file,
@@ -179,6 +187,7 @@ passed on 2026-07-20, including Qt build and focused Qt project smoke.
 - `waystone-identityd` direct D-Bus serving is implemented for identity list, inspect, and validate.
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
+- `record update` rewrites existing local audio metadata sidecars in place while preserving the embedded recording ID, sidecar path, and optional measurement fields.
 - `record export-opus` creates a mock local Opus publication-copy file from an existing project-local master without real codec encoding or overwriting existing outputs.
 - `record prepare-feed-entry` creates local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
@@ -194,7 +203,7 @@ passed on 2026-07-20, including Qt build and focused Qt project smoke.
 - `waystone-audiod` D-Bus service file and systemd user unit are present in the repo.
 - D-Bus autostart is verified on a private test session bus with generated temporary service files.
 - Activation files have not been installed into user or system service directories.
-- `waystone-audiod` remains read-only over D-Bus; the new attachment, mock publication-copy export, feed-entry preparation, project-context publication validation, and feed generation operations are not exposed through IPC yet.
+- `waystone-audiod` remains read-only over D-Bus; the attachment, update, mock publication-copy export, feed-entry preparation, project-context publication validation, and feed generation operations are not exposed through IPC yet.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -202,7 +211,7 @@ passed on 2026-07-20, including Qt build and focused Qt project smoke.
 
 Recommended next implementation step:
 
-1. Add a small audio metadata replacement/update command for existing recording sidecars, still without real recording or codec editing.
+1. Expose `record update --json` in the Qt Create pane for selected project recording sidecars.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 

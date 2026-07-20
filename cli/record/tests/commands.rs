@@ -286,6 +286,142 @@ mime_type = "audio/ogg; codecs=opus"
 }
 
 #[test]
+fn update_replaces_recording_metadata_sidecar() {
+    let root = std::env::temp_dir().join(format!("waystone-record-cli-update-{}", process::id()));
+    let project = root.join("update-audio.wayproject");
+    let metadata_path = project.join("audio/metadata/field-note.toml");
+    let _ = fs::remove_dir_all(&root);
+
+    fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+    fs::create_dir_all(project.join("audio/published")).expect("published directory");
+    fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+    fs::create_dir_all(project.join("feeds")).expect("feeds directory");
+    fs::write(
+        project.join("project.toml"),
+        r#"[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "update-audio"
+name = "Update Audio"
+type = "audio-series"
+language = "en"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[audio]
+masters = "audio/masters"
+published = "audio/published"
+metadata = "audio/metadata"
+
+[feed]
+enabled = true
+type = "atom"
+path = "feeds/feed.xml"
+title = "Update Audio"
+"#,
+    )
+    .expect("project manifest");
+    fs::write(project.join("audio/masters/original.flac"), b"master").expect("master file");
+    fs::write(
+        project.join("audio/masters/revised.flac"),
+        b"revised master",
+    )
+    .expect("revised master file");
+    fs::write(project.join("audio/published/original.opus"), b"published").expect("published file");
+    fs::write(
+        project.join("audio/published/revised.opus"),
+        b"revised published",
+    )
+    .expect("revised published file");
+    fs::write(
+        &metadata_path,
+        r#"[recording]
+id = "field-note"
+title = "Original Field Note"
+master = "audio/masters/original.flac"
+published = "audio/published/original.opus"
+duration_seconds = 42
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:original"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+    )
+    .expect("recording metadata");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "update",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+            "Revised Field Note",
+            "audio/masters/revised.flac",
+            "audio/published/revised.opus",
+            "feeds/feed.xml",
+            "tag:example.invalid,2026:revised",
+            "audio/ogg; codecs=opus",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(output.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"id\":\"field-note\""));
+    assert!(stdout.contains("\"title\":\"Revised Field Note\""));
+    assert!(stdout.contains("\"metadata_relative_path\":\"audio/metadata/field-note.toml\""));
+
+    let metadata = fs::read_to_string(&metadata_path).expect("metadata sidecar");
+    assert!(metadata.contains("id = \"field-note\""));
+    assert!(metadata.contains("title = \"Revised Field Note\""));
+    assert!(metadata.contains("master = \"audio/masters/revised.flac\""));
+    assert!(metadata.contains("published = \"audio/published/revised.opus\""));
+    assert!(metadata.contains("duration_seconds = 42"));
+    assert!(metadata.contains("entry_id = \"tag:example.invalid,2026:revised\""));
+
+    let validation = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "validate-publication",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(validation.status.code(), Some(0));
+    let validation_stdout = String::from_utf8_lossy(&validation.stdout);
+    assert!(validation_stdout.contains("\"valid\":true"));
+
+    let escape = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "update",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+            "Revised Field Note",
+            "../outside.flac",
+            "audio/published/revised.opus",
+            "feeds/feed.xml",
+            "tag:example.invalid,2026:revised",
+            "audio/ogg; codecs=opus",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(escape.status.code(), Some(1));
+    let escape_stdout = String::from_utf8_lossy(&escape.stdout);
+    assert!(escape_stdout.contains("invalid audio path"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn validate_publication_rejects_missing_published_audio() {
     let root = std::env::temp_dir().join(format!(
         "waystone-record-cli-missing-published-{}",
