@@ -62,6 +62,19 @@ QList<FeedEntryDiagnostic> feedDiagnostics(const QJsonArray &array) {
     return diagnostics;
 }
 
+QList<PublishValidationIssue> publishValidationIssues(const QJsonArray &array) {
+    QList<PublishValidationIssue> issues;
+    for (const auto &item : array) {
+        const QJsonObject object = item.toObject();
+        PublishValidationIssue issue;
+        issue.code = object.value("code").toString();
+        issue.message = object.value("message").toString();
+        issue.path = object.value("path").toString();
+        issues.append(issue);
+    }
+    return issues;
+}
+
 QString resolutionText(const QJsonObject &object) {
     if (object.isEmpty()) {
         return "none";
@@ -403,6 +416,50 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
         jsonStringArray(data.value("verification").toObject().value("checks").toArray());
     preview.confirmations = jsonStringArray(data.value("confirmations").toArray());
     return preview;
+}
+
+PublishValidationReport CliAdapter::validatePublication(const QString &path,
+                                                        const QString &target) const {
+    const CommandResult result = runCommand(
+        "publish",
+        {"--validate",
+         "--project",
+         path,
+         "--target",
+         target,
+         "--hosts",
+         config_.hostsRoot,
+         "--identities",
+         config_.identitiesRoot,
+         "--json"});
+
+    PublishValidationReport report;
+    if (!result.error.isEmpty()) {
+        report.error = result.error;
+        return report;
+    }
+
+    if (result.exitCode != 0) {
+        report.error = commandFailureDetail(result, "publish validation failed");
+        return report;
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        report.error = "publish validation returned unreadable JSON";
+        return report;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    report.ok = true;
+    report.project = data.value("project").toString();
+    report.target = data.value("target").toString();
+    report.valid = data.value("valid").toBool(false);
+    report.blocked = data.value("blocked").toBool(false);
+    report.errors = publishValidationIssues(data.value("errors").toArray());
+    report.warnings = publishValidationIssues(data.value("warnings").toArray());
+    return report;
 }
 
 PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,

@@ -37,6 +37,7 @@ Implemented:
 - Create-pane recording update controls using `record update --json` for existing recording sidecars
 - Create-pane feed-entry preparation, update, and validation controls using `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
+- Publish-pane publication readiness report using `publish --validate --json`
 - Publish-pane target selection derived from `project inspect --json` metadata
 - Publish-pane ready, blocked, failed, no-project, and no-target preview status display
 - Publish-pane planned history summary and raw record preview using `publish --planned-history --json`

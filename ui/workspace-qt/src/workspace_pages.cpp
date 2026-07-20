@@ -582,6 +582,39 @@ QString renderPublishPreview(const PublishPreview &preview) {
     return text;
 }
 
+QString renderPublishValidationIssues(const QList<PublishValidationIssue> &issues) {
+    if (issues.isEmpty()) {
+        return "  none\n";
+    }
+
+    QString text;
+    for (const auto &issue : issues) {
+        text += "  " + issue.code + ": " + issue.message;
+        if (!issue.path.isEmpty()) {
+            text += " (" + issue.path + ")";
+        }
+        text += "\n";
+    }
+    return text;
+}
+
+QString renderPublishValidation(const PublishValidationReport &report) {
+    if (!report.ok) {
+        return "Publication validation failed\n" + report.error;
+    }
+
+    QString text;
+    text += "Project: " + report.project + "\n";
+    text += "Target: " + report.target + "\n";
+    text += "Valid: " + QString(report.valid ? "yes" : "no") + "\n";
+    text += "Blocked: " + QString(report.blocked ? "yes" : "no") + "\n\n";
+    text += "Errors:\n";
+    text += renderPublishValidationIssues(report.errors);
+    text += "\nWarnings:\n";
+    text += renderPublishValidationIssues(report.warnings);
+    return text.trimmed();
+}
+
 QString renderFeedDiagnosticSummary(const FeedEntryDiagnostic &diagnostic) {
     QString text = "Feed-entry diagnostic\n";
     text += "Path: " + diagnostic.path + "\n";
@@ -1827,6 +1860,13 @@ QWidget *publishPage(const CliAdapter *adapter,
     plan->setObjectName("publishPlan");
     plan->setReadOnly(true);
     planLayout->addWidget(plan);
+    planLayout->addWidget(new QLabel("Publication Validation", planArea));
+    auto *validation = new QPlainTextEdit(planArea);
+    validation->setObjectName("publishValidationReport");
+    validation->setReadOnly(true);
+    validation->setMaximumHeight(150);
+    validation->setPlainText("No publication validation");
+    planLayout->addWidget(validation);
     auto *feedDiagnosticActions = new QWidget(planArea);
     auto *feedDiagnosticActionsLayout = new QHBoxLayout(feedDiagnosticActions);
     feedDiagnosticActionsLayout->setContentsMargins(0, 0, 0, 0);
@@ -2070,6 +2110,7 @@ QWidget *publishPage(const CliAdapter *adapter,
         if (row < 0) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            validation->setPlainText("No publication validation");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
@@ -2083,6 +2124,7 @@ QWidget *publishPage(const CliAdapter *adapter,
         if (item == nullptr) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            validation->setPlainText("No publication validation");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
@@ -2097,6 +2139,7 @@ QWidget *publishPage(const CliAdapter *adapter,
         if (targetName.isEmpty()) {
             previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
+            validation->setPlainText("No publication validation");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             refreshSavedPreviews();
@@ -2108,6 +2151,9 @@ QWidget *publishPage(const CliAdapter *adapter,
         const PublishPreview preview = adapter->previewPublication(path, targetName);
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
+        const PublishValidationReport validationReport =
+            adapter->validatePublication(path, targetName);
+        validation->setPlainText(renderPublishValidation(validationReport));
         setFeedDiagnostics(preview);
         if (!preview.ok) {
             historySummary->setPlainText("No planned history");
@@ -2133,6 +2179,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                              projectFilter->text());
         refreshTargetOverview();
         if (projectsTable->currentRow() < 0) {
+            validation->setPlainText("No publication validation");
             historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             updateHistoryComparison();
@@ -2270,6 +2317,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                          if (row < 0) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             validation->setPlainText("No publication validation");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
@@ -2283,6 +2331,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                          if (item == nullptr) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             validation->setPlainText("No publication validation");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
@@ -2301,6 +2350,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                              previewStatus->setText("Preview: failed");
                              plan->setPlainText("Publish target inspection failed\n" +
                                                 targetError);
+                             validation->setPlainText("No publication validation");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              refreshSavedPreviews();

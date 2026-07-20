@@ -585,6 +585,7 @@ Current behavior:
 - Uses `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json` in the Create pane to prepare, update, and validate local feed-entry handoff metadata for attached recordings
 - Uses `record generate-feed --json` in the Create pane to generate local Atom feed XML from prepared feed-entry sidecars
 - Uses configured local projects plus existing `publish` CLI JSON output for read-only Publish-pane dry-run previews
+- Uses `publish --validate --json` in the Publish pane to show a read-only publication readiness report
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
 - Shows Publish-pane preview status as ready, blocked, failed, no project, no target, and feed readiness when feed metadata is configured
 - Shows invalid feed-entry diagnostic paths and validation issue text in Publish-pane dry-run detail

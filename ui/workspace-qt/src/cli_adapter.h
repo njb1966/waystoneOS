@@ -74,6 +74,23 @@ struct PublishPreview {
     QString error;
 };
 
+struct PublishValidationIssue {
+    QString code;
+    QString message;
+    QString path;
+};
+
+struct PublishValidationReport {
+    bool ok = false;
+    bool valid = false;
+    bool blocked = false;
+    QString project;
+    QString target;
+    QList<PublishValidationIssue> errors;
+    QList<PublishValidationIssue> warnings;
+    QString error;
+};
+
 struct PlannedHistoryFile {
     QString path;
     QString action;
@@ -232,6 +249,8 @@ public:
     bool saveProjectDocument(const ProjectDocument &document, const QString &text,
                              QString *error) const;
     PublishPreview previewPublication(const QString &path, const QString &target) const;
+    PublishValidationReport validatePublication(const QString &path,
+                                                const QString &target) const;
     PlannedHistoryPreview plannedPublicationHistory(const QString &path,
                                                     const QString &target,
                                                     const QString &date) const;

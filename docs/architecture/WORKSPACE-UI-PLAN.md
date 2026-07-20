@@ -163,7 +163,8 @@ configured local projects, derives target choices from project metadata, filters
 visible projects by project name, ID, type, path, or target names, offers a
 target selector for projects with multiple targets, shows
 ready/blocked/failed/feed-aware preview status, uses read-only `publish
---dry-run --json` previews, renders feed readiness and invalid feed-entry
+--dry-run --json` previews, shows publication readiness reports through
+`publish --validate --json`, renders feed readiness and invalid feed-entry
 diagnostics from dry-run output, can show validation detail for a selected
 invalid feed-entry diagnostic through `record validate-feed-entry --json`, can
 hand a selected invalid feed-entry diagnostic back to the Create pane, shows a

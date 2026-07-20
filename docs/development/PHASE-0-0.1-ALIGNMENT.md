@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after publication readiness validation
+Status: current after Qt publication validation display
 Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
@@ -34,6 +34,7 @@ foundational areas:
   history result records
 - Non-mutating publication readiness validation through CLI, service crate, and
   publishd D-Bus
+- Qt Publish-pane display for publication readiness validation
 - Host, identity, and audio metadata inspection boundaries
 - D-Bus adapter binaries and repo-local activation artifacts
 - Qt Workspace prototype with Explore, Create, Publish, and Operate panes
@@ -86,7 +87,7 @@ or approved scope changes.
 | Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
-| Publishing Model | Strong for dry-run, validation, and local-history scope | Dry-run plans, publication readiness validation, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, and Publish-pane inspection exist. Remote comparison, transfer, and verification are not implemented. |
+| Publishing Model | Strong for dry-run, validation, and local-history scope | Dry-run plans, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, and Publish-pane inspection exist. Remote comparison, transfer, and verification are not implemented. |
 | Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
@@ -119,10 +120,10 @@ from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture
 command, D-Bus exposure for the local audio/feed service operations, and
 CLI-local completed publication-history result records. It also has an
 explicit non-mutating publication readiness validation report through the CLI,
-service crate, and publishd D-Bus. The next slice should deliberately close
-another local 0.1 workflow gap before adding more pane polish. It should still
-avoid device enumeration, packaging, installed services, remote transfer, and
-compositor work.
+service crate, publishd D-Bus, and Qt Publish pane. The next slice should
+deliberately close another local 0.1 workflow gap before adding more pane
+polish. It should still avoid device enumeration, packaging, installed
+services, remote transfer, and compositor work.
 
 ## Deliberate Next Slice
 

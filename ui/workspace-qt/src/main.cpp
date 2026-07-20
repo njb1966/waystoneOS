@@ -747,6 +747,7 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *savePreview = page->findChild<QPushButton *>("publishSavePreview");
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
+    auto *validation = page->findChild<QPlainTextEdit *>("publishValidationReport");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
     auto *projectFilter = page->findChild<QLineEdit *>("publishProjectFilter");
     auto *savedPreviewFilter = page->findChild<QLineEdit *>("publishSavedPreviewFilter");
@@ -759,10 +760,10 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     auto *targetOverview = page->findChild<QTableWidget *>("publishTargetOverviewTable");
     if (selector == nullptr || status == nullptr || savePreview == nullptr ||
-        saveStatus == nullptr || plan == nullptr || historySummary == nullptr ||
-        projectFilter == nullptr || savedPreviewFilter == nullptr ||
-        savedPreviews == nullptr || savedPreviewDetail == nullptr ||
-        historyComparison == nullptr || history == nullptr ||
+        saveStatus == nullptr || plan == nullptr || validation == nullptr ||
+        historySummary == nullptr || projectFilter == nullptr ||
+        savedPreviewFilter == nullptr || savedPreviews == nullptr ||
+        savedPreviewDetail == nullptr || historyComparison == nullptr || history == nullptr ||
         projects == nullptr || targetOverview == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
@@ -828,6 +829,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     if (selector->currentText() != "export" ||
         status->text() != "Preview: ready" ||
         !plan->toPlainText().contains("Target: export") ||
+        !validation->toPlainText().contains("Valid: yes") ||
+        !validation->toPlainText().contains("Blocked: no") ||
         !historySummary->toPlainText().contains("planned-upload: 1") ||
         !history->toPlainText().contains("transfer_result = \"planned\"") ||
         !history->toPlainText().contains("target = \"export\"")) {
@@ -847,6 +850,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     if (selector->currentText() != "backup" ||
         status->text() != "Preview: ready" ||
         !plan->toPlainText().contains("Target: backup") ||
+        !validation->toPlainText().contains("Target: backup") ||
+        !validation->toPlainText().contains("Valid: yes") ||
         !historySummary->toPlainText().contains("Target: backup") ||
         !history->toPlainText().contains("target = \"backup\"")) {
         err << "workspace publish smoke: target overview selection did not drive preview"
@@ -871,6 +876,10 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     if (status->text() != "Preview: blocked" ||
         !plan->toPlainText().contains("Target: production") ||
         !plan->toPlainText().contains("Blocked: yes") ||
+        !validation->toPlainText().contains("Target: production") ||
+        !validation->toPlainText().contains("Valid: no") ||
+        !validation->toPlainText().contains("host_missing") ||
+        !validation->toPlainText().contains("identity_missing") ||
         !historySummary->toPlainText().contains("Target: production") ||
         !historySummary->toPlainText().contains("Verification: not-run") ||
         !history->toPlainText().contains("target = \"production\"") ||
