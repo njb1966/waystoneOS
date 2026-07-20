@@ -11,7 +11,7 @@ Current implementation supports:
 
 - TOML sidecar loading
 - TOML sidecar creation for attaching an existing master/publication copy
-- Mock Opus publication-copy export from an existing project-local master file
+- Opus publication-copy export from an existing project-local master file through `ffmpeg/libopus`
 - TOML feed-entry sidecar preparation from existing recording metadata
 - Recording listing
 - Recording inspection
@@ -20,6 +20,7 @@ Current implementation supports:
 - Project-relative master and published paths
 - Feed enclosure metadata references
 - Minimal Atom feed XML generation from validated feed-entry sidecars
+- Existing Atom feed update that replaces managed entries by entry ID and preserves unrelated existing entries
 
 Current implementation does not support:
 
@@ -28,11 +29,11 @@ Current implementation does not support:
 - Playback
 - Trimming
 - Normalization
-- Real Opus codec export or transcoding
+- Codec export or transcoding beyond Opus publication copies
 - Audio codec inspection
 - Waveform generation
-- Existing feed XML merge updates or multi-format feed generation
-- Metadata replacement or merge editing
+- Multi-format feed generation
+- Full metadata merge editing beyond the narrow update commands
 
 ## Recording Sidecar Shape
 
@@ -143,8 +144,8 @@ does not generate or modify the feed XML file by itself.
 `record update-feed-entry` rewrites an existing `feeds/entries/<recording-id>.toml`
 sidecar from the current recording sidecar and a new `UPDATED`/`SUMMARY` pair.
 It refreshes title, entry ID, feed path, enclosure path, and MIME type from the
-recording metadata. It does not create missing feed-entry sidecars, generate or
-merge feed XML, or publish remotely.
+recording metadata. It does not create missing feed-entry sidecars, generate
+feed XML by itself, or publish remotely.
 
 `record validate-publication` checks an existing recording sidecar in project
 context. It validates the referenced master file, publication-copy file,
@@ -158,9 +159,13 @@ entry IDs in `feeds/entries/`.
 
 `record generate-feed` reads the selected project's `[feed]` manifest section,
 supports enabled Atom feeds only, validates every `feeds/entries/*.toml`
-sidecar, sorts entries by descending `entry.updated`, and atomically writes the
-configured feed path. It is intentionally a minimal local generator: it does not
-preserve hand-edited XML, merge remote feeds, support RSS, or expose D-Bus.
+sidecar, sorts sidecar-managed entries by descending `entry.updated`, and
+atomically writes the configured feed path. When the configured feed already
+contains Atom entries, matching IDs are replaced from sidecars and unrelated
+existing entries are preserved in their current XML form. The feed title, feed
+ID, and top-level updated value remain generated from project configuration and
+entry timestamps. It is intentionally a minimal local generator: it does not
+merge remote feeds, support RSS, or expose D-Bus.
 
 The `record` command owns recording metadata creation and inspection. The
 `listen` command can list playable recording metadata, but it does not play

@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after real Opus publication-copy export
+Status: current after local Atom feed merge/update
 Date: 2026-07-20
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, and Publish-to-Create handoff for selected invalid feed-entry diagnostics.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, and Publish-to-Create handoff for selected invalid feed-entry diagnostics.
 
 ## Current Position
 
@@ -108,11 +108,14 @@ it through the local CLI adapter.
 
 The `record generate-feed --json` command is implemented as a minimal local
 Atom generator. It reads enabled `[feed]` project configuration, validates every
-`feeds/entries/*.toml` sidecar, sorts entries by descending update time, and
-atomically writes the configured feed XML file. It does not merge existing XML,
-support non-Atom feeds, copy audio, transcode audio, publish remotely, or expose
-the operation through D-Bus yet. The Qt Create pane exposes it through the local
-CLI adapter.
+`feeds/entries/*.toml` sidecar, sorts sidecar-managed entries by descending
+update time, and atomically writes the configured feed XML file. If the
+configured feed already contains Atom entries, entries with IDs matching
+prepared sidecars are replaced from sidecar metadata and unrelated existing
+entries are preserved in their current XML form. It does not support non-Atom
+feeds, copy audio, transcode audio, merge remote feed state, publish remotely,
+or expose the operation through D-Bus yet. The Qt Create pane exposes it
+through the local CLI adapter.
 
 The `record validate-publication --json` and `record validate-feed-entry
 --json` commands validate local publication-copy and feed-entry handoff metadata
@@ -199,6 +202,10 @@ Result after Qt feed-entry update controls: relevant checks passed on
 Result after Publish-to-Create feed diagnostic handoff: relevant checks passed
 on 2026-07-20, including Qt build and focused Qt project smoke.
 
+Result after local Atom feed merge/update: relevant checks passed on
+2026-07-20, including Rust tests, clippy with warnings denied, CLI JSON
+contract smoke, focused Qt project smoke, and broad Qt smoke.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -219,7 +226,7 @@ on 2026-07-20, including Qt build and focused Qt project smoke.
 - `record prepare-feed-entry` creates local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record update-feed-entry` rewrites existing local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
-- `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars without merging existing XML or publishing remotely.
+- `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars, replaces matching existing Atom entries by ID, and preserves unrelated existing Atom entries without publishing remotely.
 - `publish --dry-run` reports feed readiness and invalid feed-entry diagnostics without generating or publishing feeds.
 - The Qt Publish pane can hand selected invalid feed-entry diagnostics back to the Create pane without editing metadata.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
@@ -242,8 +249,8 @@ on 2026-07-20, including Qt build and focused Qt project smoke.
 Recommended next implementation step:
 
 1. Review the remaining 0.1 audio/feed gaps and choose the next CLI/service-first contract deliberately.
-2. Candidate: add an explicit feed XML update/merge contract while keeping remote publishing deferred.
-3. Candidate: add a narrow local recording-capture contract if the project needs capture before publication polish.
+2. Candidate: add a narrow local recording-capture contract if the project needs capture before publication polish.
+3. Candidate: expose the existing mutating audio/feed service operations over `waystone-audiod` D-Bus if IPC coverage is now the higher priority.
 
 Alternative next step:
 

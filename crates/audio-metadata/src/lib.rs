@@ -345,6 +345,9 @@ pub enum AudioMetadataError {
     #[error("feed entry metadata is invalid: {path}: {issues:?}")]
     InvalidFeedEntry { path: PathBuf, issues: Vec<String> },
 
+    #[error("feed XML is invalid: {path}: {issue}")]
+    InvalidFeedXml { path: PathBuf, issue: String },
+
     #[error("feed file could not be written: {path}: {source}")]
     WriteFeedFailed { path: PathBuf, source: io::Error },
 
@@ -1018,12 +1021,10 @@ pub fn generate_feed(options: &GenerateFeedOptions) -> Result<GeneratedFeed, Aud
     let entries_root = options.project_root.join("feeds/entries");
     let entries =
         load_valid_feed_entries(&options.project_root, &entries_root, &options.feed_path)?;
-    let updated = entries
-        .first()
-        .map(|entry| entry.updated.clone())
-        .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string());
     let feed_relative_path = options.feed_path.clone();
     let feed_path = options.project_root.join(&feed_relative_path);
+    let preserved_entries = load_preserved_atom_entries(&feed_path, &entries)?;
+    let updated = feed_updated(&entries, &preserved_entries);
     let feed_dir = feed_path
         .parent()
         .expect("feed output path has a parent directory");
@@ -1042,7 +1043,13 @@ pub fn generate_feed(options: &GenerateFeedOptions) -> Result<GeneratedFeed, Aud
     ));
     fs::write(
         &temp_feed_path,
-        render_atom_feed(&options.title, &feed_relative_path, &updated, &entries),
+        render_atom_feed(
+            &options.title,
+            &feed_relative_path,
+            &updated,
+            &entries,
+            &preserved_entries,
+        ),
     )
     .map_err(|source| AudioMetadataError::WriteFeedFailed {
         path: temp_feed_path.clone(),
@@ -1058,7 +1065,7 @@ pub fn generate_feed(options: &GenerateFeedOptions) -> Result<GeneratedFeed, Aud
     Ok(GeneratedFeed {
         feed_path,
         feed_relative_path,
-        entries: entries.len(),
+        entries: entries.len() + preserved_entries.len(),
         updated,
     })
 }
@@ -1369,6 +1376,13 @@ struct FeedXmlEntry {
     enclosure_mime_type: String,
 }
 
+#[derive(Debug)]
+struct PreservedAtomEntry {
+    id: Option<String>,
+    updated: Option<String>,
+    xml: String,
+}
+
 fn load_valid_feed_entries(
     project_root: &Path,
     entries_root: &Path,
@@ -1431,6 +1445,104 @@ fn load_valid_feed_entries(
             .then_with(|| left.id.cmp(&right.id))
     });
     Ok(entries)
+}
+
+fn load_preserved_atom_entries(
+    feed_path: &Path,
+    managed_entries: &[FeedXmlEntry],
+) -> Result<Vec<PreservedAtomEntry>, AudioMetadataError> {
+    if !feed_path.exists() {
+        return Ok(Vec::new());
+    }
+    if !feed_path.is_file() {
+        return Err(AudioMetadataError::NotFile(feed_path.to_path_buf()));
+    }
+
+    let feed = fs::read_to_string(feed_path).map_err(|source| AudioMetadataError::Unreadable {
+        path: feed_path.to_path_buf(),
+        source,
+    })?;
+    if !feed.contains("<feed") || !feed.contains("</feed>") {
+        if feed.contains("WaystoneOS feed placeholder") {
+            return Ok(Vec::new());
+        }
+        return Err(AudioMetadataError::InvalidFeedXml {
+            path: feed_path.to_path_buf(),
+            issue: "existing feed is not a complete Atom feed".to_string(),
+        });
+    }
+
+    let existing_entries = extract_atom_entries(feed_path, &feed)?;
+    Ok(existing_entries
+        .into_iter()
+        .filter(|entry| {
+            entry.id.as_deref().is_none_or(|id| {
+                !managed_entries
+                    .iter()
+                    .any(|managed_entry| managed_entry.id == id)
+            })
+        })
+        .collect())
+}
+
+fn extract_atom_entries(
+    feed_path: &Path,
+    feed: &str,
+) -> Result<Vec<PreservedAtomEntry>, AudioMetadataError> {
+    let mut entries = Vec::new();
+    let mut offset = 0;
+
+    while let Some(relative_start) = feed[offset..].find("<entry") {
+        let start = offset + relative_start;
+        let Some(relative_open_end) = feed[start..].find('>') else {
+            return Err(AudioMetadataError::InvalidFeedXml {
+                path: feed_path.to_path_buf(),
+                issue: "entry start tag is incomplete".to_string(),
+            });
+        };
+        let open_end = start + relative_open_end + 1;
+        let Some(relative_close_start) = feed[open_end..].find("</entry>") else {
+            return Err(AudioMetadataError::InvalidFeedXml {
+                path: feed_path.to_path_buf(),
+                issue: "entry end tag is missing".to_string(),
+            });
+        };
+        let end = open_end + relative_close_start + "</entry>".len();
+        let xml = feed[start..end].trim().to_string();
+        entries.push(PreservedAtomEntry {
+            id: extract_xml_text(&xml, "id").map(|value| xml_unescape(&value)),
+            updated: extract_xml_text(&xml, "updated").map(|value| xml_unescape(&value)),
+            xml,
+        });
+        offset = end;
+    }
+
+    Ok(entries)
+}
+
+fn extract_xml_text(xml: &str, name: &str) -> Option<String> {
+    let open = format!("<{name}>");
+    let close = format!("</{name}>");
+    let start = xml.find(&open)? + open.len();
+    let end = xml[start..].find(&close)?;
+    Some(xml[start..start + end].trim().to_string())
+}
+
+fn feed_updated(
+    managed_entries: &[FeedXmlEntry],
+    preserved_entries: &[PreservedAtomEntry],
+) -> String {
+    managed_entries
+        .iter()
+        .map(|entry| entry.updated.as_str())
+        .chain(
+            preserved_entries
+                .iter()
+                .filter_map(|entry| entry.updated.as_deref()),
+        )
+        .max()
+        .unwrap_or("1970-01-01T00:00:00Z")
+        .to_string()
 }
 
 fn feed_xml_entry_from_metadata(
@@ -1707,6 +1819,7 @@ fn render_atom_feed(
     feed_path: &str,
     updated: &str,
     entries: &[FeedXmlEntry],
+    preserved_entries: &[PreservedAtomEntry],
 ) -> String {
     let mut feed = String::new();
     feed.push_str("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
@@ -1719,30 +1832,41 @@ fn render_atom_feed(
     feed.push_str(&format!("  <updated>{}</updated>\n", xml_escape(updated)));
 
     for entry in entries {
-        feed.push_str("  <entry>\n");
-        feed.push_str(&format!("    <id>{}</id>\n", xml_escape(&entry.id)));
-        feed.push_str(&format!(
-            "    <title>{}</title>\n",
-            xml_escape(&entry.title)
-        ));
-        feed.push_str(&format!(
-            "    <updated>{}</updated>\n",
-            xml_escape(&entry.updated)
-        ));
-        feed.push_str(&format!(
-            "    <summary>{}</summary>\n",
-            xml_escape(&entry.summary)
-        ));
-        feed.push_str(&format!(
-            "    <link rel=\"enclosure\" href=\"{}\" type=\"{}\" />\n",
-            xml_escape(&entry.enclosure_path),
-            xml_escape(&entry.enclosure_mime_type)
-        ));
-        feed.push_str("  </entry>\n");
+        feed.push_str(&render_feed_xml_entry(entry));
+    }
+
+    for entry in preserved_entries {
+        feed.push_str(&entry.xml);
+        feed.push('\n');
     }
 
     feed.push_str("</feed>\n");
     feed
+}
+
+fn render_feed_xml_entry(entry: &FeedXmlEntry) -> String {
+    let mut xml = String::new();
+    xml.push_str("  <entry>\n");
+    xml.push_str(&format!("    <id>{}</id>\n", xml_escape(&entry.id)));
+    xml.push_str(&format!(
+        "    <title>{}</title>\n",
+        xml_escape(&entry.title)
+    ));
+    xml.push_str(&format!(
+        "    <updated>{}</updated>\n",
+        xml_escape(&entry.updated)
+    ));
+    xml.push_str(&format!(
+        "    <summary>{}</summary>\n",
+        xml_escape(&entry.summary)
+    ));
+    xml.push_str(&format!(
+        "    <link rel=\"enclosure\" href=\"{}\" type=\"{}\" />\n",
+        xml_escape(&entry.enclosure_path),
+        xml_escape(&entry.enclosure_mime_type)
+    ));
+    xml.push_str("  </entry>\n");
+    xml
 }
 
 fn toml_escape(value: &str) -> String {
@@ -1755,6 +1879,14 @@ fn xml_escape(value: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;")
         .replace('"', "&quot;")
+}
+
+fn xml_unescape(value: &str) -> String {
+    value
+        .replace("&quot;", "\"")
+        .replace("&gt;", ">")
+        .replace("&lt;", "<")
+        .replace("&amp;", "&")
 }
 
 fn error(code: &'static str, message: String, path: Option<impl Into<String>>) -> ValidationIssue {
@@ -2143,6 +2275,30 @@ mime_type = "audio/ogg; codecs=opus"
         .expect("feed entry should validate");
         assert!(feed_report.valid, "{feed_report:#?}");
 
+        fs::write(
+            project.join("feeds/feed.xml"),
+            r#"<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Old Feed Title</title>
+  <id>waystone:feed:feeds/feed.xml</id>
+  <updated>2026-07-18T00:00:00Z</updated>
+  <entry>
+    <id>tag:example.invalid,2026:note</id>
+    <title>Old Note Title</title>
+    <updated>2026-07-18T00:00:00Z</updated>
+    <summary>Old note summary</summary>
+  </entry>
+  <entry>
+    <id>tag:example.invalid,2026:manual</id>
+    <title>Manual Entry</title>
+    <updated>2026-07-21T00:00:00Z</updated>
+    <summary>Preserved manual entry</summary>
+  </entry>
+</feed>
+"#,
+        )
+        .expect("existing feed XML");
+
         let generated = generate_feed(&GenerateFeedOptions {
             project_root: project.clone(),
             feed_path: "feeds/feed.xml".to_string(),
@@ -2150,14 +2306,17 @@ mime_type = "audio/ogg; codecs=opus"
         })
         .expect("feed should generate");
         assert_eq!(generated.feed_relative_path, "feeds/feed.xml");
-        assert_eq!(generated.entries, 1);
-        assert_eq!(generated.updated, "2026-07-19T00:00:00Z");
+        assert_eq!(generated.entries, 2);
+        assert_eq!(generated.updated, "2026-07-21T00:00:00Z");
         assert!(generated.feed_path.is_file());
         let feed_xml = fs::read_to_string(&generated.feed_path).expect("generated feed");
         assert!(feed_xml.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
         assert!(feed_xml.contains("<title>Metadata Feed</title>"));
         assert!(feed_xml.contains("<entry>"));
         assert!(feed_xml.contains("<id>tag:example.invalid,2026:note</id>"));
+        assert!(!feed_xml.contains("Old Note Title"));
+        assert!(feed_xml.contains("<id>tag:example.invalid,2026:manual</id>"));
+        assert!(feed_xml.contains("<title>Manual Entry</title>"));
         assert!(feed_xml.contains("<link rel=\"enclosure\" href=\"audio/published/note.opus\""));
 
         fs::write(
@@ -2211,6 +2370,29 @@ mime_type = "audio/ogg; codecs=opus"
             duplicate,
             AudioMetadataError::FeedEntryAlreadyExists(_)
         ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn generate_feed_rejects_malformed_existing_feed_xml() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-metadata-feed-invalid-{}",
+            std::process::id()
+        ));
+        let project = root.join("feed-invalid.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("feeds")).expect("feeds directory");
+        fs::write(project.join("feeds/feed.xml"), "not atom xml").expect("invalid feed XML");
+
+        let error = generate_feed(&GenerateFeedOptions {
+            project_root: project,
+            feed_path: "feeds/feed.xml".to_string(),
+            title: "Metadata Feed".to_string(),
+        })
+        .expect_err("malformed existing feed XML should fail");
+
+        assert!(matches!(error, AudioMetadataError::InvalidFeedXml { .. }));
 
         let _ = fs::remove_dir_all(root);
     }

@@ -184,12 +184,12 @@ Current behavior:
 - Creates feed-entry sidecars from existing recording metadata and published audio references.
 - Updates existing feed-entry sidecars from current recording metadata and command-provided update fields.
 - Validates publication-copy and feed-entry handoff metadata in project context.
-- Generates minimal Atom feed XML from validated feed-entry sidecars through the local service crate.
+- Generates minimal Atom feed XML from validated feed-entry sidecars through the local service crate, replacing matching existing Atom entries by ID and preserving unrelated entries.
 - Lists recording sidecar metadata.
 - Loads and inspects recording metadata.
 - Validates project-relative audio and feed paths.
 - Refuses to overwrite existing sidecars.
-- Does not enumerate audio devices, capture audio, play audio, edit audio, perform codec transcoding beyond Opus publication export, merge existing feed XML, or expose mutating audio operations over D-Bus.
+- Does not enumerate audio devices, capture audio, play audio, edit audio, perform codec transcoding beyond Opus publication export, merge remote feed state, or expose mutating audio operations over D-Bus.
 
 ## D-Bus Mapping Notes
 

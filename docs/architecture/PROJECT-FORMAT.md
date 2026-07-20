@@ -151,8 +151,9 @@ projects of those types receive `[audio]` and `[feed]` manifest defaults plus
 `audio/masters`, `audio/published`, `audio/metadata`, and `feeds/feed.xml`.
 The initial feed file is a placeholder. Feed-entry sidecar preparation is
 implemented under `feeds/entries/`, and `record generate-feed` can replace the
-placeholder with a minimal Atom feed generated from validated sidecars. Existing
-feed merge/update behavior remains deferred.
+placeholder with a minimal Atom feed generated from validated sidecars. When an
+existing Atom feed is present, `record generate-feed` replaces sidecar-managed
+entries by ID and preserves unrelated existing entries.
 
 ## Required Fields
 

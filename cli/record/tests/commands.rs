@@ -230,6 +230,30 @@ title = "Attach Audio"
     let feed_validation_stdout = String::from_utf8_lossy(&feed_validation.stdout);
     assert!(feed_validation_stdout.contains("\"valid\":true"));
 
+    fs::write(
+        project.join("feeds/feed.xml"),
+        r#"<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Existing Feed</title>
+  <id>waystone:feed:feeds/feed.xml</id>
+  <updated>2026-07-18T00:00:00Z</updated>
+  <entry>
+    <id>tag:example.invalid,2026:field-note</id>
+    <title>Stale Field Note</title>
+    <updated>2026-07-18T00:00:00Z</updated>
+    <summary>Stale summary</summary>
+  </entry>
+  <entry>
+    <id>tag:example.invalid,2026:manual</id>
+    <title>Manual Entry</title>
+    <updated>2026-07-21T00:00:00Z</updated>
+    <summary>Preserved manual entry</summary>
+  </entry>
+</feed>
+"#,
+    )
+    .expect("existing feed XML");
+
     let generate_output = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([
             "generate-feed",
@@ -242,11 +266,14 @@ title = "Attach Audio"
     assert_eq!(generate_output.status.code(), Some(0));
     let generate_stdout = String::from_utf8_lossy(&generate_output.stdout);
     assert!(generate_stdout.contains("\"feed_relative_path\":\"feeds/feed.xml\""));
-    assert!(generate_stdout.contains("\"entries\":1"));
+    assert!(generate_stdout.contains("\"entries\":2"));
+    assert!(generate_stdout.contains("\"updated\":\"2026-07-21T00:00:00Z\""));
     let generated_feed = fs::read_to_string(project.join("feeds/feed.xml")).expect("feed xml");
     assert!(generated_feed.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
     assert!(generated_feed.contains("<title>Attach Audio</title>"));
     assert!(generated_feed.contains("<id>tag:example.invalid,2026:field-note</id>"));
+    assert!(!generated_feed.contains("Stale Field Note"));
+    assert!(generated_feed.contains("<id>tag:example.invalid,2026:manual</id>"));
     assert!(
         generated_feed.contains("<link rel=\"enclosure\" href=\"audio/published/field-note.opus\"")
     );

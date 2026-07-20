@@ -340,11 +340,11 @@ Current behavior:
 - Validates project-relative master, published, and feed paths
 - Refuses metadata sidecar paths that escape the project root
 - Refuses to overwrite existing metadata, feed-entry sidecars, and publication-copy outputs
-- Generates minimal Atom feed XML from validated `feeds/entries/*.toml` sidecars
+- Generates minimal Atom feed XML from validated `feeds/entries/*.toml` sidecars and preserves unrelated existing Atom entries
 - Validates positive channel count and sample rate when present
 - Warns on unusual MIME type shape
 - Does not copy audio files
-- Does not merge existing feed XML or generate non-Atom feeds
+- Does not generate non-Atom feeds or merge remote feed state
 - Does not inspect real audio codecs
 - Does not access audio devices
 
@@ -352,10 +352,10 @@ Current tests cover:
 
 - Metadata sidecar creation
 - Metadata sidecar update/replacement
-- Mock Opus publication-copy export
+- Encoded Opus publication-copy export
 - Feed-entry sidecar preparation
 - Feed-entry sidecar update/replacement
-- Minimal Atom feed XML generation
+- Minimal Atom feed XML generation and local Atom entry merge/update
 - Publication-copy and feed-entry handoff validation
 - Valid audio metadata example
 - Recording metadata listing
@@ -375,17 +375,17 @@ Current behavior:
 - Provides a service boundary for attach/update/export-opus/prepare-feed-entry/update-feed-entry/validate-publication/validate-feed-entry/generate-feed/list/inspect/validate
 - Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not capture, play audio, merge existing feed XML, or expose feed generation through D-Bus
+- Does not capture, play audio, merge remote feed state, or expose feed generation through D-Bus
 
 Current tests cover:
 
 - List and validate through the service wrapper
 - Recording metadata attachment through the service wrapper
 - Recording metadata update through the service wrapper
-- Mock Opus publication-copy export through the service wrapper
+- Encoded Opus publication-copy export through the service wrapper
 - Feed-entry metadata preparation through the service wrapper
 - Feed-entry metadata update through the service wrapper
-- Minimal Atom feed XML generation through the service wrapper
+- Minimal Atom feed XML generation and local Atom entry merge/update through the service wrapper
 - Publication-copy and feed-entry handoff validation through the service wrapper
 
 ## Host CLI
@@ -466,13 +466,14 @@ edit metadata sidecars, or publish remotely.
 `record prepare-feed-entry` creates a feed-entry metadata sidecar under
 `feeds/entries/` for an existing recording sidecar. It requires the recording
 sidecar to include published audio and publication fields and requires the
-published audio file to exist. It does not generate or update feed XML.
+published audio file to exist. It does not generate or update feed XML by
+itself.
 
 `record update-feed-entry` rewrites an existing feed-entry metadata sidecar
 under `feeds/entries/` for an existing recording sidecar. It refreshes entry
 and enclosure fields from the current recording metadata and replaces only the
 feed-entry `updated` and `summary` inputs from the command line. It does not
-create missing feed-entry sidecars or generate/update feed XML.
+create missing feed-entry sidecars or generate feed XML by itself.
 
 `record validate-publication` validates an existing recording sidecar in project
 context, including referenced master and publication-copy files. `record
@@ -481,8 +482,10 @@ recording metadata, enclosure file, and sibling feed-entry IDs.
 
 `record generate-feed` reads the selected project's enabled Atom `[feed]`
 configuration, validates prepared feed-entry sidecars, and atomically writes the
-configured feed XML path. It does not merge existing feed XML, support RSS, copy
-audio, transcode audio, or publish remotely.
+configured feed XML path. If the configured feed already contains Atom entries,
+the command replaces entries with matching prepared sidecar IDs and preserves
+unrelated existing entries in their current XML form. It does not support RSS,
+copy audio, transcode audio, merge remote feeds, or publish remotely.
 
 ## Listen CLI
 
@@ -748,6 +751,8 @@ warnings denied, CLI JSON contract smoke, and audiod D-Bus smoke. Qt
 feed-entry update controls passed Qt build and focused Qt project smoke.
 Publish-to-Create feed diagnostic handoff passed Qt build and focused Qt
 project smoke.
+Local Atom feed merge/update passed Rust tests, clippy with warnings denied,
+CLI JSON contract smoke, focused Qt project smoke, and broad Qt smoke.
 
 Useful CLI smoke checks:
 
@@ -795,7 +800,7 @@ scripts/workspace-qt-project-smoke.sh
 - Audio playback
 - Audio trimming, normalization, or codec export/transcoding beyond Opus publication copies
 - Full audio metadata merge editing beyond the narrow `record update` replacement command
-- Existing feed XML merge updates or non-Atom feed generation
+- Remote feed merge updates or non-Atom feed generation
 - Deeper Workspace actions beyond local inspect, authoring, preview, and feed generation
 - Live reload after editing persistent user settings
 - Browser, Helm, or Comm integration
