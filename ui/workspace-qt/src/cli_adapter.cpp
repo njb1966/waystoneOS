@@ -968,6 +968,42 @@ FeedEntryPrepareResult CliAdapter::prepareFeedEntry(
     return prepared;
 }
 
+FeedEntryPrepareResult CliAdapter::updateFeedEntry(
+    const QString &projectPath, const QString &recordingId, const QString &updated,
+    const QString &summary) const {
+    FeedEntryPrepareResult prepared;
+    const CommandResult result =
+        runCommand("record", {"update-feed-entry", "--json", projectPath,
+                              recordingId, updated, summary});
+
+    if (!result.error.isEmpty()) {
+        prepared.error = result.error;
+        return prepared;
+    }
+
+    if (result.exitCode != 0) {
+        prepared.error = commandFailureDetail(result, "record update-feed-entry failed");
+        return prepared;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        prepared.error = "record update-feed-entry returned unreadable JSON";
+        return prepared;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    prepared.recordingId = data.value("recording_id").toString();
+    prepared.title = data.value("title").toString();
+    prepared.outputPath = data.value("output_path").toString();
+    prepared.outputRelativePath = data.value("output_relative_path").toString();
+    prepared.published = data.value("published").toString();
+    prepared.feed = data.value("feed").toString();
+    prepared.ok = true;
+    return prepared;
+}
+
 FeedGenerateResult CliAdapter::generateFeed(const QString &projectPath) const {
     FeedGenerateResult generated;
     const CommandResult result =

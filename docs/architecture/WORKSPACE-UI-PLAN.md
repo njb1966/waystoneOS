@@ -153,7 +153,8 @@ content root, filter that file list, show read-only detail for the selected
 content file, attach existing project-local audio files through `record attach
 --json`, create mock publication copies through `record export-opus --json`,
 update existing recording sidecars through `record update --json`, prepare
-feed-entry sidecars through `record prepare-feed-entry --json`, show
+feed-entry sidecars through `record prepare-feed-entry --json`, update existing
+feed-entry sidecars through `record update-feed-entry --json`, show
 publication/feed-entry validation status through `record validate-publication
 --json` and `record validate-feed-entry --json`, and generate feed XML through
 `record generate-feed --json`. The Publish pane lists

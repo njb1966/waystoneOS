@@ -1136,6 +1136,9 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *prepareFeedEntry = new QPushButton("Prepare Feed Entry", attachActions);
     prepareFeedEntry->setObjectName("createPrepareFeedEntry");
     prepareFeedEntry->setEnabled(false);
+    auto *updateFeedEntry = new QPushButton("Update Feed Entry", attachActions);
+    updateFeedEntry->setObjectName("createUpdateFeedEntry");
+    updateFeedEntry->setEnabled(false);
     auto *attachStatus = new QLabel("Attachment: no project selected", attachActions);
     attachStatus->setObjectName("createRecordingAttachStatus");
     attachStatus->setWordWrap(true);
@@ -1143,6 +1146,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     attachActionsLayout->addWidget(attachRecording);
     attachActionsLayout->addWidget(updateRecording);
     attachActionsLayout->addWidget(prepareFeedEntry);
+    attachActionsLayout->addWidget(updateFeedEntry);
     attachActionsLayout->addWidget(attachStatus, 1);
     auto *feedActions = new QWidget(attachForm);
     auto *feedActionsLayout = new QHBoxLayout(feedActions);
@@ -1235,6 +1239,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             attachRecording->setEnabled(false);
             updateRecording->setEnabled(false);
             prepareFeedEntry->setEnabled(false);
+            updateFeedEntry->setEnabled(false);
             validatePublication->setEnabled(false);
             validateFeedEntry->setEnabled(false);
             generateFeed->setEnabled(false);
@@ -1257,6 +1262,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         attachRecording->setEnabled(true);
         updateRecording->setEnabled(true);
         prepareFeedEntry->setEnabled(true);
+        updateFeedEntry->setEnabled(true);
         validatePublication->setEnabled(true);
         validateFeedEntry->setEnabled(true);
         generateFeed->setEnabled(true);
@@ -1465,6 +1471,43 @@ QWidget *createPage(const CliAdapter *adapter) {
         const QString feedEntryState =
             adapter->feedEntryValidationState(currentDocument->projectPath, id);
         feedStatus->setText("Prepared: " + prepared.outputRelativePath +
+                            " (publication " + publicationState +
+                            ", feed entry " + feedEntryState + ")");
+        recordingDetails->setPlainText(
+            "Feed entry: " + prepared.outputRelativePath + "\n" +
+            "Recording: " + prepared.recordingId + "\n" +
+            "Published: " + prepared.published + "\n" +
+            "Feed: " + prepared.feed + "\n" +
+            "Publication validation: " + publicationState + "\n" +
+            "Feed-entry validation: " + feedEntryState);
+    });
+
+    QObject::connect(updateFeedEntry, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            feedStatus->setText("Feed entry update: no project selected");
+            return;
+        }
+
+        const QString id = activeRecordingId();
+        const QString updated = feedUpdated->text().trimmed();
+        const QString summary = feedSummary->text().trimmed();
+        if (id.isEmpty() || updated.isEmpty() || summary.isEmpty()) {
+            feedStatus->setText("Recording ID, updated, and summary are required");
+            return;
+        }
+
+        const FeedEntryPrepareResult prepared =
+            adapter->updateFeedEntry(currentDocument->projectPath, id, updated, summary);
+        if (!prepared.ok) {
+            feedStatus->setText("Feed entry update failed: " + prepared.error);
+            return;
+        }
+
+        const QString publicationState =
+            adapter->publicationValidationState(currentDocument->projectPath, id);
+        const QString feedEntryState =
+            adapter->feedEntryValidationState(currentDocument->projectPath, id);
+        feedStatus->setText("Updated: " + prepared.outputRelativePath +
                             " (publication " + publicationState +
                             ", feed entry " + feedEntryState + ")");
         recordingDetails->setPlainText(

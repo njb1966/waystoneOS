@@ -320,6 +320,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     auto *attach = page->findChild<QPushButton *>("createAttachRecording");
     auto *updateRecording = page->findChild<QPushButton *>("createUpdateRecording");
     auto *prepareFeedEntry = page->findChild<QPushButton *>("createPrepareFeedEntry");
+    auto *updateFeedEntry = page->findChild<QPushButton *>("createUpdateFeedEntry");
     auto *validatePublication =
         page->findChild<QPushButton *>("createValidatePublication");
     auto *validateFeedEntry =
@@ -335,8 +336,8 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         recordingExportPreset == nullptr || feedUpdated == nullptr ||
         feedSummary == nullptr || exportOpus == nullptr || attach == nullptr ||
         updateRecording == nullptr || prepareFeedEntry == nullptr ||
-        validatePublication == nullptr || validateFeedEntry == nullptr ||
-        generateFeed == nullptr ||
+        updateFeedEntry == nullptr || validatePublication == nullptr ||
+        validateFeedEntry == nullptr || generateFeed == nullptr ||
         status == nullptr || feedStatus == nullptr || details == nullptr) {
         err << "workspace recording smoke: recording widgets were not discoverable"
             << Qt::endl;
@@ -447,6 +448,27 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
             << Qt::endl;
         err << "feed status: " << feedStatus->text() << Qt::endl;
         err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    feedUpdated->setText("2026-07-20T00:00:00Z");
+    feedSummary->setText("Workspace feed entry update smoke");
+    updateFeedEntry->click();
+    QApplication::processEvents();
+
+    const QString updatedFeedEntry = readFile(feedEntryPath, &setupError);
+    if (!feedStatus->text().contains("Updated: feeds/entries/field-note.toml") ||
+        !feedStatus->text().contains("publication valid") ||
+        !feedStatus->text().contains("feed entry valid") ||
+        !updatedFeedEntry.contains("updated = \"2026-07-20T00:00:00Z\"") ||
+        !updatedFeedEntry.contains("summary = \"Workspace feed entry update smoke\"") ||
+        !details->toPlainText().contains("Feed entry: feeds/entries/field-note.toml")) {
+        err << "workspace recording smoke: feed entry update was not reflected"
+            << Qt::endl;
+        err << "feed status: " << feedStatus->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        err << "feed entry: " << updatedFeedEntry << Qt::endl;
         delete page;
         return 1;
     }

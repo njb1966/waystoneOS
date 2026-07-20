@@ -259,6 +259,10 @@ public:
                                             const QString &recordingId,
                                             const QString &updated,
                                             const QString &summary) const;
+    FeedEntryPrepareResult updateFeedEntry(const QString &projectPath,
+                                           const QString &recordingId,
+                                           const QString &updated,
+                                           const QString &summary) const;
     FeedGenerateResult generateFeed(const QString &projectPath) const;
     QString publicationValidationState(const QString &projectPath,
                                        const QString &recordingId) const;

@@ -544,7 +544,7 @@ Current behavior:
 - Uses `record export-opus --json` in the Create pane to create mock publication copies from existing project-local master files
 - Uses `record attach --json` in the Create pane to create audio metadata sidecars for existing project-local master and publication-copy files when the selected project has audio metadata configured
 - Uses `record update --json` in the Create pane to update existing recording metadata sidecars for selected projects
-- Uses `record prepare-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json` in the Create pane to prepare and validate local feed-entry handoff metadata for attached recordings
+- Uses `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json` in the Create pane to prepare, update, and validate local feed-entry handoff metadata for attached recordings
 - Uses `record generate-feed --json` in the Create pane to generate local Atom feed XML from prepared feed-entry sidecars
 - Uses configured local projects plus existing `publish` CLI JSON output for read-only Publish-pane dry-run previews
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
@@ -742,7 +742,8 @@ JSON contract smoke, publishd D-Bus smoke, and focused Qt project smoke.
 Publish feed-entry validation detail passed Qt build and focused Qt project
 smoke. Qt recording metadata update controls passed Qt build and focused Qt
 project smoke. Feed-entry update command passed Rust tests, clippy with
-warnings denied, CLI JSON contract smoke, and audiod D-Bus smoke.
+warnings denied, CLI JSON contract smoke, and audiod D-Bus smoke. Qt
+feed-entry update controls passed Qt build and focused Qt project smoke.
 
 Useful CLI smoke checks:
 
