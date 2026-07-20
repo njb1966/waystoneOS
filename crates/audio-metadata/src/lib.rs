@@ -160,6 +160,28 @@ pub struct ExportOpusOptions {
 }
 
 #[derive(Debug, Clone)]
+pub struct CaptureRecordingOptions {
+    pub project_root: PathBuf,
+    pub masters_root: String,
+    pub master: String,
+    pub duration_seconds: u32,
+    pub input_format: String,
+    pub input: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CapturedRecording {
+    pub master: String,
+    pub output_path: PathBuf,
+    pub output_relative_path: String,
+    pub duration_seconds: u32,
+    pub channels: u8,
+    pub sample_rate: u32,
+    pub format: String,
+    pub engine: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct ExportedPublicationCopy {
     pub master: String,
     pub published: String,
@@ -299,6 +321,30 @@ pub enum AudioMetadataError {
 
     #[error("recording title is required")]
     MissingRecordingTitle,
+
+    #[error("recording master already exists: {0}")]
+    MasterRecordingAlreadyExists(PathBuf),
+
+    #[error("recording capture path must end with .wav: {0}")]
+    InvalidCaptureMasterPath(String),
+
+    #[error("recording capture duration is invalid: {0}")]
+    InvalidCaptureDuration(u32),
+
+    #[error("recording capture input format is invalid: {0}")]
+    InvalidCaptureInputFormat(String),
+
+    #[error("recording capture input is required")]
+    MissingCaptureInput,
+
+    #[error("recording capture could not be started: {source}")]
+    CaptureRecorderUnavailable { source: io::Error },
+
+    #[error("recording capture failed with status {status:?}: {stderr}")]
+    CaptureRecorderFailed { status: Option<i32>, stderr: String },
+
+    #[error("recording master could not be installed: {path}: {source}")]
+    InstallMasterRecordingFailed { path: PathBuf, source: io::Error },
 
     #[error("publication copy already exists: {0}")]
     PublicationCopyAlreadyExists(PathBuf),
@@ -547,6 +593,72 @@ pub fn update_recording_metadata(
         feed: options.feed.clone(),
         entry_id: options.entry_id.clone(),
         mime_type: options.mime_type.clone(),
+    })
+}
+
+pub fn capture_recording_master(
+    options: &CaptureRecordingOptions,
+) -> Result<CapturedRecording, AudioMetadataError> {
+    check_project_root(&options.project_root)?;
+    validate_audio_path_for_write("audio.masters", &options.masters_root)?;
+    validate_audio_path_for_write("recording.master", &options.master)?;
+    validate_capture_duration(options.duration_seconds)?;
+    validate_capture_input_format(&options.input_format)?;
+    if options.input.trim().is_empty() {
+        return Err(AudioMetadataError::MissingCaptureInput);
+    }
+    if !options.master.ends_with(".wav") {
+        return Err(AudioMetadataError::InvalidCaptureMasterPath(
+            options.master.clone(),
+        ));
+    }
+    if !Path::new(&options.master).starts_with(Path::new(&options.masters_root)) {
+        return Err(AudioMetadataError::InvalidAudioPath {
+            field: "recording.master".to_string(),
+            value: options.master.clone(),
+        });
+    }
+
+    let output_relative_path = options.master.clone();
+    let output_path = options.project_root.join(&output_relative_path);
+    if output_path.exists() {
+        return Err(AudioMetadataError::MasterRecordingAlreadyExists(
+            output_path,
+        ));
+    }
+
+    let output_dir = output_path
+        .parent()
+        .expect("recording master output has a parent directory");
+    fs::create_dir_all(output_dir).map_err(|source| AudioMetadataError::CreateDirectoryFailed {
+        path: output_dir.to_path_buf(),
+        source,
+    })?;
+
+    let temp_output_path = output_path.with_file_name(format!(
+        "{}.tmp",
+        output_path
+            .file_name()
+            .expect("recording master output has a file name")
+            .to_string_lossy()
+    ));
+    capture_wav_with_ffmpeg(options, &temp_output_path)?;
+    fs::rename(&temp_output_path, &output_path).map_err(|source| {
+        AudioMetadataError::InstallMasterRecordingFailed {
+            path: output_path.clone(),
+            source,
+        }
+    })?;
+
+    Ok(CapturedRecording {
+        master: options.master.clone(),
+        output_path,
+        output_relative_path,
+        duration_seconds: options.duration_seconds,
+        channels: 1,
+        sample_rate: 48_000,
+        format: "wav".to_string(),
+        engine: "ffmpeg".to_string(),
     })
 }
 
@@ -1611,6 +1723,28 @@ fn validate_opus_preset(value: &str) -> Result<(), AudioMetadataError> {
     }
 }
 
+fn validate_capture_duration(value: u32) -> Result<(), AudioMetadataError> {
+    if (1..=86_400).contains(&value) {
+        Ok(())
+    } else {
+        Err(AudioMetadataError::InvalidCaptureDuration(value))
+    }
+}
+
+fn validate_capture_input_format(value: &str) -> Result<(), AudioMetadataError> {
+    if !value.trim().is_empty()
+        && value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '_')
+    {
+        Ok(())
+    } else {
+        Err(AudioMetadataError::InvalidCaptureInputFormat(
+            value.to_string(),
+        ))
+    }
+}
+
 fn opus_preset_args(value: &str) -> Result<&'static [&'static str], AudioMetadataError> {
     match value {
         "voice-compact" => Ok(&[
@@ -1647,6 +1781,45 @@ fn opus_preset_args(value: &str) -> Result<&'static [&'static str], AudioMetadat
         "music-quality" => Ok(&["-ar", "48000", "-b:a", "160k", "-application", "audio"]),
         _ => Err(AudioMetadataError::UnsupportedOpusPreset(value.to_string())),
     }
+}
+
+fn capture_wav_with_ffmpeg(
+    options: &CaptureRecordingOptions,
+    temp_output_path: &Path,
+) -> Result<(), AudioMetadataError> {
+    let mut command = Command::new("ffmpeg");
+    let duration_seconds = options.duration_seconds.to_string();
+    command.args(["-nostdin", "-hide_banner", "-loglevel", "error", "-f"]);
+    command.arg(&options.input_format);
+    command.arg("-i");
+    command.arg(&options.input);
+    command.args([
+        "-t",
+        duration_seconds.as_str(),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-c:a",
+        "pcm_s16le",
+        "-f",
+        "wav",
+    ]);
+    command.arg(temp_output_path);
+
+    let output = command
+        .output()
+        .map_err(|source| AudioMetadataError::CaptureRecorderUnavailable { source })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(AudioMetadataError::CaptureRecorderFailed {
+            status: output.status.code(),
+            stderr,
+        });
+    }
+
+    Ok(())
 }
 
 fn export_opus_with_ffmpeg(
@@ -1933,6 +2106,14 @@ mod tests {
             .unwrap_or(false)
     }
 
+    fn ffmpeg_available() -> bool {
+        Command::new("ffmpeg")
+            .arg("-version")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false)
+    }
+
     fn write_test_wav(path: &Path) {
         let sample_rate = 48_000u32;
         let channels = 1u16;
@@ -2210,6 +2391,85 @@ mime_type = "audio/ogg; codecs=opus"
         assert!(matches!(
             invalid_preset,
             AudioMetadataError::UnsupportedOpusPreset(_)
+        ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn capture_recording_writes_wav_master() {
+        if !ffmpeg_available() {
+            eprintln!("skipping recording capture test because ffmpeg is unavailable");
+            return;
+        }
+
+        let root =
+            std::env::temp_dir().join(format!("waystone-audio-capture-{}", std::process::id()));
+        let project = root.join("capture.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&project).expect("project directory");
+
+        let captured = capture_recording_master(&CaptureRecordingOptions {
+            project_root: project.clone(),
+            masters_root: "audio/masters".to_string(),
+            master: "audio/masters/note.wav".to_string(),
+            duration_seconds: 1,
+            input_format: "lavfi".to_string(),
+            input: "anullsrc=r=48000:cl=mono".to_string(),
+        })
+        .expect("recording should capture");
+
+        assert_eq!(captured.master, "audio/masters/note.wav");
+        assert_eq!(captured.output_relative_path, "audio/masters/note.wav");
+        assert_eq!(captured.duration_seconds, 1);
+        assert_eq!(captured.channels, 1);
+        assert_eq!(captured.sample_rate, 48_000);
+        assert_eq!(captured.format, "wav");
+        assert_eq!(captured.engine, "ffmpeg");
+        assert!(captured.output_path.is_file());
+        let output = fs::read(&captured.output_path).expect("captured wav");
+        assert!(output.starts_with(b"RIFF"));
+
+        let duplicate = capture_recording_master(&CaptureRecordingOptions {
+            project_root: project.clone(),
+            masters_root: "audio/masters".to_string(),
+            master: "audio/masters/note.wav".to_string(),
+            duration_seconds: 1,
+            input_format: "lavfi".to_string(),
+            input: "anullsrc=r=48000:cl=mono".to_string(),
+        })
+        .expect_err("duplicate capture should fail");
+        assert!(matches!(
+            duplicate,
+            AudioMetadataError::MasterRecordingAlreadyExists(_)
+        ));
+
+        let outside_masters = capture_recording_master(&CaptureRecordingOptions {
+            project_root: project.clone(),
+            masters_root: "audio/masters".to_string(),
+            master: "audio/other/note.wav".to_string(),
+            duration_seconds: 1,
+            input_format: "lavfi".to_string(),
+            input: "anullsrc=r=48000:cl=mono".to_string(),
+        })
+        .expect_err("capture outside masters root should fail");
+        assert!(matches!(
+            outside_masters,
+            AudioMetadataError::InvalidAudioPath { field, .. } if field == "recording.master"
+        ));
+
+        let invalid_duration = capture_recording_master(&CaptureRecordingOptions {
+            project_root: project,
+            masters_root: "audio/masters".to_string(),
+            master: "audio/masters/other.wav".to_string(),
+            duration_seconds: 0,
+            input_format: "lavfi".to_string(),
+            input: "anullsrc=r=48000:cl=mono".to_string(),
+        })
+        .expect_err("zero duration should fail");
+        assert!(matches!(
+            invalid_duration,
+            AudioMetadataError::InvalidCaptureDuration(0)
         ));
 
         let _ = fs::remove_dir_all(root);

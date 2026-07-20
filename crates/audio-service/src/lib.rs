@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 use waystone_audio_metadata::{
-    attach_recording, export_opus_publication_copy, generate_feed, list_recordings,
-    load_audio_metadata, prepare_feed_entry, update_feed_entry, update_recording_metadata,
-    validate_audio_metadata, validate_feed_entry, validate_publication_copy,
-    AttachRecordingOptions, AttachedRecording, AudioMetadata, AudioMetadataError,
-    ExportOpusOptions, ExportedPublicationCopy, GenerateFeedOptions, GeneratedFeed,
-    PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary, UpdateFeedEntryOptions,
-    UpdateRecordingOptions, UpdatedFeedEntry, UpdatedRecording, ValidateFeedEntryOptions,
-    ValidatePublicationOptions, ValidationReport,
+    attach_recording, capture_recording_master, export_opus_publication_copy, generate_feed,
+    list_recordings, load_audio_metadata, prepare_feed_entry, update_feed_entry,
+    update_recording_metadata, validate_audio_metadata, validate_feed_entry,
+    validate_publication_copy, AttachRecordingOptions, AttachedRecording, AudioMetadata,
+    AudioMetadataError, CaptureRecordingOptions, CapturedRecording, ExportOpusOptions,
+    ExportedPublicationCopy, GenerateFeedOptions, GeneratedFeed, PrepareFeedEntryOptions,
+    PreparedFeedEntry, RecordingSummary, UpdateFeedEntryOptions, UpdateRecordingOptions,
+    UpdatedFeedEntry, UpdatedRecording, ValidateFeedEntryOptions, ValidatePublicationOptions,
+    ValidationReport,
 };
 
 #[derive(Debug, Default)]
@@ -59,6 +60,16 @@ pub struct ExportOpusRequest {
     pub master: String,
     pub published: String,
     pub preset: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CaptureRecordingRequest {
+    pub project_root: PathBuf,
+    pub masters_root: String,
+    pub master: String,
+    pub duration_seconds: u32,
+    pub input_format: String,
+    pub input: String,
 }
 
 #[derive(Debug, Clone)]
@@ -163,6 +174,20 @@ impl AudioService {
         })
     }
 
+    pub fn capture_recording(
+        &self,
+        request: CaptureRecordingRequest,
+    ) -> Result<CapturedRecording, AudioMetadataError> {
+        capture_recording_master(&CaptureRecordingOptions {
+            project_root: request.project_root,
+            masters_root: request.masters_root,
+            master: request.master,
+            duration_seconds: request.duration_seconds,
+            input_format: request.input_format,
+            input: request.input,
+        })
+    }
+
     pub fn prepare_feed_entry(
         &self,
         request: PrepareFeedEntryRequest,
@@ -240,6 +265,14 @@ mod tests {
                 output.status.success()
                     && String::from_utf8_lossy(&output.stdout).contains("libopus")
             })
+            .unwrap_or(false)
+    }
+
+    fn ffmpeg_available() -> bool {
+        Command::new("ffmpeg")
+            .arg("-version")
+            .output()
+            .map(|output| output.status.success())
             .unwrap_or(false)
     }
 
@@ -444,6 +477,46 @@ mime_type = "audio/ogg; codecs=opus"
         assert!(exported.output_path.is_file());
         let output = fs::read(&exported.output_path).expect("encoded output");
         assert!(output.starts_with(b"OggS"));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn service_captures_recording_master() {
+        if !ffmpeg_available() {
+            eprintln!("skipping recording capture test because ffmpeg is unavailable");
+            return;
+        }
+
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-service-capture-{}",
+            std::process::id()
+        ));
+        let project = root.join("audio-project.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&project).expect("project directory");
+
+        let service = AudioService;
+        let captured = service
+            .capture_recording(CaptureRecordingRequest {
+                project_root: project.clone(),
+                masters_root: "audio/masters".to_string(),
+                master: "audio/masters/note.wav".to_string(),
+                duration_seconds: 1,
+                input_format: "lavfi".to_string(),
+                input: "anullsrc=r=48000:cl=mono".to_string(),
+            })
+            .expect("recording should capture");
+
+        assert_eq!(captured.output_relative_path, "audio/masters/note.wav");
+        assert_eq!(captured.duration_seconds, 1);
+        assert_eq!(captured.channels, 1);
+        assert_eq!(captured.sample_rate, 48_000);
+        assert_eq!(captured.format, "wav");
+        assert_eq!(captured.engine, "ffmpeg");
+        assert!(captured.output_path.is_file());
+        let output = fs::read(&captured.output_path).expect("captured wav");
+        assert!(output.starts_with(b"RIFF"));
 
         let _ = fs::remove_dir_all(root);
     }

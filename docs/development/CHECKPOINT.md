@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after local Atom feed merge/update
+Status: current after narrow local recording capture
 Date: 2026-07-20
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, and Publish-to-Create handoff for selected invalid feed-entry diagnostics.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, and narrow local WAV master capture from explicit `ffmpeg` input sources.
 
 ## Current Position
 
@@ -89,8 +89,16 @@ it through the local CLI adapter.
 The Create-pane export control calls `record export-opus --json`. It creates
 an encoded `.opus` publication copy from an existing project-local master file
 through `ffmpeg/libopus`, refuses to overwrite an existing output, and reports
-`engine = "ffmpeg"`. It does not record audio, edit metadata sidecars, publish
+`engine = "ffmpeg"`. It does not capture audio, edit metadata sidecars, publish
 remotely, call D-Bus, or access audio devices.
+
+The `record capture --json` command writes a WAV master under the selected
+project's configured `[audio].masters` root from an explicit `ffmpeg` input
+format and input source. It records for a bounded duration, writes mono 48 kHz
+PCM WAV through a temporary file, refuses to overwrite existing masters, and
+reports the capture engine plus measurements in JSON output. It does not
+enumerate devices, attach metadata, export publication copies, generate feeds,
+publish remotely, or call D-Bus. Qt capture controls are not implemented yet.
 
 The Create-pane feed-entry controls call `record prepare-feed-entry --json`,
 `record validate-publication --json`, and `record validate-feed-entry --json`.
@@ -206,6 +214,11 @@ Result after local Atom feed merge/update: relevant checks passed on
 2026-07-20, including Rust tests, clippy with warnings denied, CLI JSON
 contract smoke, focused Qt project smoke, and broad Qt smoke.
 
+Result after narrow local recording capture: relevant checks passed on
+2026-07-20, including Rust tests, clippy with warnings denied, CLI JSON
+contract smoke, audiod D-Bus smoke, focused Qt project smoke, broad Qt smoke,
+format checks, and git diff whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -222,6 +235,7 @@ contract smoke, focused Qt project smoke, and broad Qt smoke.
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
 - `record update` rewrites existing local audio metadata sidecars in place while preserving the embedded recording ID, sidecar path, and optional measurement fields.
+- `record capture` creates local WAV masters under a project's configured `[audio].masters` root from explicit `ffmpeg` input sources without overwriting existing files.
 - `record export-opus` creates an encoded local Opus publication-copy file from an existing project-local master through `ffmpeg/libopus` without overwriting existing outputs.
 - `record prepare-feed-entry` creates local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record update-feed-entry` rewrites existing local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.

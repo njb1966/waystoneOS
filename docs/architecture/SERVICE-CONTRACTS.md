@@ -5,7 +5,7 @@ Date: 2026-07-20
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, Opus publication-copy export, feed-entry sidecar preparation/update, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -25,7 +25,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history; D-Bus adapter for preview and planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
-| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, Opus publication-copy export, prepare feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for list, inspect, validate |
+| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, WAV master capture, Opus publication-copy export, prepare feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for list, inspect, validate |
 
 ## Project Service
 
@@ -167,6 +167,7 @@ Current contract:
 - `InspectRecordingRequest`
 - `ValidateRecordingRequest`
 - `AttachRecordingRequest`
+- `CaptureRecordingRequest`
 - `ExportOpusRequest`
 - `PrepareFeedEntryRequest`
 - `UpdateFeedEntryRequest`
@@ -180,6 +181,7 @@ Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files.
 - Updates existing recording metadata sidecars while preserving sidecar path, embedded recording ID, and optional measurement fields.
+- Captures mono 48 kHz PCM WAV masters under the configured project `[audio].masters` root from explicit local `ffmpeg` input sources.
 - Creates Opus publication-copy files from existing project-local masters through `ffmpeg/libopus`.
 - Creates feed-entry sidecars from existing recording metadata and published audio references.
 - Updates existing feed-entry sidecars from current recording metadata and command-provided update fields.
@@ -189,7 +191,8 @@ Current behavior:
 - Loads and inspects recording metadata.
 - Validates project-relative audio and feed paths.
 - Refuses to overwrite existing sidecars.
-- Does not enumerate audio devices, capture audio, play audio, edit audio, perform codec transcoding beyond Opus publication export, merge remote feed state, or expose mutating audio operations over D-Bus.
+- Refuses to overwrite captured masters and publication-copy outputs.
+- Does not enumerate audio devices, play audio, edit audio, perform codec transcoding beyond Opus publication export, merge remote feed state, or expose mutating audio operations over D-Bus.
 
 ## D-Bus Mapping Notes
 

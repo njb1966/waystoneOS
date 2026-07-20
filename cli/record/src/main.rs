@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
 use waystone_audio_service::{
-    AttachRecordingRequest, AudioService, ExportOpusRequest, GenerateFeedRequest,
-    PrepareFeedEntryRequest, UpdateFeedEntryRequest, UpdateRecordingRequest,
+    AttachRecordingRequest, AudioService, CaptureRecordingRequest, ExportOpusRequest,
+    GenerateFeedRequest, PrepareFeedEntryRequest, UpdateFeedEntryRequest, UpdateRecordingRequest,
     ValidateFeedEntryRequest, ValidatePublicationRequest,
 };
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
@@ -86,6 +86,9 @@ fn run(args: &[String]) -> i32 {
         }
         ["export-opus", project, master, published, preset] => {
             export_opus(project, master, published, preset, json)
+        }
+        ["capture", project, master, duration_seconds, input_format, input] => {
+            capture(project, master, duration_seconds, input_format, input, json)
         }
         ["prepare-feed-entry", project, recording_id, updated, summary] => prepare_feed_entry(
             PrepareFeedEntryArgs {
@@ -249,6 +252,64 @@ fn export_opus(project: &str, master: &str, published: &str, preset: &str, json:
             0
         }
         Err(error) => print_command_error("record", "export-opus", &error.to_string(), json),
+    }
+}
+
+fn capture(
+    project: &str,
+    master: &str,
+    duration_seconds: &str,
+    input_format: &str,
+    input: &str,
+    json: bool,
+) -> i32 {
+    let masters_root = match project_audio_masters_root(project, "capture", json) {
+        Ok(masters_root) => masters_root,
+        Err(exit_code) => return exit_code,
+    };
+    let duration_seconds = match duration_seconds.parse::<u32>() {
+        Ok(duration_seconds) => duration_seconds,
+        Err(error) => {
+            return print_command_error(
+                "record",
+                "capture",
+                &format!("duration seconds must be an unsigned integer: {error}"),
+                json,
+            );
+        }
+    };
+
+    let service = AudioService;
+    match service.capture_recording(CaptureRecordingRequest {
+        project_root: Path::new(project).to_path_buf(),
+        masters_root,
+        master: master.to_string(),
+        duration_seconds,
+        input_format: input_format.to_string(),
+        input: input.to_string(),
+    }) {
+        Ok(captured) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"master\":\"{}\",\"output_path\":\"{}\",\"output_relative_path\":\"{}\",\"duration_seconds\":{},\"channels\":{},\"sample_rate\":{},\"format\":\"{}\",\"engine\":\"{}\"}}}}",
+                    escape_json(&captured.master),
+                    escape_json(&captured.output_path.display().to_string()),
+                    escape_json(&captured.output_relative_path),
+                    captured.duration_seconds,
+                    captured.channels,
+                    captured.sample_rate,
+                    escape_json(&captured.format),
+                    escape_json(&captured.engine)
+                );
+            } else {
+                println!("Captured recording master: {}", captured.master);
+                println!("Engine: {}", captured.engine);
+                println!("Duration: {} seconds", captured.duration_seconds);
+                println!("Output: {}", captured.output_path.display());
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "capture", &error.to_string(), json),
     }
 }
 
@@ -464,6 +525,24 @@ fn project_audio_metadata_root(project: &str, command: &str, json: bool) -> Resu
         })
 }
 
+fn project_audio_masters_root(project: &str, command: &str, json: bool) -> Result<String, i32> {
+    let manifest = load_manifest(Path::new(project))
+        .map_err(|error| print_command_error("record", command, &error.to_string(), json))?;
+
+    manifest
+        .audio
+        .and_then(|audio| audio.masters)
+        .filter(|path| !path.trim().is_empty())
+        .ok_or_else(|| {
+            print_command_error(
+                "record",
+                command,
+                "project audio masters root is not configured",
+                json,
+            )
+        })
+}
+
 fn list(root: &str, json: bool) -> i32 {
     match list_recordings(Path::new(root)) {
         Ok(recordings) => {
@@ -536,6 +615,7 @@ fn validate(path: &str, json: bool) -> i32 {
 
 fn print_help() {
     println!("Usage:");
+    println!("  record capture [--json] PROJECT MASTER DURATION_SECONDS INPUT_FORMAT INPUT");
     println!("  record export-opus [--json] PROJECT MASTER PUBLISHED PRESET");
     println!("  record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE");
     println!(

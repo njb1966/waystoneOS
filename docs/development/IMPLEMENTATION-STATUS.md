@@ -433,6 +433,7 @@ Current commands:
 ```text
 record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record update [--json] PROJECT RECORDING_ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
+record capture [--json] PROJECT MASTER DURATION_SECONDS INPUT_FORMAT INPUT
 record export-opus [--json] PROJECT MASTER PUBLISHED PRESET
 record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY
 record update-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY
@@ -457,10 +458,17 @@ fields, preserves optional technical measurements when present, requires the
 new master and publication-copy files to exist, and does not edit audio or
 prepared feed-entry sidecars.
 
+`record capture` writes a WAV master under the selected project's configured
+`[audio].masters` root from an explicit `ffmpeg` input format and input source.
+It records for a bounded duration, writes mono 48 kHz PCM WAV, refuses to
+overwrite an existing master, and reports the capture engine plus technical
+measurements in JSON output. It does not enumerate devices, attach metadata,
+export publication copies, generate feeds, or publish remotely.
+
 `record export-opus` validates an existing project-local master file and writes
 an encoded `.opus` publication-copy output for the requested project-relative
 path through `ffmpeg/libopus`. It refuses to overwrite an existing publication
-copy and reports `engine = "ffmpeg"` in JSON output. It does not record audio,
+copy and reports `engine = "ffmpeg"` in JSON output. It does not capture audio,
 edit metadata sidecars, or publish remotely.
 
 `record prepare-feed-entry` creates a feed-entry metadata sidecar under
@@ -661,7 +669,7 @@ Current state:
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - D-Bus autostart is smoke-tested through a generated temporary service file
 - Systemd user unit syntax is smoke-tested through a generated temporary daemon path
-- Audio capture not implemented
+- Qt audio capture controls are not implemented
 - Uses `crates/audio-service/` as its internal boundary
 
 ## CLI Integration Tests
@@ -676,7 +684,7 @@ Current tests cover:
 - `host validate` rejects invalid trust state
 - `identity validate` rejects private-key material
 - `record validate` rejects invalid audio paths
-- `record export-opus --json` writes an encoded Opus publication copy through `ffmpeg/libopus`, `record attach --json` creates recording metadata, `record update --json` rewrites existing recording metadata, `record prepare-feed-entry --json` creates feed-entry metadata, `record update-feed-entry --json` rewrites existing feed-entry metadata, `record validate-publication --json` plus `record validate-feed-entry --json` validate local audio publication handoff, and `record generate-feed --json` writes a local Atom feed
+- `record capture --json` writes a WAV master through an explicit `ffmpeg` input source, `record export-opus --json` writes an encoded Opus publication copy through `ffmpeg/libopus`, `record attach --json` creates recording metadata, `record update --json` rewrites existing recording metadata, `record prepare-feed-entry --json` creates feed-entry metadata, `record update-feed-entry --json` rewrites existing feed-entry metadata, `record validate-publication --json` plus `record validate-feed-entry --json` validate local audio publication handoff, and `record generate-feed --json` writes a local Atom feed
 - `listen library --json` lists recording metadata
 - `way --help` lists current core commands
 

@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::Path;
 use std::process;
 use std::process::Command;
 
@@ -19,35 +18,6 @@ fn ffmpeg_opus_available() -> bool {
             output.status.success() && String::from_utf8_lossy(&output.stdout).contains("libopus")
         })
         .unwrap_or(false)
-}
-
-fn write_test_wav(path: &Path) {
-    let sample_rate = 48_000u32;
-    let channels = 1u16;
-    let bits_per_sample = 16u16;
-    let sample_count = 4_800u32;
-    let bytes_per_sample = u32::from(bits_per_sample / 8);
-    let data_len = sample_count * u32::from(channels) * bytes_per_sample;
-    let byte_rate = sample_rate * u32::from(channels) * bytes_per_sample;
-    let block_align = channels * (bits_per_sample / 8);
-
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(b"RIFF");
-    bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
-    bytes.extend_from_slice(b"WAVE");
-    bytes.extend_from_slice(b"fmt ");
-    bytes.extend_from_slice(&16u32.to_le_bytes());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&channels.to_le_bytes());
-    bytes.extend_from_slice(&sample_rate.to_le_bytes());
-    bytes.extend_from_slice(&byte_rate.to_le_bytes());
-    bytes.extend_from_slice(&block_align.to_le_bytes());
-    bytes.extend_from_slice(&bits_per_sample.to_le_bytes());
-    bytes.extend_from_slice(b"data");
-    bytes.extend_from_slice(&data_len.to_le_bytes());
-    bytes.resize(bytes.len() + data_len as usize, 0);
-
-    fs::write(path, bytes).expect("test wav file");
 }
 
 #[test]
@@ -109,7 +79,31 @@ title = "Attach Audio"
 "#,
     )
     .expect("project manifest");
-    write_test_wav(&project.join("audio/masters/field-note.wav"));
+
+    let capture_output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "capture",
+            "--json",
+            project.to_str().expect("project path"),
+            "audio/masters/field-note.wav",
+            "1",
+            "lavfi",
+            "anullsrc=r=48000:cl=mono",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(capture_output.status.code(), Some(0));
+    let capture_stdout = String::from_utf8_lossy(&capture_output.stdout);
+    assert!(capture_stdout.contains("\"output_relative_path\":\"audio/masters/field-note.wav\""));
+    assert!(capture_stdout.contains("\"duration_seconds\":1"));
+    assert!(capture_stdout.contains("\"channels\":1"));
+    assert!(capture_stdout.contains("\"sample_rate\":48000"));
+    assert!(capture_stdout.contains("\"format\":\"wav\""));
+    assert!(capture_stdout.contains("\"engine\":\"ffmpeg\""));
+    let captured_master = fs::read(project.join("audio/masters/field-note.wav"))
+        .expect("captured master should exist");
+    assert!(captured_master.starts_with(b"RIFF"));
 
     let export_output = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([

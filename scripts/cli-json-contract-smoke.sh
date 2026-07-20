@@ -150,7 +150,31 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
     require("[publication]" in read_history["data"]["record_toml"],
             "publish read planned-history preview did not return record TOML")
 
-    write_test_wav(temp_project / "audio" / "masters" / "second-note.wav")
+    captured_recording = run([
+        "target/debug/record", "capture", "--json", str(temp_project),
+        "audio/masters/second-note.wav",
+        "1",
+        "lavfi",
+        "anullsrc=r=48000:cl=mono",
+    ])
+    require({"master", "output_path", "output_relative_path", "duration_seconds",
+             "channels", "sample_rate", "format", "engine"} <= captured_recording["data"].keys(),
+            "record capture contract changed")
+    require(captured_recording["data"]["output_relative_path"]
+            == "audio/masters/second-note.wav",
+            "record capture output path changed")
+    require(captured_recording["data"]["duration_seconds"] == 1,
+            "record capture duration changed")
+    require(captured_recording["data"]["channels"] == 1,
+            "record capture channel count changed")
+    require(captured_recording["data"]["sample_rate"] == 48000,
+            "record capture sample rate changed")
+    require(captured_recording["data"]["format"] == "wav",
+            "record capture format changed")
+    require(captured_recording["data"]["engine"] == "ffmpeg",
+            "record capture engine changed")
+    require((temp_project / "audio" / "masters" / "second-note.wav").exists(),
+            "record capture did not write master")
     exported_opus = run([
         "target/debug/record", "export-opus", "--json", str(temp_project),
         "audio/masters/second-note.wav",

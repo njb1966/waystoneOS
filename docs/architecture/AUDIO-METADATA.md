@@ -3,7 +3,8 @@
 Status: Current local metadata contract
 Date: 2026-07-20
 
-Audio metadata describes recordings and publication copies without requiring audio decoding or device access.
+Audio metadata describes recordings and publication copies. Capture and export
+commands use explicit local `ffmpeg` inputs and do not enumerate devices.
 
 ## Scope
 
@@ -11,6 +12,7 @@ Current implementation supports:
 
 - TOML sidecar loading
 - TOML sidecar creation for attaching an existing master/publication copy
+- WAV master capture from an explicit `ffmpeg` input source
 - Opus publication-copy export from an existing project-local master file through `ffmpeg/libopus`
 - TOML feed-entry sidecar preparation from existing recording metadata
 - Recording listing
@@ -25,7 +27,6 @@ Current implementation supports:
 Current implementation does not support:
 
 - PipeWire device enumeration
-- Recording capture
 - Playback
 - Trimming
 - Normalization
@@ -98,6 +99,7 @@ Current commands:
 ```text
 record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record update PROJECT RECORDING_ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
+record capture PROJECT MASTER DURATION_SECONDS INPUT_FORMAT INPUT
 record export-opus PROJECT MASTER PUBLISHED PRESET
 record prepare-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
 record update-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
@@ -125,13 +127,20 @@ master and publication-copy paths to be existing project-relative files. It
 does not edit audio, create a new sidecar, update prepared feed-entry sidecars,
 or merge feed XML.
 
+`record capture` writes a WAV master under the selected project's configured
+`[audio].masters` root through `ffmpeg`. It takes an explicit input format and
+input source equivalent to `ffmpeg -f FORMAT -i INPUT`, records for a bounded
+duration, writes mono 48 kHz PCM WAV through a temporary file, and refuses to
+overwrite existing masters. It does not enumerate devices, attach metadata,
+export publication copies, generate feeds, or publish remotely.
+
 `record export-opus` creates an Opus publication copy from an existing
 project-local master file through `ffmpeg` with the `libopus` encoder. It
 validates project-relative paths, accepts a narrow preset name, requires the
 output path to end with `.opus`, writes through a temporary output, and refuses
 to overwrite an existing publication copy. The JSON response reports
 `mime_type = "audio/ogg; codecs=opus"` and `engine = "ffmpeg"`. The command
-does not record audio, edit the master file, update metadata sidecars, or
+does not capture audio, edit the master file, update metadata sidecars, or
 publish remotely.
 
 `record prepare-feed-entry` creates one feed-entry sidecar under
