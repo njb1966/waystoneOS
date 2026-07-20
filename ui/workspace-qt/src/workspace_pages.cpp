@@ -581,6 +581,20 @@ QString renderPublishPreview(const PublishPreview &preview) {
     return text;
 }
 
+QString renderFeedDiagnosticSummary(const FeedEntryDiagnostic &diagnostic) {
+    QString text = "Feed-entry diagnostic\n";
+    text += "Path: " + diagnostic.path + "\n";
+    text += "Issues:\n";
+    if (diagnostic.issues.isEmpty()) {
+        text += "  none";
+    } else {
+        for (const auto &issue : diagnostic.issues) {
+            text += "  " + issue + "\n";
+        }
+    }
+    return text.trimmed();
+}
+
 QString renderPlannedHistorySummary(const PlannedHistoryPreview &history) {
     if (!history.ok) {
         return "Planned history failed\n" + history.error;
@@ -1626,6 +1640,26 @@ QWidget *publishPage(const CliAdapter *adapter) {
     plan->setObjectName("publishPlan");
     plan->setReadOnly(true);
     planLayout->addWidget(plan);
+    auto *feedDiagnosticActions = new QWidget(planArea);
+    auto *feedDiagnosticActionsLayout = new QHBoxLayout(feedDiagnosticActions);
+    feedDiagnosticActionsLayout->setContentsMargins(0, 0, 0, 0);
+    auto *feedDiagnostic = new QComboBox(feedDiagnosticActions);
+    feedDiagnostic->setObjectName("publishFeedDiagnosticSelector");
+    feedDiagnostic->setEnabled(false);
+    auto *validateFeedDiagnostic =
+        new QPushButton("Validate Feed Entry", feedDiagnosticActions);
+    validateFeedDiagnostic->setObjectName("publishValidateFeedDiagnostic");
+    validateFeedDiagnostic->setEnabled(false);
+    feedDiagnosticActionsLayout->addWidget(new QLabel("Feed Diagnostic", feedDiagnosticActions));
+    feedDiagnosticActionsLayout->addWidget(feedDiagnostic, 1);
+    feedDiagnosticActionsLayout->addWidget(validateFeedDiagnostic);
+    planLayout->addWidget(feedDiagnosticActions);
+    auto *feedDiagnosticDetail = new QPlainTextEdit(planArea);
+    feedDiagnosticDetail->setObjectName("publishFeedDiagnosticDetail");
+    feedDiagnosticDetail->setReadOnly(true);
+    feedDiagnosticDetail->setMaximumHeight(120);
+    feedDiagnosticDetail->setPlainText("No invalid feed-entry diagnostics");
+    planLayout->addWidget(feedDiagnosticDetail);
     previewSplitter->addWidget(planArea);
 
     auto *historyArea = new QWidget(previewSplitter);
@@ -1684,6 +1718,35 @@ QWidget *publishPage(const CliAdapter *adapter) {
         historyComparison->setPlainText(renderPlannedHistoryComparison(
             history->toPlainText(),
             savedPreviewDetail->property("recordToml").toString()));
+    };
+
+    auto selectedFeedDiagnosticPath = [=]() -> QString {
+        const int index = feedDiagnostic->currentIndex();
+        if (index < 0) {
+            return {};
+        }
+        return feedDiagnostic->itemData(index, Qt::UserRole).toString();
+    };
+
+    auto setFeedDiagnostics = [=](const PublishPreview &preview) {
+        QSignalBlocker blocker(feedDiagnostic);
+        feedDiagnostic->clear();
+        for (const auto &diagnostic : preview.feedDiagnostics) {
+            feedDiagnostic->addItem(diagnostic.path, diagnostic.path);
+            feedDiagnostic->setItemData(feedDiagnostic->count() - 1,
+                                        diagnostic.issues, Qt::UserRole + 1);
+        }
+        const bool hasDiagnostics = feedDiagnostic->count() > 0;
+        feedDiagnostic->setEnabled(hasDiagnostics);
+        validateFeedDiagnostic->setEnabled(hasDiagnostics);
+        if (!hasDiagnostics) {
+            feedDiagnosticDetail->setPlainText("No invalid feed-entry diagnostics");
+            return;
+        }
+
+        feedDiagnostic->setCurrentIndex(0);
+        feedDiagnosticDetail->setPlainText(
+            renderFeedDiagnosticSummary(preview.feedDiagnostics.first()));
     };
 
     auto refreshTargetOverview = [=]() {
@@ -1813,6 +1876,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (row < 0) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
             savedPreviewDetail->setPlainText("No saved previews");
@@ -1825,6 +1889,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (item == nullptr) {
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
+            setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
             savedPreviewDetail->setPlainText("No saved previews");
@@ -1838,6 +1903,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         if (targetName.isEmpty()) {
             previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
+            setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             refreshSavedPreviews();
             history->setPlainText("No planned history");
@@ -1848,6 +1914,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
         const PublishPreview preview = adapter->previewPublication(path, targetName);
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
+        setFeedDiagnostics(preview);
         if (!preview.ok) {
             historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
@@ -1930,6 +1997,35 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          loadSavedPreviewDetail(row);
                      });
 
+    QObject::connect(feedDiagnostic, &QComboBox::currentIndexChanged,
+                     [=](int index) {
+                         if (index < 0) {
+                             feedDiagnosticDetail->setPlainText(
+                                 "No invalid feed-entry diagnostics");
+                             return;
+                         }
+                         FeedEntryDiagnostic diagnostic;
+                         diagnostic.path =
+                             feedDiagnostic->itemData(index, Qt::UserRole).toString();
+                         diagnostic.issues =
+                             feedDiagnostic->itemData(index, Qt::UserRole + 1)
+                                 .toStringList();
+                         feedDiagnosticDetail->setPlainText(
+                             renderFeedDiagnosticSummary(diagnostic));
+                     });
+
+    QObject::connect(validateFeedDiagnostic, &QPushButton::clicked, [=]() {
+        const QString projectPath = currentProjectPath();
+        const QString diagnosticPath = selectedFeedDiagnosticPath();
+        if (projectPath.isEmpty() || diagnosticPath.isEmpty()) {
+            feedDiagnosticDetail->setPlainText("No invalid feed-entry diagnostic selected");
+            return;
+        }
+
+        feedDiagnosticDetail->setPlainText(
+            adapter->feedEntryValidationDetail(projectPath, diagnosticPath));
+    });
+
     QObject::connect(target, &QComboBox::currentTextChanged, [=](const QString &) {
         runPreview();
     });
@@ -1956,6 +2052,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          if (row < 0) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
                              savedPreviewDetail->setPlainText("No saved previews");
@@ -1968,6 +2065,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                          if (item == nullptr) {
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
+                             setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
                              savedPreviewDetail->setPlainText("No saved previews");
@@ -1985,6 +2083,7 @@ QWidget *publishPage(const CliAdapter *adapter) {
                              previewStatus->setText("Preview: failed");
                              plan->setPlainText("Publish target inspection failed\n" +
                                                 targetError);
+                             setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              refreshSavedPreviews();
                              history->setPlainText("No planned history");

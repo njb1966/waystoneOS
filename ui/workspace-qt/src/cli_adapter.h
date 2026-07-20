@@ -244,6 +244,8 @@ public:
                                        const QString &recordingId) const;
     QString feedEntryValidationState(const QString &projectPath,
                                      const QString &recordingId) const;
+    QString feedEntryValidationDetail(const QString &projectPath,
+                                      const QString &feedEntryPath) const;
     QString inspectRecording(const QString &path) const;
     QString recordingValidationState(const QString &path) const;
 

@@ -463,8 +463,16 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     auto *publishProjects = publish->findChild<QTableWidget *>("publishProjectsTable");
     auto *publishStatus = publish->findChild<QLabel *>("publishPreviewStatus");
     auto *publishPlan = publish->findChild<QPlainTextEdit *>("publishPlan");
+    auto *publishFeedDiagnostic =
+        publish->findChild<QComboBox *>("publishFeedDiagnosticSelector");
+    auto *validateFeedDiagnostic =
+        publish->findChild<QPushButton *>("publishValidateFeedDiagnostic");
+    auto *feedDiagnosticDetail =
+        publish->findChild<QPlainTextEdit *>("publishFeedDiagnosticDetail");
     if (publishFilter == nullptr || publishProjects == nullptr ||
-        publishStatus == nullptr || publishPlan == nullptr) {
+        publishStatus == nullptr || publishPlan == nullptr ||
+        publishFeedDiagnostic == nullptr || validateFeedDiagnostic == nullptr ||
+        feedDiagnosticDetail == nullptr) {
         err << "workspace recording smoke: publish widgets were not discoverable"
             << Qt::endl;
         delete publish;
@@ -495,6 +503,31 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
             << Qt::endl;
         err << "publish status: " << publishStatus->text() << Qt::endl;
         err << "publish plan: " << publishPlan->toPlainText() << Qt::endl;
+        delete publish;
+        delete page;
+        return 1;
+    }
+    if (publishFeedDiagnostic->count() != 1 ||
+        publishFeedDiagnostic->currentText() != "feeds/entries/broken.toml" ||
+        !feedDiagnosticDetail->toPlainText().contains("Feed-entry diagnostic") ||
+        !feedDiagnosticDetail->toPlainText().contains("entry.recording_metadata")) {
+        err << "workspace recording smoke: publish feed diagnostic selector was not reflected"
+            << Qt::endl;
+        err << "diagnostic: " << publishFeedDiagnostic->currentText() << Qt::endl;
+        err << "detail: " << feedDiagnosticDetail->toPlainText() << Qt::endl;
+        delete publish;
+        delete page;
+        return 1;
+    }
+    validateFeedDiagnostic->click();
+    QApplication::processEvents();
+    if (!feedDiagnosticDetail->toPlainText().contains("Feed-entry validation") ||
+        !feedDiagnosticDetail->toPlainText().contains("Valid: no") ||
+        !feedDiagnosticDetail->toPlainText().contains("missing_feed_entry_field") ||
+        !feedDiagnosticDetail->toPlainText().contains("entry.recording_metadata")) {
+        err << "workspace recording smoke: feed diagnostic validation detail was not reflected"
+            << Qt::endl;
+        err << "detail: " << feedDiagnosticDetail->toPlainText() << Qt::endl;
         delete publish;
         delete page;
         return 1;

@@ -33,6 +33,21 @@ QStringList jsonStringArray(const QJsonArray &array) {
     return values;
 }
 
+QString renderValidationIssues(const QString &label, const QJsonArray &issues) {
+    if (issues.isEmpty()) {
+        return "  none\n";
+    }
+
+    QString text;
+    for (const auto &item : issues) {
+        const QJsonObject issue = item.toObject();
+        const QString code = issue.value("code").toString("unknown");
+        const QString message = issue.value("message").toString();
+        text += QString("  %1: %2\n").arg(code, message);
+    }
+    return text.isEmpty() ? "  no " + label + "\n" : text;
+}
+
 QList<FeedEntryDiagnostic> feedDiagnostics(const QJsonArray &array) {
     QList<FeedEntryDiagnostic> diagnostics;
     for (const auto &item : array) {
@@ -1000,6 +1015,43 @@ QString CliAdapter::feedEntryValidationState(const QString &projectPath,
 
     const QJsonObject data = root.value("data").toObject();
     return data.value("valid").toBool(false) ? "valid" : "invalid";
+}
+
+QString CliAdapter::feedEntryValidationDetail(const QString &projectPath,
+                                              const QString &feedEntryPath) const {
+    const QString recordingId = QFileInfo(feedEntryPath).completeBaseName();
+    if (recordingId.trimmed().isEmpty()) {
+        return "Feed-entry validation failed\nCould not derive recording ID from " +
+               feedEntryPath;
+    }
+
+    const CommandResult result =
+        runCommand("record", {"validate-feed-entry", "--json", projectPath, recordingId});
+    if (!result.error.isEmpty()) {
+        return "Feed-entry validation failed\n" + result.error;
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        if (result.exitCode != 0) {
+            return "Feed-entry validation failed\n" +
+                   commandFailureDetail(result, "record validate-feed-entry failed");
+        }
+        return "Feed-entry validation returned unreadable JSON";
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    QString text;
+    text += "Feed-entry validation\n";
+    text += "Path: " + feedEntryPath + "\n";
+    text += "Recording ID: " + recordingId + "\n";
+    text += "Valid: " + QString(data.value("valid").toBool(false) ? "yes" : "no") + "\n";
+    text += "Errors:\n";
+    text += renderValidationIssues("errors", data.value("errors").toArray());
+    text += "Warnings:\n";
+    text += renderValidationIssues("warnings", data.value("warnings").toArray());
+    return text.trimmed();
 }
 
 QString CliAdapter::recordingValidationState(const QString &path) const {

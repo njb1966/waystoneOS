@@ -527,6 +527,7 @@ Current behavior:
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
 - Shows Publish-pane preview status as ready, blocked, failed, no project, no target, and feed readiness when feed metadata is configured
 - Shows invalid feed-entry diagnostic paths and validation issue text in Publish-pane dry-run detail
+- Shows read-only validation detail for a selected invalid feed-entry diagnostic through `record validate-feed-entry --json`
 - Filters visible Publish-pane projects by project name, ID, type, path, or target names
 - Shows a compact per-target Publish-pane overview for the selected project using read-only dry-run status, method, upload count, verification count, and destination
 - Lets Publish-pane target overview row selection update the active target and refresh the existing preview/history panes
@@ -715,6 +716,8 @@ tests, clippy with warnings denied, and the CLI JSON contract smoke. Qt
 Create-pane mock export controls passed Qt build and focused Qt project smoke.
 Publish feed diagnostics passed Rust tests, clippy with warnings denied, CLI
 JSON contract smoke, publishd D-Bus smoke, and focused Qt project smoke.
+Publish feed-entry validation detail passed Qt build and focused Qt project
+smoke.
 
 Useful CLI smoke checks:
 

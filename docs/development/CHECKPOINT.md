@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Publish-pane invalid feed-entry diagnostics
+Status: current after Publish-pane feed-entry validation detail action
 Date: 2026-07-20
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, and Publish-pane invalid feed-entry diagnostics.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, Publish-pane invalid feed-entry diagnostics, and Publish-pane validation detail for selected feed-entry diagnostics.
 
 ## Current Position
 
@@ -44,6 +44,7 @@ The Qt Workspace currently has:
 - Publish pane shows all discovered project targets, exposes them through a target selector, and reports preview readiness as ready, blocked, failed, no project, or no target
 - Publish pane previews selected local projects through `publish --dry-run --json`, including newly created removable export targets
 - Publish pane reports configured feed readiness from dry-run output, including feed path, feed XML existence, prepared entry count, invalid entry count, and per-invalid-sidecar diagnostic paths plus issue text
+- Publish pane can run `record validate-feed-entry --json` for a selected invalid feed-entry diagnostic and show the full validation detail
 - Publish pane previews planned publication history records through `publish --planned-history --json`, including file-action grouping, without writing completed history
 - Publish pane can save planned history previews under the selected project `history/previews/` directory through `publish --save-planned-history-preview --json`
 - Publish pane lists saved planned history previews for the selected project through `publish --list-planned-history-previews --json`
@@ -109,6 +110,11 @@ invalid feed-entry sidecars exist, the dry-run detail now includes the
 sidecar path and validation issue text. It does not generate feeds
 automatically.
 
+The Publish pane also exposes a read-only validation-detail action for selected
+invalid feed-entry diagnostics. It derives the recording ID from the diagnostic
+sidecar path, calls `record validate-feed-entry --json`, and renders the
+validator's errors and warnings. It does not edit or repair metadata.
+
 ## Verification Marker
 
 The current expected verification set is:
@@ -155,6 +161,9 @@ Result after Publish-pane invalid feed-entry diagnostics: relevant checks
 passed on 2026-07-20, including Rust tests, clippy, CLI JSON contract smoke,
 publishd D-Bus smoke, and focused Qt project smoke.
 
+Result after Publish-pane feed-entry validation detail action: relevant checks
+passed on 2026-07-20, including Qt build and focused Qt project smoke.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -193,10 +202,10 @@ publishd D-Bus smoke, and focused Qt project smoke.
 
 Recommended next implementation step:
 
-1. Add a narrow feed-entry validation-detail action from Publish diagnostics, so diagnostics become easier to act on without adding metadata editing yet.
+1. Add a small audio metadata replacement/update command for existing recording sidecars, still without real recording or codec editing.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 
 Alternative next step:
 
-- Start a small audio metadata replacement/update command, still without real recording or codec editing.
+- Add a narrow navigation handoff from Publish diagnostics back to the Create pane.

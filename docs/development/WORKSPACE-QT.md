@@ -49,6 +49,7 @@ Implemented:
 - Publish-pane project filter by name, ID, type, path, or target names
 - Publish-pane feed readiness reporting from `publish --dry-run --json`
 - Publish-pane invalid feed-entry diagnostic paths and issue text from `publish --dry-run --json`
+- Publish-pane validation detail action for selected invalid feed-entry diagnostics using `record validate-feed-entry --json`
 - Read-only Operate-pane adapters using `host` and `identity` CLI JSON output
 - `main.cpp` application frame split from page construction in `workspace_pages.cpp`
 - Local Workspace root configuration in `workspace_config.cpp`
@@ -173,9 +174,10 @@ that recording attachment controls create an inspectable metadata sidecar for
 project-local audio files, prepares a feed-entry sidecar, verifies
 publication/feed-entry validation status, generates feed XML, adds one broken
 feed-entry sidecar, and verifies that the Publish pane reports invalid feed
-state with a diagnostic path and validation issue text. It also creates a
-separate temporary project with multiple publish targets and verifies that the
-Publish pane target selector drives ready,
+state with a diagnostic path and validation issue text. It also verifies that
+the selected feed diagnostic can be validated from the Publish pane. It also
+creates a separate temporary project with multiple publish targets and verifies
+that the Publish pane target selector drives ready,
 blocked, project filtering, per-target overview rows, overview-row target
 selection, planned-history summary, raw planned-history record preview, saved
 planned-history preview transitions, saved-preview listing, selected saved
