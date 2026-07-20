@@ -25,6 +25,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <functional>
+
 namespace {
 
 QString configuredRepoRoot(const QApplication &app) {
@@ -527,7 +529,12 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
-    QWidget *publish = publishPage(&adapter);
+    bool handoffCalled = false;
+    QWidget *publish = publishPage(&adapter, [&](const QString &projectPath,
+                                                 const QString &recordingId) {
+        handoffCalled = focusCreateProject(page, projectPath, recordingId);
+        return handoffCalled;
+    });
     QApplication::processEvents();
     auto *publishFilter = publish->findChild<QLineEdit *>("publishProjectFilter");
     auto *publishProjects = publish->findChild<QTableWidget *>("publishProjectsTable");
@@ -537,12 +544,14 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         publish->findChild<QComboBox *>("publishFeedDiagnosticSelector");
     auto *validateFeedDiagnostic =
         publish->findChild<QPushButton *>("publishValidateFeedDiagnostic");
+    auto *openFeedDiagnosticInCreate =
+        publish->findChild<QPushButton *>("publishOpenFeedDiagnosticInCreate");
     auto *feedDiagnosticDetail =
         publish->findChild<QPlainTextEdit *>("publishFeedDiagnosticDetail");
     if (publishFilter == nullptr || publishProjects == nullptr ||
         publishStatus == nullptr || publishPlan == nullptr ||
         publishFeedDiagnostic == nullptr || validateFeedDiagnostic == nullptr ||
-        feedDiagnosticDetail == nullptr) {
+        openFeedDiagnosticInCreate == nullptr || feedDiagnosticDetail == nullptr) {
         err << "workspace recording smoke: publish widgets were not discoverable"
             << Qt::endl;
         delete publish;
@@ -597,6 +606,21 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         !feedDiagnosticDetail->toPlainText().contains("entry.recording_metadata")) {
         err << "workspace recording smoke: feed diagnostic validation detail was not reflected"
             << Qt::endl;
+        err << "detail: " << feedDiagnosticDetail->toPlainText() << Qt::endl;
+        delete publish;
+        delete page;
+        return 1;
+    }
+    openFeedDiagnosticInCreate->click();
+    QApplication::processEvents();
+    if (!handoffCalled || recordingId->text().trimmed() != "broken" ||
+        !feedStatus->text().contains("Loaded from Publish diagnostic: broken") ||
+        !feedDiagnosticDetail->toPlainText().contains("Opened in Create") ||
+        !feedDiagnosticDetail->toPlainText().contains("feeds/entries/broken.toml")) {
+        err << "workspace recording smoke: feed diagnostic handoff was not reflected"
+            << Qt::endl;
+        err << "recording id: " << recordingId->text() << Qt::endl;
+        err << "feed status: " << feedStatus->text() << Qt::endl;
         err << "detail: " << feedDiagnosticDetail->toPlainText() << Qt::endl;
         delete publish;
         delete page;
@@ -1018,9 +1042,19 @@ int main(int argc, char *argv[]) {
     splitter->addWidget(navigation);
 
     auto *pages = new QStackedWidget;
+    std::function<void(int)> setWorkspace;
     pages->addWidget(explorePage(workspaceConfig));
-    pages->addWidget(createPage(&adapter));
-    pages->addWidget(publishPage(&adapter));
+    QWidget *create = createPage(&adapter);
+    pages->addWidget(create);
+    pages->addWidget(publishPage(&adapter, [&](const QString &projectPath,
+                                               const QString &recordingId) {
+        if (focusCreateProject(create, projectPath, recordingId) && setWorkspace) {
+            navigation->setCurrentRow(1);
+            setWorkspace(1);
+            return true;
+        }
+        return false;
+    }));
     pages->addWidget(operatePage(&adapter));
     splitter->addWidget(pages);
     splitter->setStretchFactor(1, 1);
@@ -1028,7 +1062,7 @@ int main(int argc, char *argv[]) {
 
     const QString statusSuffix =
         configWarning.isEmpty() ? QString() : "   " + configWarning;
-    auto setWorkspace = [&](int index) {
+    setWorkspace = [&](int index) {
         pages->setCurrentIndex(index);
         buttonGroup->button(index)->setChecked(true);
         window.statusBar()->showMessage(

@@ -595,6 +595,10 @@ QString renderFeedDiagnosticSummary(const FeedEntryDiagnostic &diagnostic) {
     return text.trimmed();
 }
 
+QString recordingIdFromFeedDiagnosticPath(const QString &path) {
+    return QFileInfo(path).completeBaseName().trimmed();
+}
+
 QString renderPlannedHistorySummary(const PlannedHistoryPreview &history) {
     if (!history.ok) {
         return "Planned history failed\n" + history.error;
@@ -1663,7 +1667,51 @@ QWidget *createPage(const CliAdapter *adapter) {
     return page;
 }
 
-QWidget *publishPage(const CliAdapter *adapter) {
+bool focusCreateProject(QWidget *page, const QString &projectPath,
+                        const QString &recordingId) {
+    if (page == nullptr || projectPath.trimmed().isEmpty()) {
+        return false;
+    }
+
+    auto *projectsTable = page->findChild<QTableWidget *>("createProjectsTable");
+    auto *recordingIdEdit = page->findChild<QLineEdit *>("createRecordingId");
+    auto *recordingsTable = page->findChild<QTableWidget *>("createRecordingsTable");
+    auto *feedStatus = page->findChild<QLabel *>("createFeedEntryStatus");
+    if (projectsTable == nullptr || recordingIdEdit == nullptr) {
+        return false;
+    }
+
+    if (!selectProjectByPath(projectsTable, projectPath)) {
+        if (feedStatus != nullptr) {
+            feedStatus->setText("Create handoff failed: project not listed");
+        }
+        return false;
+    }
+
+    const QString id = recordingId.trimmed();
+    if (!id.isEmpty()) {
+        recordingIdEdit->setText(id);
+        if (recordingsTable != nullptr) {
+            for (int row = 0; row < recordingsTable->rowCount(); ++row) {
+                auto *item = recordingsTable->item(row, 1);
+                if (item != nullptr && item->text().trimmed() == id) {
+                    recordingsTable->selectRow(row);
+                    break;
+                }
+            }
+        }
+    }
+
+    if (feedStatus != nullptr) {
+        feedStatus->setText(id.isEmpty()
+                                ? "Loaded from Publish diagnostic"
+                                : "Loaded from Publish diagnostic: " + id);
+    }
+    return true;
+}
+
+QWidget *publishPage(const CliAdapter *adapter,
+                     const FeedDiagnosticCreateHandoff &openInCreate) {
     auto *page = new QWidget;
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(16, 12, 16, 12);
@@ -1733,9 +1781,14 @@ QWidget *publishPage(const CliAdapter *adapter) {
         new QPushButton("Validate Feed Entry", feedDiagnosticActions);
     validateFeedDiagnostic->setObjectName("publishValidateFeedDiagnostic");
     validateFeedDiagnostic->setEnabled(false);
+    auto *openFeedDiagnosticInCreate =
+        new QPushButton("Open in Create", feedDiagnosticActions);
+    openFeedDiagnosticInCreate->setObjectName("publishOpenFeedDiagnosticInCreate");
+    openFeedDiagnosticInCreate->setEnabled(false);
     feedDiagnosticActionsLayout->addWidget(new QLabel("Feed Diagnostic", feedDiagnosticActions));
     feedDiagnosticActionsLayout->addWidget(feedDiagnostic, 1);
     feedDiagnosticActionsLayout->addWidget(validateFeedDiagnostic);
+    feedDiagnosticActionsLayout->addWidget(openFeedDiagnosticInCreate);
     planLayout->addWidget(feedDiagnosticActions);
     auto *feedDiagnosticDetail = new QPlainTextEdit(planArea);
     feedDiagnosticDetail->setObjectName("publishFeedDiagnosticDetail");
@@ -1822,6 +1875,8 @@ QWidget *publishPage(const CliAdapter *adapter) {
         const bool hasDiagnostics = feedDiagnostic->count() > 0;
         feedDiagnostic->setEnabled(hasDiagnostics);
         validateFeedDiagnostic->setEnabled(hasDiagnostics);
+        openFeedDiagnosticInCreate->setEnabled(hasDiagnostics &&
+                                               static_cast<bool>(openInCreate));
         if (!hasDiagnostics) {
             feedDiagnosticDetail->setPlainText("No invalid feed-entry diagnostics");
             return;
@@ -2107,6 +2162,30 @@ QWidget *publishPage(const CliAdapter *adapter) {
 
         feedDiagnosticDetail->setPlainText(
             adapter->feedEntryValidationDetail(projectPath, diagnosticPath));
+    });
+
+    QObject::connect(openFeedDiagnosticInCreate, &QPushButton::clicked, [=]() {
+        const QString projectPath = currentProjectPath();
+        const QString diagnosticPath = selectedFeedDiagnosticPath();
+        if (projectPath.isEmpty() || diagnosticPath.isEmpty()) {
+            feedDiagnosticDetail->setPlainText("No invalid feed-entry diagnostic selected");
+            return;
+        }
+        if (!openInCreate) {
+            feedDiagnosticDetail->setPlainText("Create handoff is unavailable");
+            return;
+        }
+
+        const QString recordingId = recordingIdFromFeedDiagnosticPath(diagnosticPath);
+        if (!openInCreate(projectPath, recordingId)) {
+            feedDiagnosticDetail->setPlainText("Create handoff failed");
+            return;
+        }
+        feedDiagnosticDetail->setPlainText(
+            "Opened in Create\n"
+            "Project: " + projectPath + "\n" +
+            "Recording: " + recordingId + "\n" +
+            "Diagnostic: " + diagnosticPath);
     });
 
     QObject::connect(target, &QComboBox::currentTextChanged, [=](const QString &) {

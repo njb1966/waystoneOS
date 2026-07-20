@@ -551,6 +551,7 @@ Current behavior:
 - Shows Publish-pane preview status as ready, blocked, failed, no project, no target, and feed readiness when feed metadata is configured
 - Shows invalid feed-entry diagnostic paths and validation issue text in Publish-pane dry-run detail
 - Shows read-only validation detail for a selected invalid feed-entry diagnostic through `record validate-feed-entry --json`
+- Lets a selected invalid feed-entry diagnostic open the matching project and derived recording ID in the Create pane
 - Filters visible Publish-pane projects by project name, ID, type, path, or target names
 - Shows a compact per-target Publish-pane overview for the selected project using read-only dry-run status, method, upload count, verification count, and destination
 - Lets Publish-pane target overview row selection update the active target and refresh the existing preview/history panes
@@ -744,6 +745,8 @@ smoke. Qt recording metadata update controls passed Qt build and focused Qt
 project smoke. Feed-entry update command passed Rust tests, clippy with
 warnings denied, CLI JSON contract smoke, and audiod D-Bus smoke. Qt
 feed-entry update controls passed Qt build and focused Qt project smoke.
+Publish-to-Create feed diagnostic handoff passed Qt build and focused Qt
+project smoke.
 
 Useful CLI smoke checks:
 
