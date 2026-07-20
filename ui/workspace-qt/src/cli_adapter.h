@@ -140,6 +140,18 @@ struct RecordingSummary {
     QString playable;
 };
 
+struct RecordingExportResult {
+    bool ok = false;
+    QString master;
+    QString published;
+    QString outputPath;
+    QString outputRelativePath;
+    QString preset;
+    QString mimeType;
+    QString engine;
+    QString error;
+};
+
 struct RecordingAttachResult {
     bool ok = false;
     QString id;
@@ -205,6 +217,10 @@ public:
     QString inspectIdentity(const QString &path) const;
     QString identityValidationState(const QString &path) const;
     QList<RecordingSummary> listRecordings(QString *error) const;
+    RecordingExportResult exportOpusPublicationCopy(const QString &projectPath,
+                                                    const QString &master,
+                                                    const QString &published,
+                                                    const QString &preset) const;
     RecordingAttachResult attachRecording(const QString &projectPath,
                                           const QString &id,
                                           const QString &title,

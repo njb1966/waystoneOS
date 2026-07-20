@@ -1088,6 +1088,11 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *recordingMime =
         new QLineEdit("audio/ogg; codecs=opus", attachForm);
     recordingMime->setObjectName("createRecordingMimeType");
+    auto *recordingExportPreset = new QComboBox(attachForm);
+    recordingExportPreset->setObjectName("createRecordingExportPreset");
+    recordingExportPreset->addItems({"voice-standard", "voice-compact",
+                                     "spoken-program", "music-efficient",
+                                     "music-quality"});
     auto *feedUpdated = new QLineEdit(plannedHistoryDate(), attachForm);
     feedUpdated->setObjectName("createFeedEntryUpdated");
     auto *feedSummary = new QLineEdit(attachForm);
@@ -1095,6 +1100,9 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *attachActions = new QWidget(attachForm);
     auto *attachActionsLayout = new QHBoxLayout(attachActions);
     attachActionsLayout->setContentsMargins(0, 0, 0, 0);
+    auto *exportOpus = new QPushButton("Export Opus", attachActions);
+    exportOpus->setObjectName("createExportOpus");
+    exportOpus->setEnabled(false);
     auto *attachRecording = new QPushButton("Attach Recording", attachActions);
     attachRecording->setObjectName("createAttachRecording");
     attachRecording->setEnabled(false);
@@ -1104,6 +1112,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *attachStatus = new QLabel("Attachment: no project selected", attachActions);
     attachStatus->setObjectName("createRecordingAttachStatus");
     attachStatus->setWordWrap(true);
+    attachActionsLayout->addWidget(exportOpus);
     attachActionsLayout->addWidget(attachRecording);
     attachActionsLayout->addWidget(prepareFeedEntry);
     attachActionsLayout->addWidget(attachStatus, 1);
@@ -1130,6 +1139,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     attachLayout->addRow("Title", recordingTitle);
     attachLayout->addRow("Master", recordingMaster);
     attachLayout->addRow("Published", recordingPublished);
+    attachLayout->addRow("Export Preset", recordingExportPreset);
     attachLayout->addRow("Feed", recordingFeed);
     attachLayout->addRow("Entry ID", recordingEntryId);
     attachLayout->addRow("MIME", recordingMime);
@@ -1193,6 +1203,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             saveContent->setEnabled(false);
             reloadContent->setEnabled(false);
             addTarget->setEnabled(false);
+            exportOpus->setEnabled(false);
             attachRecording->setEnabled(false);
             prepareFeedEntry->setEnabled(false);
             validatePublication->setEnabled(false);
@@ -1213,6 +1224,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         saveContent->setEnabled(true);
         reloadContent->setEnabled(true);
         addTarget->setEnabled(true);
+        exportOpus->setEnabled(true);
         attachRecording->setEnabled(true);
         prepareFeedEntry->setEnabled(true);
         validatePublication->setEnabled(true);
@@ -1291,6 +1303,40 @@ QWidget *createPage(const CliAdapter *adapter) {
             adapter->inspectProject(currentDocument->projectPath) +
             "\n\nValidation: " +
             adapter->projectValidationState(currentDocument->projectPath));
+    });
+
+    QObject::connect(exportOpus, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            attachStatus->setText("Export: no project selected");
+            return;
+        }
+
+        const QString master = recordingMaster->text().trimmed();
+        const QString published = recordingPublished->text().trimmed();
+        const QString preset = recordingExportPreset->currentText().trimmed();
+        if (master.isEmpty() || published.isEmpty() || preset.isEmpty()) {
+            attachStatus->setText("Export master, published path, and preset are required");
+            return;
+        }
+
+        const RecordingExportResult exported =
+            adapter->exportOpusPublicationCopy(currentDocument->projectPath,
+                                               master, published, preset);
+        if (!exported.ok) {
+            attachStatus->setText("Export failed: " + exported.error);
+            return;
+        }
+
+        recordingPublished->setText(exported.outputRelativePath);
+        recordingMime->setText(exported.mimeType);
+        attachStatus->setText("Exported: " + exported.outputRelativePath +
+                              " (" + exported.engine + ")");
+        recordingDetails->setPlainText(
+            "Publication copy: " + exported.outputRelativePath + "\n" +
+            "Master: " + exported.master + "\n" +
+            "Preset: " + exported.preset + "\n" +
+            "Engine: " + exported.engine + "\n" +
+            "MIME: " + exported.mimeType);
     });
 
     QObject::connect(attachRecording, &QPushButton::clicked, [=]() {

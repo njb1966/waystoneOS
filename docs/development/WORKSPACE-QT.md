@@ -31,6 +31,7 @@ Implemented:
 - Create-pane selected content-file detail, including editable-index status
 - Local Gemtext preview, link validation, and save validation status for the selected project's content index file
 - Recording adapter using `record` and `listen` CLI JSON output
+- Create-pane mock publication-copy export controls using `record export-opus --json` for existing project-local master files
 - Create-pane recording attachment controls using `record attach --json` for existing project-local master and publication-copy files
 - Create-pane feed-entry preparation and validation controls using `record prepare-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
@@ -63,7 +64,6 @@ Not implemented:
 - Remote publishing
 - Audio device access
 - Audio capture, playback, or real codec transcoding
-- Create-pane controls for `record export-opus --json`
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 
@@ -167,12 +167,13 @@ the Create pane content-file list, filter, and selected-file detail, and
 verifies a removable publish dry-run preview without touching repository
 examples. It also creates an audio-capable temporary project, verifies that
 project creation supplies audio/feed scaffold defaults, verifies that the
-Create-pane recording attachment controls create an inspectable metadata
-sidecar for existing project-local audio files, prepares a feed-entry sidecar,
-verifies publication/feed-entry validation status, generates feed XML, and
-verifies that the Publish pane reports the feed as ready with one prepared
-entry. It also creates a separate temporary project with multiple publish
-targets and verifies that the Publish pane target selector drives ready,
+Create-pane recording export control writes a mock publication copy, verifies
+that recording attachment controls create an inspectable metadata sidecar for
+project-local audio files, prepares a feed-entry sidecar, verifies
+publication/feed-entry validation status, generates feed XML, and verifies that
+the Publish pane reports the feed as ready with one prepared entry. It also
+creates a separate temporary project with multiple publish targets and verifies
+that the Publish pane target selector drives ready,
 blocked, project filtering, per-target overview rows, overview-row target
 selection, planned-history summary, raw planned-history record preview, saved
 planned-history preview transitions, saved-preview listing, selected saved
@@ -195,6 +196,7 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `project list --json`
 - `project inspect --json`
 - `project validate --json`
+- `record export-opus --json`
 - `record attach --json`
 - `record prepare-feed-entry --json`
 - `record validate-publication --json`
@@ -217,9 +219,6 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - minimal project creation under the configured projects root
 - selected project content index read/write
 - selected project content-root link existence checks
-
-The next likely recording adapter is `record export-opus --json`, which exists
-for mock publication-copy export but is not wired into the Qt Create pane yet.
 
 Before moving Qt to a service backend, define the next adapter scope:
 

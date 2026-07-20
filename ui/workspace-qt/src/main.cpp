@@ -283,9 +283,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
 
     QString setupError;
     if (!writeFile(projectDir.filePath("audio/masters/field-note.flac"), "master",
-                   &setupError) ||
-        !writeFile(projectDir.filePath("audio/published/field-note.opus"),
-                   "published", &setupError)) {
+                   &setupError)) {
         err << "workspace recording smoke: audio file setup failed: " << setupError
             << Qt::endl;
         return 1;
@@ -303,8 +301,11 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     auto *recordingFeed = page->findChild<QLineEdit *>("createRecordingFeed");
     auto *recordingEntryId = page->findChild<QLineEdit *>("createRecordingEntryId");
     auto *recordingMime = page->findChild<QLineEdit *>("createRecordingMimeType");
+    auto *recordingExportPreset =
+        page->findChild<QComboBox *>("createRecordingExportPreset");
     auto *feedUpdated = page->findChild<QLineEdit *>("createFeedEntryUpdated");
     auto *feedSummary = page->findChild<QLineEdit *>("createFeedEntrySummary");
+    auto *exportOpus = page->findChild<QPushButton *>("createExportOpus");
     auto *attach = page->findChild<QPushButton *>("createAttachRecording");
     auto *prepareFeedEntry = page->findChild<QPushButton *>("createPrepareFeedEntry");
     auto *validatePublication =
@@ -319,10 +320,11 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         recordingTitle == nullptr || recordingMaster == nullptr ||
         recordingPublished == nullptr || recordingFeed == nullptr ||
         recordingEntryId == nullptr || recordingMime == nullptr ||
-        feedUpdated == nullptr || feedSummary == nullptr || attach == nullptr ||
+        recordingExportPreset == nullptr || feedUpdated == nullptr ||
+        feedSummary == nullptr || exportOpus == nullptr || attach == nullptr ||
         prepareFeedEntry == nullptr || validatePublication == nullptr ||
-        validateFeedEntry == nullptr || generateFeed == nullptr || status == nullptr ||
-        feedStatus == nullptr || details == nullptr) {
+        validateFeedEntry == nullptr || generateFeed == nullptr ||
+        status == nullptr || feedStatus == nullptr || details == nullptr) {
         err << "workspace recording smoke: recording widgets were not discoverable"
             << Qt::endl;
         delete page;
@@ -343,11 +345,30 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     recordingTitle->setText("Field Note");
     recordingMaster->setText("audio/masters/field-note.flac");
     recordingPublished->setText("audio/published/field-note.opus");
+    recordingExportPreset->setCurrentText("voice-standard");
     recordingFeed->setText("feeds/feed.xml");
     recordingEntryId->setText("tag:example.invalid,2026:field-note");
     recordingMime->setText("audio/ogg; codecs=opus");
     feedUpdated->setText("2026-07-19T00:00:00Z");
     feedSummary->setText("Workspace feed entry smoke");
+    exportOpus->click();
+    QApplication::processEvents();
+
+    const QString publishedPath =
+        projectDir.filePath("audio/published/field-note.opus");
+    if (!QFileInfo::exists(publishedPath) ||
+        !status->text().contains("audio/published/field-note.opus") ||
+        !status->text().contains("mock") ||
+        !details->toPlainText().contains("Publication copy: audio/published/field-note.opus") ||
+        !details->toPlainText().contains("Engine: mock")) {
+        err << "workspace recording smoke: Opus export was not reflected"
+            << Qt::endl;
+        err << "status: " << status->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     attach->click();
     QApplication::processEvents();
 

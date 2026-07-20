@@ -787,6 +787,44 @@ QList<RecordingSummary> CliAdapter::listRecordings(QString *error) const {
     return recordings;
 }
 
+RecordingExportResult CliAdapter::exportOpusPublicationCopy(
+    const QString &projectPath, const QString &master, const QString &published,
+    const QString &preset) const {
+    RecordingExportResult exported;
+    const CommandResult result =
+        runCommand("record", {"export-opus", "--json", projectPath, master,
+                              published, preset});
+
+    if (!result.error.isEmpty()) {
+        exported.error = result.error;
+        return exported;
+    }
+
+    if (result.exitCode != 0) {
+        exported.error =
+            commandFailureDetail(result, "record export-opus failed");
+        return exported;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        exported.error = "record export-opus returned unreadable JSON";
+        return exported;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    exported.master = data.value("master").toString();
+    exported.published = data.value("published").toString();
+    exported.outputPath = data.value("output_path").toString();
+    exported.outputRelativePath = data.value("output_relative_path").toString();
+    exported.preset = data.value("preset").toString();
+    exported.mimeType = data.value("mime_type").toString();
+    exported.engine = data.value("engine").toString();
+    exported.ok = true;
+    return exported;
+}
+
 RecordingAttachResult CliAdapter::attachRecording(
     const QString &projectPath, const QString &id, const QString &title,
     const QString &master, const QString &published, const QString &feed,
