@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 use waystone_audio_metadata::{
-    attach_recording, generate_feed, list_recordings, load_audio_metadata, prepare_feed_entry,
-    validate_audio_metadata, validate_feed_entry, validate_publication_copy,
-    AttachRecordingOptions, AttachedRecording, AudioMetadata, AudioMetadataError,
-    GenerateFeedOptions, GeneratedFeed, PrepareFeedEntryOptions, PreparedFeedEntry,
-    RecordingSummary, ValidateFeedEntryOptions, ValidatePublicationOptions, ValidationReport,
+    attach_recording, export_opus_publication_copy, generate_feed, list_recordings,
+    load_audio_metadata, prepare_feed_entry, validate_audio_metadata, validate_feed_entry,
+    validate_publication_copy, AttachRecordingOptions, AttachedRecording, AudioMetadata,
+    AudioMetadataError, ExportOpusOptions, ExportedPublicationCopy, GenerateFeedOptions,
+    GeneratedFeed, PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary,
+    ValidateFeedEntryOptions, ValidatePublicationOptions, ValidationReport,
 };
 
 #[derive(Debug, Default)]
@@ -36,6 +37,14 @@ pub struct AttachRecordingRequest {
     pub feed: String,
     pub entry_id: String,
     pub mime_type: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportOpusRequest {
+    pub project_root: PathBuf,
+    pub master: String,
+    pub published: String,
+    pub preset: String,
 }
 
 #[derive(Debug, Clone)]
@@ -101,6 +110,18 @@ impl AudioService {
             feed: request.feed,
             entry_id: request.entry_id,
             mime_type: request.mime_type,
+        })
+    }
+
+    pub fn export_opus(
+        &self,
+        request: ExportOpusRequest,
+    ) -> Result<ExportedPublicationCopy, AudioMetadataError> {
+        export_opus_publication_copy(&ExportOpusOptions {
+            project_root: request.project_root,
+            master: request.master,
+            published: request.published,
+            preset: request.preset,
         })
     }
 
@@ -215,6 +236,34 @@ mod tests {
             })
             .expect("attached recording should validate");
         assert!(report.valid, "{report:#?}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn service_exports_mock_opus_publication_copy() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-service-export-{}",
+            std::process::id()
+        ));
+        let project = root.join("audio-project.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+
+        let service = AudioService;
+        let exported = service
+            .export_opus(ExportOpusRequest {
+                project_root: project.clone(),
+                master: "audio/masters/note.flac".to_string(),
+                published: "audio/published/note.opus".to_string(),
+                preset: "voice-standard".to_string(),
+            })
+            .expect("publication copy should export");
+
+        assert_eq!(exported.output_relative_path, "audio/published/note.opus");
+        assert_eq!(exported.engine, "mock");
+        assert!(exported.output_path.is_file());
 
         let _ = fs::remove_dir_all(root);
     }

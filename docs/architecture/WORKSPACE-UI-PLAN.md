@@ -154,7 +154,9 @@ content file, attach existing project-local audio files through `record attach
 --json`, prepare feed-entry sidecars through `record prepare-feed-entry --json`,
 show publication/feed-entry validation status through `record
 validate-publication --json` and `record validate-feed-entry --json`, and
-generate feed XML through `record generate-feed --json`. The Publish pane lists
+generate feed XML through `record generate-feed --json`. The mock
+`record export-opus --json` publication-copy command exists but is not exposed
+in the Qt Create pane yet. The Publish pane lists
 configured local projects, derives target choices from project metadata, filters
 visible projects by project name, ID, type, path, or target names, offers a
 target selector for projects with multiple targets, shows

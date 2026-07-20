@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
 use waystone_audio_service::{
-    AttachRecordingRequest, AudioService, GenerateFeedRequest, PrepareFeedEntryRequest,
-    ValidateFeedEntryRequest, ValidatePublicationRequest,
+    AttachRecordingRequest, AudioService, ExportOpusRequest, GenerateFeedRequest,
+    PrepareFeedEntryRequest, ValidateFeedEntryRequest, ValidatePublicationRequest,
 };
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
 use waystone_project_format::load_manifest;
@@ -57,6 +57,9 @@ fn run(args: &[String]) -> i32 {
             },
             json,
         ),
+        ["export-opus", project, master, published, preset] => {
+            export_opus(project, master, published, preset, json)
+        }
         ["prepare-feed-entry", project, recording_id, updated, summary] => prepare_feed_entry(
             PrepareFeedEntryArgs {
                 project,
@@ -127,6 +130,42 @@ fn attach(args: AttachArgs<'_>, json: bool) -> i32 {
             0
         }
         Err(error) => print_command_error("record", "attach", &error.to_string(), json),
+    }
+}
+
+fn export_opus(project: &str, master: &str, published: &str, preset: &str, json: bool) -> i32 {
+    if let Err(error) = load_manifest(Path::new(project)) {
+        return print_command_error("record", "export-opus", &error.to_string(), json);
+    }
+
+    let service = AudioService;
+    match service.export_opus(ExportOpusRequest {
+        project_root: Path::new(project).to_path_buf(),
+        master: master.to_string(),
+        published: published.to_string(),
+        preset: preset.to_string(),
+    }) {
+        Ok(exported) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"master\":\"{}\",\"published\":\"{}\",\"output_path\":\"{}\",\"output_relative_path\":\"{}\",\"preset\":\"{}\",\"mime_type\":\"{}\",\"engine\":\"{}\"}}}}",
+                    escape_json(&exported.master),
+                    escape_json(&exported.published),
+                    escape_json(&exported.output_path.display().to_string()),
+                    escape_json(&exported.output_relative_path),
+                    escape_json(&exported.preset),
+                    escape_json(&exported.mime_type),
+                    escape_json(&exported.engine)
+                );
+            } else {
+                println!("Exported Opus publication copy: {}", exported.published);
+                println!("Engine: {}", exported.engine);
+                println!("Preset: {}", exported.preset);
+                println!("Output: {}", exported.output_path.display());
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "export-opus", &error.to_string(), json),
     }
 }
 
@@ -372,6 +411,7 @@ fn validate(path: &str, json: bool) -> i32 {
 
 fn print_help() {
     println!("Usage:");
+    println!("  record export-opus [--json] PROJECT MASTER PUBLISHED PRESET");
     println!("  record attach [--json] PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE");
     println!("  record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
     println!("  record validate-publication [--json] PROJECT RECORDING_ID");

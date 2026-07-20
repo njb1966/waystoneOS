@@ -65,11 +65,25 @@ title = "Attach Audio"
     )
     .expect("project manifest");
     fs::write(project.join("audio/masters/field-note.flac"), b"master").expect("master file");
-    fs::write(
-        project.join("audio/published/field-note.opus"),
-        b"published",
-    )
-    .expect("published file");
+
+    let export_output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "export-opus",
+            "--json",
+            project.to_str().expect("project path"),
+            "audio/masters/field-note.flac",
+            "audio/published/field-note.opus",
+            "voice-standard",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(export_output.status.code(), Some(0));
+    let export_stdout = String::from_utf8_lossy(&export_output.stdout);
+    assert!(export_stdout.contains("\"output_relative_path\":\"audio/published/field-note.opus\""));
+    assert!(export_stdout.contains("\"mime_type\":\"audio/ogg; codecs=opus\""));
+    assert!(export_stdout.contains("\"engine\":\"mock\""));
+    assert!(project.join("audio/published/field-note.opus").is_file());
 
     let output = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([
@@ -251,6 +265,22 @@ mime_type = "audio/ogg; codecs=opus"
     assert_eq!(duplicate.status.code(), Some(1));
     let duplicate_stdout = String::from_utf8_lossy(&duplicate.stdout);
     assert!(duplicate_stdout.contains("already exists"));
+
+    let duplicate_export = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "export-opus",
+            "--json",
+            project.to_str().expect("project path"),
+            "audio/masters/field-note.flac",
+            "audio/published/field-note.opus",
+            "voice-standard",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(duplicate_export.status.code(), Some(1));
+    let duplicate_export_stdout = String::from_utf8_lossy(&duplicate_export.stdout);
+    assert!(duplicate_export_stdout.contains("already exists"));
 
     let _ = fs::remove_dir_all(root);
 }

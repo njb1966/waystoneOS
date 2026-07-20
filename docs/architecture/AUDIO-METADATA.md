@@ -1,7 +1,7 @@
 # WaystoneOS Audio Metadata
 
 Status: Current local metadata contract
-Date: 2026-07-19
+Date: 2026-07-20
 
 Audio metadata describes recordings and publication copies without requiring audio decoding or device access.
 
@@ -11,6 +11,7 @@ Current implementation supports:
 
 - TOML sidecar loading
 - TOML sidecar creation for attaching an existing master/publication copy
+- Mock Opus publication-copy export from an existing project-local master file
 - TOML feed-entry sidecar preparation from existing recording metadata
 - Recording listing
 - Recording inspection
@@ -27,7 +28,7 @@ Current implementation does not support:
 - Playback
 - Trimming
 - Normalization
-- Opus export
+- Real Opus codec export or transcoding
 - Audio codec inspection
 - Waveform generation
 - Existing feed XML merge updates or multi-format feed generation
@@ -95,6 +96,7 @@ Current commands:
 
 ```text
 record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
+record export-opus PROJECT MASTER PUBLISHED PRESET
 record prepare-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
 record validate-publication PROJECT RECORDING_ID
 record validate-feed-entry PROJECT RECORDING_ID
@@ -108,8 +110,16 @@ listen library ROOT
 `record attach` creates one metadata sidecar under the selected project's
 configured `[audio].metadata` root. It references an existing project-relative
 master file, an existing project-relative publication copy, and a feed enclosure
-handoff path. It does not copy files, record audio, export Opus, generate a feed,
-or overwrite an existing sidecar.
+handoff path. It does not copy files, record audio, export real audio, generate
+a feed, or overwrite an existing sidecar.
+
+`record export-opus` models the master-versus-publication-copy workflow for an
+existing project-local master file. It validates project-relative paths, accepts
+a narrow preset name, requires the output path to end with `.opus`, writes a
+mock publication-copy file, and refuses to overwrite an existing output. The
+JSON response reports `mime_type = "audio/ogg; codecs=opus"` and
+`engine = "mock"` so callers do not mistake the result for real codec output.
+Real Opus encoding remains deferred.
 
 `record prepare-feed-entry` creates one feed-entry sidecar under
 `feeds/entries/` from an existing recording sidecar in the selected project's

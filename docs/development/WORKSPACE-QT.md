@@ -62,7 +62,8 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
-- Audio capture, playback, or transcoding
+- Audio capture, playback, or real codec transcoding
+- Create-pane controls for `record export-opus --json`
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 
@@ -216,6 +217,9 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - minimal project creation under the configured projects root
 - selected project content index read/write
 - selected project content-root link existence checks
+
+The next likely recording adapter is `record export-opus --json`, which exists
+for mock publication-copy export but is not wired into the Qt Create pane yet.
 
 Before moving Qt to a service backend, define the next adapter scope:
 

@@ -130,7 +130,24 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "publish read planned-history preview did not return record TOML")
 
     (temp_project / "audio" / "masters" / "second-note.flac").write_bytes(b"master")
-    (temp_project / "audio" / "published" / "second-note.opus").write_bytes(b"published")
+    exported_opus = run([
+        "target/debug/record", "export-opus", "--json", str(temp_project),
+        "audio/masters/second-note.flac",
+        "audio/published/second-note.opus",
+        "voice-standard",
+    ])
+    require({"master", "published", "output_path", "output_relative_path",
+             "preset", "mime_type", "engine"} <= exported_opus["data"].keys(),
+            "record export-opus contract changed")
+    require(exported_opus["data"]["output_relative_path"]
+            == "audio/published/second-note.opus",
+            "record export-opus output path changed")
+    require(exported_opus["data"]["mime_type"] == "audio/ogg; codecs=opus",
+            "record export-opus MIME type changed")
+    require(exported_opus["data"]["engine"] == "mock",
+            "record export-opus engine changed")
+    require((temp_project / "audio" / "published" / "second-note.opus").exists(),
+            "record export-opus did not write publication copy")
     attached_recording = run([
         "target/debug/record", "attach", "--json", str(temp_project),
         "second-note", "Second Note",

@@ -1,7 +1,7 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after publish feed readiness reporting
-Date: 2026-07-19
+Status: current after mock Opus publication-copy export
+Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
 architecture baseline, the version 0.1 development-preview scope, and the
@@ -43,9 +43,11 @@ prepare a feed-entry sidecar under `feeds/entries/`, and expose attachment in
 the Qt Create pane. It also validates publication-copy and feed-entry handoff
 metadata in project context and exposes feed-entry preparation plus validation
 status in the Qt Create pane. It also has a minimal local Atom feed generator
-from validated `feeds/entries/` sidecars. It still does not record audio,
-export Opus, update or merge existing feed XML, expose feed generation over
-D-Bus, or merge-update existing audio metadata.
+from validated `feeds/entries/` sidecars. It also has a mock
+publication-copy export command for existing project-local master files. It
+still does not record audio, perform real Opus codec export, update or merge
+existing feed XML, expose feed generation over D-Bus, or merge-update existing
+audio metadata.
 
 ## Phase 0 Alignment
 
@@ -74,7 +76,7 @@ or approved scope changes.
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run scope | Dry-run plans, feed readiness reporting, blocked states, planned history generation, saved preview records, and Publish-pane inspection exist. Remote comparison, transfer, verification, and completed history are not implemented. |
-| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation, local sidecar attachment, Qt Create-pane attachment/feed-entry/generate-feed controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, Opus export, metadata replacement, existing feed merge/update, and D-Bus feed generation are not implemented. |
+| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, mock Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation, local sidecar attachment, Qt Create-pane attachment/feed-entry/generate-feed controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio capture, playback, real Opus codec export, metadata replacement, existing feed merge/update, and D-Bus feed generation are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
 
@@ -88,7 +90,7 @@ Version 0.1 scope defines this local flow:
 | Write Gemtext | Implemented for selected content index |
 | Preview locally | Implemented as local Create-pane preview and link validation |
 | Record or attach an audio file | Attach is implemented for existing local master/publication-copy files through metadata sidecar creation and exposed in the Qt Create pane; recording is not implemented |
-| Export an Opus publication copy | Not implemented; only existing published-copy paths are modeled |
+| Export an Opus publication copy | Partially implemented as a mock `record export-opus` publication-copy command from an existing project-local master; real codec encoding and Qt exposure are not implemented |
 | Generate or update feed metadata | Partially implemented as create-only feed-entry sidecar preparation, validation, minimal Atom feed XML generation, and publish dry-run feed readiness reporting; existing feed merge/update is not implemented |
 | Configure a host/destination | Partially implemented through examples, host/identity metadata, and removable targets |
 | Run publication validation | Partially implemented through project, audio, host, identity, and dry-run validation |
@@ -96,11 +98,11 @@ Version 0.1 scope defines this local flow:
 | Show publication history or planned transfer state | Implemented as planned history previews and saved preview records |
 
 The current 0.1 slice has connected prepared feed entries, minimal feed XML
-generation, Qt generation controls, and publish dry-run feed readiness
-reporting. The next slice should deliberately choose between richer feed
-diagnostics or moving to the remaining audio-record/export gap. It should still
-avoid real recording unless explicitly chosen, packaging, installed services,
-remote transfer, and compositor work.
+generation, Qt generation controls, publish dry-run feed readiness reporting,
+and a mock Opus publication-copy command. The next slice should deliberately
+choose between exposing the export command in Qt or adding richer feed
+diagnostics. It should still avoid real recording unless explicitly chosen,
+packaging, installed services, remote transfer, and compositor work.
 
 ## Deliberate Next Slice
 
@@ -138,6 +140,8 @@ Concrete deliverables should be small and inspectable:
 - Add minimal Atom feed XML generation from validated feed-entry sidecars.
 - Expose minimal feed generation in the Qt Create pane through the CLI adapter.
 - Report feed readiness in publish dry-runs and the Qt Publish pane.
+- Model mock Opus publication-copy export from an existing project-local master
+  while keeping real codec export deferred.
 
 ## Explicitly Still Deferred
 
@@ -155,7 +159,7 @@ The following remain intentionally out of scope for the next slice:
 - Audio device enumeration
 - Audio recording engine
 - Audio playback engine
-- Opus transcoding engine
+- Real Opus transcoding engine
 - Browser, Helm, or Comm repository modification
 
 ## Current Risk Posture

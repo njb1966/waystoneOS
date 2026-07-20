@@ -2,10 +2,11 @@
 
 `waystone-audiod` owns recording metadata listing, inspection, and validation.
 The audio service crate also supports local sidecar attachment for `record
-attach` and feed-entry sidecar preparation for `record prepare-feed-entry`, but
-those mutating operations are not exposed over D-Bus yet. The audio service
-crate also supports CLI-facing publication-copy and feed-entry handoff
-validation in project context.
+attach`, mock publication-copy export for `record export-opus`, and feed-entry
+sidecar preparation for `record prepare-feed-entry`, but those mutating
+operations are not exposed over D-Bus yet. The audio service crate also
+supports CLI-facing publication-copy and feed-entry handoff validation in
+project context.
 
 Current D-Bus service:
 
@@ -22,7 +23,7 @@ InspectRecording
 ValidateRecording
 ```
 
-Audio capture, playback, editing, codec inspection, and device enumeration are not implemented.
+Audio capture, playback, editing, real codec export/transcoding, codec inspection, and device enumeration are not implemented.
 
 ## Activation Files
 

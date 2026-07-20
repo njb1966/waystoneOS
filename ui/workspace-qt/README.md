@@ -46,6 +46,7 @@ Current UI data is limited to:
 - local reads and writes of the selected project's content index file
 - local content-root file listing, filtering, and selected-file detail for the selected project
 - local audio metadata sidecar attachment for existing project-local master and publication-copy files
+- no Create-pane control for mock publication-copy export yet
 - local feed-entry sidecar preparation and validation status for attached project recordings
 - local feed XML generation from prepared entries through `record generate-feed --json`
 - local Gemtext preview rendering in the Create pane
@@ -53,6 +54,9 @@ Current UI data is limited to:
 - local Publish-pane project filtering, target selection, ready/blocked/feed-aware preview status, per-target overview rows, overview-row target selection, planned history file-action summary, raw planned history preview, project-local planned preview save, saved-preview listing, selected saved-preview detail loading, saved-preview selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering
 
 Future UI data should continue to come from WaystoneOS service contracts, current CLI JSON output, or a narrow adapter approved before implementation.
+
+The next likely recording adapter is `record export-opus --json`, which exists
+for mock publication-copy export but is not exposed in the UI yet.
 
 ## Workspace Roots
 

@@ -1,11 +1,11 @@
 # WaystoneOS Service Contracts
 
 Status: Current implementation contract
-Date: 2026-07-19
+Date: 2026-07-20
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, feed-entry sidecar preparation, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, mock publication-copy export, feed-entry sidecar preparation, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -25,7 +25,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history; D-Bus adapter for preview and planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
-| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, prepare feed entry, validate publication, validate feed entry, list, inspect, validate; D-Bus adapter for list, inspect, validate |
+| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, mock Opus publication-copy export, prepare feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for list, inspect, validate |
 
 ## Project Service
 
@@ -167,6 +167,7 @@ Current contract:
 - `InspectRecordingRequest`
 - `ValidateRecordingRequest`
 - `AttachRecordingRequest`
+- `ExportOpusRequest`
 - `PrepareFeedEntryRequest`
 - `ValidatePublicationRequest`
 - `ValidateFeedEntryRequest`
@@ -176,6 +177,7 @@ Current contract:
 Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files.
+- Creates mock Opus publication-copy files from existing project-local masters for CLI-facing workflow tests.
 - Creates feed-entry sidecars from existing recording metadata and published audio references.
 - Validates publication-copy and feed-entry handoff metadata in project context.
 - Generates minimal Atom feed XML from validated feed-entry sidecars through the local service crate.
@@ -183,7 +185,7 @@ Current behavior:
 - Loads and inspects recording metadata.
 - Validates project-relative audio and feed paths.
 - Refuses to overwrite existing sidecars.
-- Does not enumerate audio devices, capture audio, play audio, edit audio, export codecs, merge existing feed XML, or expose feed generation over D-Bus.
+- Does not enumerate audio devices, capture audio, play audio, edit audio, perform real codec export/transcoding, merge existing feed XML, or expose mutating audio operations over D-Bus.
 
 ## D-Bus Mapping Notes
 

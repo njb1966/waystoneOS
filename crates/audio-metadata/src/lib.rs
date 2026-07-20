@@ -126,6 +126,25 @@ pub struct AttachedRecording {
 }
 
 #[derive(Debug, Clone)]
+pub struct ExportOpusOptions {
+    pub project_root: PathBuf,
+    pub master: String,
+    pub published: String,
+    pub preset: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportedPublicationCopy {
+    pub master: String,
+    pub published: String,
+    pub output_path: PathBuf,
+    pub output_relative_path: String,
+    pub preset: String,
+    pub mime_type: String,
+    pub engine: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct PrepareFeedEntryOptions {
     pub project_root: PathBuf,
     pub recording_metadata_path: PathBuf,
@@ -230,6 +249,21 @@ pub enum AudioMetadataError {
 
     #[error("audio file is missing: {path}")]
     AudioFileMissing { path: String },
+
+    #[error("publication copy already exists: {0}")]
+    PublicationCopyAlreadyExists(PathBuf),
+
+    #[error("publication copy path must end with .opus: {0}")]
+    InvalidPublicationCopyPath(String),
+
+    #[error("unsupported Opus export preset: {0}")]
+    UnsupportedOpusPreset(String),
+
+    #[error("publication copy could not be written: {path}: {source}")]
+    WritePublicationCopyFailed { path: PathBuf, source: io::Error },
+
+    #[error("publication copy could not be installed: {path}: {source}")]
+    InstallPublicationCopyFailed { path: PathBuf, source: io::Error },
 
     #[error("metadata directory could not be created: {path}: {source}")]
     CreateDirectoryFailed { path: PathBuf, source: io::Error },
@@ -388,6 +422,74 @@ pub fn attach_recording(
         feed: options.feed.clone(),
         entry_id: options.entry_id.clone(),
         mime_type: options.mime_type.clone(),
+    })
+}
+
+pub fn export_opus_publication_copy(
+    options: &ExportOpusOptions,
+) -> Result<ExportedPublicationCopy, AudioMetadataError> {
+    check_project_root(&options.project_root)?;
+    validate_audio_path_for_write("recording.master", &options.master)?;
+    validate_audio_path_for_write("recording.published", &options.published)?;
+    validate_opus_preset(&options.preset)?;
+
+    if !options.published.ends_with(".opus") {
+        return Err(AudioMetadataError::InvalidPublicationCopyPath(
+            options.published.clone(),
+        ));
+    }
+    if !options.project_root.join(&options.master).is_file() {
+        return Err(AudioMetadataError::AudioFileMissing {
+            path: options.master.clone(),
+        });
+    }
+
+    let output_relative_path = options.published.clone();
+    let output_path = options.project_root.join(&output_relative_path);
+    if output_path.exists() {
+        return Err(AudioMetadataError::PublicationCopyAlreadyExists(
+            output_path,
+        ));
+    }
+
+    let output_dir = output_path
+        .parent()
+        .expect("publication copy output has a parent directory");
+    fs::create_dir_all(output_dir).map_err(|source| AudioMetadataError::CreateDirectoryFailed {
+        path: output_dir.to_path_buf(),
+        source,
+    })?;
+
+    let temp_output_path = output_path.with_file_name(format!(
+        "{}.tmp",
+        output_path
+            .file_name()
+            .expect("publication copy output has a file name")
+            .to_string_lossy()
+    ));
+    fs::write(
+        &temp_output_path,
+        render_mock_opus_publication_copy(options).as_bytes(),
+    )
+    .map_err(|source| AudioMetadataError::WritePublicationCopyFailed {
+        path: temp_output_path.clone(),
+        source,
+    })?;
+    fs::rename(&temp_output_path, &output_path).map_err(|source| {
+        AudioMetadataError::InstallPublicationCopyFailed {
+            path: output_path.clone(),
+            source,
+        }
+    })?;
+
+    Ok(ExportedPublicationCopy {
+        master: options.master.clone(),
+        published: options.published.clone(),
+        output_path,
+        output_relative_path,
+        preset: options.preset.clone(),
+        mime_type: "audio/ogg; codecs=opus".to_string(),
+        engine: "mock".to_string(),
     })
 }
 
@@ -1148,6 +1250,17 @@ fn validate_recording_id_for_write(value: &str) -> Result<(), AudioMetadataError
     }
 }
 
+fn validate_opus_preset(value: &str) -> Result<(), AudioMetadataError> {
+    if matches!(
+        value,
+        "voice-compact" | "voice-standard" | "spoken-program" | "music-efficient" | "music-quality"
+    ) {
+        Ok(())
+    } else {
+        Err(AudioMetadataError::UnsupportedOpusPreset(value.to_string()))
+    }
+}
+
 fn recording_id_is_valid(value: &str) -> bool {
     !value.is_empty()
         && value
@@ -1248,6 +1361,17 @@ fn render_prepared_feed_entry(fields: &PreparedFeedEntryRender<'_>) -> String {
         toml_escape(fields.mime_type)
     ));
     entry
+}
+
+fn render_mock_opus_publication_copy(options: &ExportOpusOptions) -> String {
+    let mut copy = String::new();
+    copy.push_str("WaystoneOS mock Opus publication copy\n");
+    copy.push_str("This file models the publication-copy workflow; it is not encoded audio.\n");
+    copy.push_str(&format!("master = {}\n", options.master));
+    copy.push_str(&format!("published = {}\n", options.published));
+    copy.push_str(&format!("preset = {}\n", options.preset));
+    copy.push_str("mime_type = audio/ogg; codecs=opus\n");
+    copy
 }
 
 fn render_atom_feed(
@@ -1399,6 +1523,58 @@ mod tests {
         assert!(matches!(
             error,
             AudioMetadataError::InvalidAudioPath { field, .. } if field == "audio.metadata"
+        ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn export_opus_writes_mock_publication_copy() {
+        let root =
+            std::env::temp_dir().join(format!("waystone-audio-export-{}", std::process::id()));
+        let project = root.join("export.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+
+        let exported = export_opus_publication_copy(&ExportOpusOptions {
+            project_root: project.clone(),
+            master: "audio/masters/note.flac".to_string(),
+            published: "audio/published/note.opus".to_string(),
+            preset: "voice-standard".to_string(),
+        })
+        .expect("publication copy should export");
+
+        assert_eq!(exported.output_relative_path, "audio/published/note.opus");
+        assert_eq!(exported.mime_type, "audio/ogg; codecs=opus");
+        assert_eq!(exported.engine, "mock");
+        assert!(exported.output_path.is_file());
+        let output = fs::read_to_string(&exported.output_path).expect("mock output");
+        assert!(output.contains("WaystoneOS mock Opus publication copy"));
+        assert!(output.contains("preset = voice-standard"));
+
+        let duplicate = export_opus_publication_copy(&ExportOpusOptions {
+            project_root: project.clone(),
+            master: "audio/masters/note.flac".to_string(),
+            published: "audio/published/note.opus".to_string(),
+            preset: "voice-standard".to_string(),
+        })
+        .expect_err("duplicate publication copy should fail");
+        assert!(matches!(
+            duplicate,
+            AudioMetadataError::PublicationCopyAlreadyExists(_)
+        ));
+
+        let invalid_preset = export_opus_publication_copy(&ExportOpusOptions {
+            project_root: project,
+            master: "audio/masters/note.flac".to_string(),
+            published: "audio/published/other.opus".to_string(),
+            preset: "podcast".to_string(),
+        })
+        .expect_err("unsupported preset should fail");
+        assert!(matches!(
+            invalid_preset,
+            AudioMetadataError::UnsupportedOpusPreset(_)
         ));
 
         let _ = fs::remove_dir_all(root);
