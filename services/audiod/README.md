@@ -4,7 +4,8 @@
 The audio service crate also supports local sidecar attachment for `record
 attach`, existing sidecar update for `record update`, mock publication-copy
 export for `record export-opus`, and feed-entry sidecar preparation for
-`record prepare-feed-entry`, but those mutating operations are not exposed over
+`record prepare-feed-entry` plus existing feed-entry refresh for
+`record update-feed-entry`, but those mutating operations are not exposed over
 D-Bus yet. The audio service crate also supports CLI-facing publication-copy
 and feed-entry handoff validation in project context.
 

@@ -135,6 +135,28 @@ title = "Attach Audio"
     assert!(feed_entry.contains("[enclosure]"));
     assert!(feed_entry.contains("path = \"audio/published/field-note.opus\""));
 
+    let update_feed_output = Command::new(env!("CARGO_BIN_EXE_record"))
+        .args([
+            "update-feed-entry",
+            "--json",
+            project.to_str().expect("project path"),
+            "field-note",
+            "2026-07-20T00:00:00Z",
+            "Field note updated summary",
+        ])
+        .output()
+        .expect("record command should run");
+
+    assert_eq!(update_feed_output.status.code(), Some(0));
+    let update_feed_stdout = String::from_utf8_lossy(&update_feed_output.stdout);
+    assert!(
+        update_feed_stdout.contains("\"output_relative_path\":\"feeds/entries/field-note.toml\"")
+    );
+    assert!(update_feed_stdout.contains("\"updated\":\"2026-07-20T00:00:00Z\""));
+    let updated_feed_entry = fs::read_to_string(&feed_entry_path).expect("updated feed entry");
+    assert!(updated_feed_entry.contains("updated = \"2026-07-20T00:00:00Z\""));
+    assert!(updated_feed_entry.contains("summary = \"Field note updated summary\""));
+
     let publication_validation = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([
             "validate-publication",

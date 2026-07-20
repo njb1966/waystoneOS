@@ -1,11 +1,12 @@
 use std::path::PathBuf;
 use waystone_audio_metadata::{
     attach_recording, export_opus_publication_copy, generate_feed, list_recordings,
-    load_audio_metadata, prepare_feed_entry, update_recording_metadata, validate_audio_metadata,
-    validate_feed_entry, validate_publication_copy, AttachRecordingOptions, AttachedRecording,
-    AudioMetadata, AudioMetadataError, ExportOpusOptions, ExportedPublicationCopy,
-    GenerateFeedOptions, GeneratedFeed, PrepareFeedEntryOptions, PreparedFeedEntry,
-    RecordingSummary, UpdateRecordingOptions, UpdatedRecording, ValidateFeedEntryOptions,
+    load_audio_metadata, prepare_feed_entry, update_feed_entry, update_recording_metadata,
+    validate_audio_metadata, validate_feed_entry, validate_publication_copy,
+    AttachRecordingOptions, AttachedRecording, AudioMetadata, AudioMetadataError,
+    ExportOpusOptions, ExportedPublicationCopy, GenerateFeedOptions, GeneratedFeed,
+    PrepareFeedEntryOptions, PreparedFeedEntry, RecordingSummary, UpdateFeedEntryOptions,
+    UpdateRecordingOptions, UpdatedFeedEntry, UpdatedRecording, ValidateFeedEntryOptions,
     ValidatePublicationOptions, ValidationReport,
 };
 
@@ -62,6 +63,14 @@ pub struct ExportOpusRequest {
 
 #[derive(Debug, Clone)]
 pub struct PrepareFeedEntryRequest {
+    pub project_root: PathBuf,
+    pub recording_metadata_path: PathBuf,
+    pub updated: String,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateFeedEntryRequest {
     pub project_root: PathBuf,
     pub recording_metadata_path: PathBuf,
     pub updated: String,
@@ -159,6 +168,18 @@ impl AudioService {
         request: PrepareFeedEntryRequest,
     ) -> Result<PreparedFeedEntry, AudioMetadataError> {
         prepare_feed_entry(&PrepareFeedEntryOptions {
+            project_root: request.project_root,
+            recording_metadata_path: request.recording_metadata_path,
+            updated: request.updated,
+            summary: request.summary,
+        })
+    }
+
+    pub fn update_feed_entry(
+        &self,
+        request: UpdateFeedEntryRequest,
+    ) -> Result<UpdatedFeedEntry, AudioMetadataError> {
+        update_feed_entry(&UpdateFeedEntryOptions {
             project_root: request.project_root,
             recording_metadata_path: request.recording_metadata_path,
             updated: request.updated,
@@ -448,6 +469,87 @@ mime_type = "audio/ogg; codecs=opus"
         assert_eq!(generated.feed_relative_path, "feeds/feed.xml");
         assert_eq!(generated.entries, 1);
         assert!(generated.feed_path.is_file());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn service_updates_feed_entry_metadata() {
+        let root = std::env::temp_dir().join(format!(
+            "waystone-audio-service-feed-update-{}",
+            std::process::id()
+        ));
+        let project = root.join("audio-project.wayproject");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+        fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+        fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+        fs::write(project.join("audio/published/note.opus"), b"published").expect("published file");
+        fs::write(
+            project.join("audio/published/revised.opus"),
+            b"revised published",
+        )
+        .expect("revised published file");
+        let metadata_path = project.join("audio/metadata/note.toml");
+        fs::write(
+            &metadata_path,
+            r#"[recording]
+id = "note"
+title = "Note"
+master = "audio/masters/note.flac"
+published = "audio/published/note.opus"
+
+[publication]
+feed = "feeds/feed.xml"
+entry_id = "tag:example.invalid,2026:note"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("recording metadata");
+
+        let service = AudioService;
+        service
+            .prepare_feed_entry(PrepareFeedEntryRequest {
+                project_root: project.clone(),
+                recording_metadata_path: metadata_path.clone(),
+                updated: "2026-07-19T00:00:00Z".to_string(),
+                summary: "Original summary".to_string(),
+            })
+            .expect("feed entry should prepare");
+        service
+            .update_recording(UpdateRecordingRequest {
+                project_root: project.clone(),
+                recording_metadata_path: metadata_path.clone(),
+                title: "Note Revised".to_string(),
+                master: "audio/masters/note.flac".to_string(),
+                published: "audio/published/revised.opus".to_string(),
+                feed: "feeds/feed.xml".to_string(),
+                entry_id: "tag:example.invalid,2026:note-revised".to_string(),
+                mime_type: "audio/ogg; codecs=opus".to_string(),
+            })
+            .expect("recording should update");
+
+        let updated = service
+            .update_feed_entry(UpdateFeedEntryRequest {
+                project_root: project.clone(),
+                recording_metadata_path: metadata_path,
+                updated: "2026-07-20T00:00:00Z".to_string(),
+                summary: "Revised summary".to_string(),
+            })
+            .expect("feed entry should update");
+
+        assert_eq!(updated.output_relative_path, "feeds/entries/note.toml");
+        assert_eq!(updated.title, "Note Revised");
+        assert_eq!(updated.entry_id, "tag:example.invalid,2026:note-revised");
+
+        let report = service
+            .validate_feed_entry(ValidateFeedEntryRequest {
+                project_root: project,
+                feed_entry_path: updated.output_path,
+            })
+            .expect("feed entry should validate");
+        assert!(report.valid, "{report:#?}");
 
         let _ = fs::remove_dir_all(root);
     }

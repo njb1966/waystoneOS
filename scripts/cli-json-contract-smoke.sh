@@ -203,6 +203,19 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record prepare-feed-entry output path changed")
     require((temp_project / "feeds" / "entries" / "second-note.toml").exists(),
             "record prepare-feed-entry did not write feed entry sidecar")
+    updated_feed_entry = run([
+        "target/debug/record", "update-feed-entry", "--json", str(temp_project),
+        "second-note", "2026-07-20T00:00:00Z", "Second note updated summary",
+    ])
+    require({"recording_id", "title", "entry_id", "feed", "output_path",
+             "output_relative_path", "published", "mime_type", "updated"}
+            <= updated_feed_entry["data"].keys(),
+            "record update-feed-entry contract changed")
+    require(updated_feed_entry["data"]["output_relative_path"]
+            == "feeds/entries/second-note.toml",
+            "record update-feed-entry output path changed")
+    require(updated_feed_entry["data"]["updated"] == "2026-07-20T00:00:00Z",
+            "record update-feed-entry updated value changed")
     publication_validation = run([
         "target/debug/record", "validate-publication", "--json", str(temp_project),
         "second-note",

@@ -4,8 +4,8 @@ use std::process;
 use waystone_audio_metadata::{list_recordings, load_audio_metadata, validate_audio_metadata};
 use waystone_audio_service::{
     AttachRecordingRequest, AudioService, ExportOpusRequest, GenerateFeedRequest,
-    PrepareFeedEntryRequest, UpdateRecordingRequest, ValidateFeedEntryRequest,
-    ValidatePublicationRequest,
+    PrepareFeedEntryRequest, UpdateFeedEntryRequest, UpdateRecordingRequest,
+    ValidateFeedEntryRequest, ValidatePublicationRequest,
 };
 use waystone_cli_output::{escape_json, json_optional_string, print_command_error};
 use waystone_project_format::load_manifest;
@@ -88,6 +88,15 @@ fn run(args: &[String]) -> i32 {
             export_opus(project, master, published, preset, json)
         }
         ["prepare-feed-entry", project, recording_id, updated, summary] => prepare_feed_entry(
+            PrepareFeedEntryArgs {
+                project,
+                recording_id,
+                updated,
+                summary,
+            },
+            json,
+        ),
+        ["update-feed-entry", project, recording_id, updated, summary] => update_feed_entry(
             PrepareFeedEntryArgs {
                 project,
                 recording_id,
@@ -283,6 +292,48 @@ fn prepare_feed_entry(args: PrepareFeedEntryArgs<'_>, json: bool) -> i32 {
             0
         }
         Err(error) => print_command_error("record", "prepare-feed-entry", &error.to_string(), json),
+    }
+}
+
+fn update_feed_entry(args: PrepareFeedEntryArgs<'_>, json: bool) -> i32 {
+    let metadata_root = match project_audio_metadata_root(args.project, "update-feed-entry", json) {
+        Ok(metadata_root) => metadata_root,
+        Err(exit_code) => return exit_code,
+    };
+    let recording_metadata_path = Path::new(args.project)
+        .join(metadata_root)
+        .join(format!("{}.toml", args.recording_id));
+
+    let service = AudioService;
+    match service.update_feed_entry(UpdateFeedEntryRequest {
+        project_root: Path::new(args.project).to_path_buf(),
+        recording_metadata_path,
+        updated: args.updated.to_string(),
+        summary: args.summary.to_string(),
+    }) {
+        Ok(updated) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"recording_id\":\"{}\",\"title\":\"{}\",\"entry_id\":\"{}\",\"feed\":\"{}\",\"output_path\":\"{}\",\"output_relative_path\":\"{}\",\"published\":\"{}\",\"mime_type\":\"{}\",\"updated\":\"{}\"}}}}",
+                    escape_json(&updated.recording_id),
+                    escape_json(&updated.title),
+                    escape_json(&updated.entry_id),
+                    escape_json(&updated.feed),
+                    escape_json(&updated.output_path.display().to_string()),
+                    escape_json(&updated.output_relative_path),
+                    escape_json(&updated.published),
+                    escape_json(&updated.mime_type),
+                    escape_json(&updated.updated)
+                );
+            } else {
+                println!("Updated feed entry: {}", updated.recording_id);
+                println!("Metadata: {}", updated.output_path.display());
+                println!("Published: {}", updated.published);
+                println!("Feed: {}", updated.feed);
+            }
+            0
+        }
+        Err(error) => print_command_error("record", "update-feed-entry", &error.to_string(), json),
     }
 }
 
@@ -491,6 +542,7 @@ fn print_help() {
         "  record update [--json] PROJECT RECORDING_ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE"
     );
     println!("  record prepare-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
+    println!("  record update-feed-entry [--json] PROJECT RECORDING_ID UPDATED SUMMARY");
     println!("  record validate-publication [--json] PROJECT RECORDING_ID");
     println!("  record validate-feed-entry [--json] PROJECT RECORDING_ID");
     println!("  record generate-feed [--json] PROJECT");

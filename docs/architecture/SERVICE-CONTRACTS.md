@@ -5,7 +5,7 @@ Date: 2026-07-20
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, mock publication-copy export, feed-entry sidecar preparation, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, mock publication-copy export, feed-entry sidecar preparation/update, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -169,6 +169,7 @@ Current contract:
 - `AttachRecordingRequest`
 - `ExportOpusRequest`
 - `PrepareFeedEntryRequest`
+- `UpdateFeedEntryRequest`
 - `UpdateRecordingRequest`
 - `ValidatePublicationRequest`
 - `ValidateFeedEntryRequest`
@@ -181,6 +182,7 @@ Current behavior:
 - Updates existing recording metadata sidecars while preserving sidecar path, embedded recording ID, and optional measurement fields.
 - Creates mock Opus publication-copy files from existing project-local masters for CLI-facing workflow tests.
 - Creates feed-entry sidecars from existing recording metadata and published audio references.
+- Updates existing feed-entry sidecars from current recording metadata and command-provided update fields.
 - Validates publication-copy and feed-entry handoff metadata in project context.
 - Generates minimal Atom feed XML from validated feed-entry sidecars through the local service crate.
 - Lists recording sidecar metadata.

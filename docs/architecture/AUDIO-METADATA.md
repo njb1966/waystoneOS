@@ -99,6 +99,7 @@ record attach PROJECT ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record update PROJECT RECORDING_ID TITLE MASTER PUBLISHED FEED ENTRY_ID MIME_TYPE
 record export-opus PROJECT MASTER PUBLISHED PRESET
 record prepare-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
+record update-feed-entry PROJECT RECORDING_ID UPDATED SUMMARY
 record validate-publication PROJECT RECORDING_ID
 record validate-feed-entry PROJECT RECORDING_ID
 record generate-feed PROJECT
@@ -137,6 +138,12 @@ configured `[audio].metadata` root. It requires the recording sidecar to include
 `recording.published`, `publication.feed`, `publication.entry_id`, and
 `publication.mime_type`, and it requires the published audio file to exist. It
 does not generate or modify the feed XML file by itself.
+
+`record update-feed-entry` rewrites an existing `feeds/entries/<recording-id>.toml`
+sidecar from the current recording sidecar and a new `UPDATED`/`SUMMARY` pair.
+It refreshes title, entry ID, feed path, enclosure path, and MIME type from the
+recording metadata. It does not create missing feed-entry sidecars, generate or
+merge feed XML, or publish remotely.
 
 `record validate-publication` checks an existing recording sidecar in project
 context. It validates the referenced master file, publication-copy file,
