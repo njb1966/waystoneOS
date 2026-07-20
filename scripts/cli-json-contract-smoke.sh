@@ -101,6 +101,20 @@ require({"configured", "enabled", "type", "path", "exists", "prepared_entries",
          "invalid_entries", "invalid_entry_diagnostics"} <= publish["data"]["feed"].keys(),
         "publish dry-run feed contract changed")
 
+publish_validation = run([
+    "target/debug/publish", "--validate", "--project", project_path,
+    "--target", "export", "--json"
+])
+require({"project", "target", "valid", "blocked", "errors", "warnings"}
+        <= publish_validation["data"].keys(),
+        "publish validate contract changed")
+require(publish_validation["data"]["valid"] is True,
+        "publish validate valid state changed")
+require(isinstance(publish_validation["data"]["errors"], list),
+        "publish validate errors contract changed")
+require(isinstance(publish_validation["data"]["warnings"], list),
+        "publish validate warnings contract changed")
+
 planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,
     "--target", "export", "--date", "2026-07-18T00:00:00Z", "--json"

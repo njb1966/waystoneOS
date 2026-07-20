@@ -5,7 +5,7 @@ Date: 2026-07-20
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` exposes recording list, inspect, validate, local sidecar attachment/update, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, publication/feed-entry handoff validation, and local Atom feed generation over D-Bus. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview, publication readiness validation, and planned-history generation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` exposes recording list, inspect, validate, local sidecar attachment/update, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, publication/feed-entry handoff validation, and local Atom feed generation over D-Bus. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -22,7 +22,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Domain | Current crate | Service daemon | D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
 | Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
-| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history, completed-history record construction; D-Bus adapter for preview and planned history |
+| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, publication readiness validation, planned history, completed-history record construction; D-Bus adapter for preview, validation, and planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, update, WAV master capture, Opus publication-copy export, prepare/update feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for all listed operations |
@@ -76,6 +76,8 @@ Current contract:
 
 - `PreviewPublicationRequest`
 - `PreviewPublicationResponse`
+- `ValidatePublicationRequest`
+- `ValidatePublicationResponse`
 - `BuildPlannedHistoryRequest`
 - `BuildPlannedHistoryResponse`
 - `BuildCompletedHistoryRequest`
@@ -86,10 +88,11 @@ Current behavior:
 
 - Builds non-mutating dry-run publication plans through `waystone-publish-plan`.
 - Reports feed readiness in dry-run previews, including configured path, file existence, prepared entry count, invalid entry count, and per-invalid-sidecar diagnostics.
+- Builds non-mutating publication readiness reports with stable issue codes for project validation, host/identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file plans, and required confirmations.
 - Resolves host and identity metadata when caller supplies roots.
 - Builds planned and completed publication history records through `waystone-publication-history`.
 - Preserves blocked dry-run state.
-- Exposes preview and planned-history generation through `waystone-publishd` D-Bus adapter.
+- Exposes preview, publication readiness validation, and planned-history generation through `waystone-publishd` D-Bus adapter.
 - Does not compare remote state, transfer files, delete files, verify remotes, unlock credentials, or write completed history over D-Bus.
 
 ## Host Service
@@ -210,6 +213,7 @@ org.waystone.Project1.InspectProject
 org.waystone.Project1.ValidateProject
 
 org.waystone.Publish1.PreviewPublication
+org.waystone.Publish1.ValidatePublication
 org.waystone.Publish1.BuildPlannedHistory
 
 org.waystone.Host1.ListHosts

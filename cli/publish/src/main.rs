@@ -11,8 +11,8 @@ use waystone_publication_history::{
     PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
-    dry_run_publish_with_context, FeedEntryDiagnostic, FeedPublicationState, PublishContext,
-    Resolution,
+    dry_run_publish_with_context, validate_publication_with_context, FeedEntryDiagnostic,
+    FeedPublicationState, PublishContext, PublishValidationIssue, Resolution,
 };
 
 fn main() {
@@ -33,6 +33,7 @@ fn run(args: &[String]) -> i32 {
             print_help();
             0
         }
+        _ if positional.contains(&"--validate") => validate_publication_command(&positional, json),
         _ if positional.contains(&"--list-completed-history") => {
             list_completed_history_files(&positional, json)
         }
@@ -58,6 +59,49 @@ fn run(args: &[String]) -> i32 {
             eprintln!("publish: usage error");
             print_help();
             2
+        }
+    }
+}
+
+fn validate_publication_command(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+
+    let context = publish_context(args);
+    match validate_publication_with_context(Path::new(project), target, &context) {
+        Ok(report) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"valid\":{},\"blocked\":{},\"errors\":[{}],\"warnings\":[{}]}}}}",
+                    escape_json(&report.project_id),
+                    escape_json(&report.target),
+                    report.valid,
+                    report.blocked,
+                    json_publish_validation_issues(&report.errors),
+                    json_publish_validation_issues(&report.warnings)
+                );
+            } else if report.valid {
+                println!("Publication target is valid");
+                for warning in report.warnings {
+                    println!("warning: {}: {}", warning.code, warning.message);
+                }
+            } else {
+                println!("Publication target is invalid");
+                for error in report.errors {
+                    println!("error: {}: {}", error.code, error.message);
+                }
+                for warning in report.warnings {
+                    println!("warning: {}: {}", warning.code, warning.message);
+                }
+            }
+            0
+        }
+        Err(error) => {
+            print_command_error("publish", "validate_publication", &error.to_string(), json)
         }
     }
 }
@@ -515,6 +559,21 @@ fn json_history_files(record: &PublicationHistoryRecord) -> String {
         .join(",")
 }
 
+fn json_publish_validation_issues(issues: &[PublishValidationIssue]) -> String {
+    issues
+        .iter()
+        .map(|issue| {
+            format!(
+                "{{\"code\":\"{}\",\"message\":\"{}\",\"path\":{}}}",
+                escape_json(issue.code),
+                escape_json(&issue.message),
+                json_optional_string(issue.path.as_deref())
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 fn completed_history_record_from_plan(
     plan: &waystone_publish_plan::PublishDryRun,
     inputs: &CompletedHistoryInputs,
@@ -564,6 +623,7 @@ fn completed_history_inputs<'a>(args: &'a [&str]) -> Result<CompletedHistoryInpu
 
 fn print_help() {
     println!("Usage:");
+    println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]");
     println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]");
     println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
     println!("  publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");

@@ -44,6 +44,23 @@ pub struct FeedEntryDiagnostic {
 }
 
 #[derive(Debug, Clone)]
+pub struct PublishValidationReport {
+    pub project_id: String,
+    pub target: String,
+    pub valid: bool,
+    pub blocked: bool,
+    pub errors: Vec<PublishValidationIssue>,
+    pub warnings: Vec<PublishValidationIssue>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PublishValidationIssue {
+    pub code: &'static str,
+    pub message: String,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Resolution {
     pub id: String,
     pub status: ResolutionStatus,
@@ -138,6 +155,88 @@ pub fn dry_run_publish_with_context(
     })
 }
 
+pub fn validate_publication(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+) -> Result<PublishValidationReport, PublishPlanError> {
+    validate_publication_with_context(project_root, target_name, &PublishContext::default())
+}
+
+pub fn validate_publication_with_context(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+    context: &PublishContext,
+) -> Result<PublishValidationReport, PublishPlanError> {
+    let project_root = project_root.as_ref();
+    let project_validation = validate_project(project_root)?;
+    let manifest = load_manifest(project_root)?;
+    let target = find_target(&manifest, target_name)?;
+
+    let mut errors = project_validation
+        .errors
+        .into_iter()
+        .map(project_issue)
+        .collect::<Vec<_>>();
+    let mut warnings = project_validation
+        .warnings
+        .into_iter()
+        .map(project_issue)
+        .collect::<Vec<_>>();
+
+    let project_id = manifest.project.id.clone();
+    let target_name = target.name.clone();
+    if !errors.is_empty() {
+        return Ok(PublishValidationReport {
+            project_id,
+            target: target_name,
+            valid: false,
+            blocked: true,
+            errors,
+            warnings,
+        });
+    }
+
+    let plan = dry_run_publish_with_context(project_root, &target_name, context)?;
+    validate_resolution(
+        &mut errors,
+        "host",
+        &format!("publish.targets.{}.host", plan.target),
+        plan.host_resolution.as_ref(),
+    );
+    validate_resolution(
+        &mut errors,
+        "identity",
+        &format!("publish.targets.{}.identity", plan.target),
+        plan.identity_resolution.as_ref(),
+    );
+    validate_feed_state(&mut errors, &mut warnings, &plan.feed);
+
+    if plan.upload.is_empty() && plan.update.is_empty() && plan.delete.is_empty() {
+        warnings.push(warning(
+            "no_publishable_files",
+            "publish plan has no file changes".to_string(),
+            None::<String>,
+        ));
+    }
+
+    for confirmation in &plan.confirmations {
+        warnings.push(warning(
+            "confirmation_required",
+            confirmation.clone(),
+            Some(format!("publish.targets.{}", plan.target)),
+        ));
+    }
+
+    Ok(PublishValidationReport {
+        project_id: plan.project_id,
+        target: plan.target,
+        valid: errors.is_empty(),
+        blocked: plan.blocked || !errors.is_empty(),
+        errors,
+        warnings,
+    })
+}
+
 fn resolution_blocks(resolution: &Option<Resolution>) -> bool {
     resolution.as_ref().is_some_and(|resolution| {
         matches!(
@@ -145,6 +244,84 @@ fn resolution_blocks(resolution: &Option<Resolution>) -> bool {
             ResolutionStatus::Missing | ResolutionStatus::Blocked | ResolutionStatus::Invalid
         )
     })
+}
+
+fn validate_resolution(
+    errors: &mut Vec<PublishValidationIssue>,
+    kind: &'static str,
+    path: &str,
+    resolution: Option<&Resolution>,
+) {
+    let Some(resolution) = resolution else {
+        return;
+    };
+
+    let code = match resolution.status {
+        ResolutionStatus::NotRequired | ResolutionStatus::Resolved => return,
+        ResolutionStatus::Missing => match kind {
+            "host" => "host_missing",
+            "identity" => "identity_missing",
+            _ => "metadata_missing",
+        },
+        ResolutionStatus::Blocked => match kind {
+            "host" => "host_blocked",
+            "identity" => "identity_blocked",
+            _ => "metadata_blocked",
+        },
+        ResolutionStatus::Invalid => match kind {
+            "host" => "host_invalid",
+            "identity" => "identity_invalid",
+            _ => "metadata_invalid",
+        },
+    };
+
+    errors.push(error(
+        code,
+        format!("{} {}: {}", kind, resolution.id, resolution.detail),
+        Some(path.to_string()),
+    ));
+}
+
+fn validate_feed_state(
+    errors: &mut Vec<PublishValidationIssue>,
+    warnings: &mut Vec<PublishValidationIssue>,
+    feed: &FeedPublicationState,
+) {
+    if !feed.configured || !feed.enabled {
+        return;
+    }
+
+    match feed.path.as_deref() {
+        Some(path) if !feed.exists => errors.push(error(
+            "feed_missing",
+            format!("enabled feed file is missing: {path}"),
+            Some(path.to_string()),
+        )),
+        None => errors.push(error(
+            "feed_path_missing",
+            "enabled feed has no configured path".to_string(),
+            Some("feed.path".to_string()),
+        )),
+        _ => {}
+    }
+
+    if feed.prepared_entries == 0 {
+        warnings.push(warning(
+            "feed_entries_empty",
+            "enabled feed has no prepared entries".to_string(),
+            feed.path.clone(),
+        ));
+    }
+
+    for diagnostic in &feed.invalid_entry_diagnostics {
+        for issue in &diagnostic.issues {
+            errors.push(error(
+                "feed_entry_invalid",
+                issue.clone(),
+                Some(diagnostic.path.clone()),
+            ));
+        }
+    }
 }
 
 fn resolve_host(target: &PublishTarget, context: &PublishContext) -> Option<Resolution> {
@@ -409,6 +586,38 @@ fn prepared_feed_entry_counts(
     (prepared, invalid, diagnostics)
 }
 
+fn project_issue(issue: waystone_project_format::ValidationIssue) -> PublishValidationIssue {
+    PublishValidationIssue {
+        code: issue.code,
+        message: issue.message,
+        path: issue.path,
+    }
+}
+
+fn error(
+    code: &'static str,
+    message: String,
+    path: Option<impl Into<String>>,
+) -> PublishValidationIssue {
+    PublishValidationIssue {
+        code,
+        message,
+        path: path.map(Into::into),
+    }
+}
+
+fn warning(
+    code: &'static str,
+    message: String,
+    path: Option<impl Into<String>>,
+) -> PublishValidationIssue {
+    PublishValidationIssue {
+        code,
+        message,
+        path: path.map(Into::into),
+    }
+}
+
 fn relative_project_path(project_root: &Path, path: &Path) -> String {
     path.strip_prefix(project_root)
         .map(|relative| relative.to_string_lossy().to_string())
@@ -663,6 +872,25 @@ mime_type = "audio/ogg; codecs=opus"
     }
 
     #[test]
+    fn validates_ready_ssh_target_with_resolved_metadata() {
+        let report = validate_publication_with_context(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+            &PublishContext {
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+            },
+        )
+        .expect("ssh target should validate");
+
+        assert!(report.valid);
+        assert!(!report.blocked);
+        assert_eq!(report.project_id, "ssh-capsule");
+        assert_eq!(report.target, "production");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
     fn blocks_when_host_metadata_is_missing() {
         let plan = dry_run_publish(
             repo_path("examples/projects/ssh-capsule.wayproject"),
@@ -675,5 +903,100 @@ mime_type = "audio/ogg; codecs=opus"
             plan.host_resolution.as_ref().map(|value| &value.status),
             Some(&ResolutionStatus::Missing)
         );
+    }
+
+    #[test]
+    fn validates_blocked_ssh_target_when_metadata_roots_are_missing() {
+        let report = validate_publication(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+        )
+        .expect("validation should report missing metadata");
+
+        assert!(!report.valid);
+        assert!(report.blocked);
+        assert!(report
+            .errors
+            .iter()
+            .any(|issue| issue.code == "host_missing"));
+        assert!(report
+            .errors
+            .iter()
+            .any(|issue| issue.code == "identity_missing"));
+    }
+
+    #[test]
+    fn validates_invalid_feed_entries_as_publish_blockers() {
+        let project = temp_project_root("feed-validation").join("feed-validation.wayproject");
+        fs::create_dir_all(project.join("content")).expect("content directory");
+        fs::create_dir_all(project.join("audio/metadata")).expect("metadata directory");
+        fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
+        fs::create_dir_all(project.join("audio/published")).expect("published directory");
+        fs::create_dir_all(project.join("feeds/entries")).expect("feed entries directory");
+        fs::write(project.join("content/index.gmi"), "# Feed Validation\n").expect("content");
+        fs::write(project.join("feeds/feed.xml"), "<feed></feed>\n").expect("feed");
+        fs::write(
+            project.join("project.toml"),
+            r#"[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "feed-validation"
+name = "Feed Validation"
+type = "audio-series"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[audio]
+masters = "audio/masters"
+published = "audio/published"
+metadata = "audio/metadata"
+
+[feed]
+enabled = true
+type = "atom"
+path = "feeds/feed.xml"
+title = "Feed Validation"
+
+[[publish.targets]]
+name = "export"
+method = "removable"
+path = "publish/export"
+delete_policy = "forbid"
+"#,
+        )
+        .expect("manifest");
+        fs::write(
+            project.join("feeds/entries/broken.toml"),
+            r#"[entry]
+id = "tag:example.invalid,2026:broken"
+title = "Broken"
+updated = "2026-07-20T00:00:00Z"
+summary = "Broken summary"
+feed = "feeds/feed.xml"
+recording = "missing"
+
+[enclosure]
+path = "audio/published/missing.opus"
+mime_type = "audio/ogg; codecs=opus"
+"#,
+        )
+        .expect("broken feed entry");
+
+        let report =
+            validate_publication(&project, "export").expect("validation should inspect feed");
+
+        assert!(!report.valid);
+        assert!(report.blocked);
+        assert!(report
+            .errors
+            .iter()
+            .any(|issue| issue.code == "feed_entry_invalid"
+                && issue.path.as_deref() == Some("feeds/entries/broken.toml")));
+
+        let _ = fs::remove_dir_all(project.parent().expect("temp project has parent"));
     }
 }

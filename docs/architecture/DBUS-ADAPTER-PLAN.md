@@ -117,6 +117,7 @@ Implemented methods:
 
 ```text
 PreviewPublication
+ValidatePublication
 BuildPlannedHistory
 ```
 

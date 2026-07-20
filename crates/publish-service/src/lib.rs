@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use waystone_publication_history::{CompletedHistoryOptions, PublicationHistoryRecord};
 use waystone_publish_plan::{
-    dry_run_publish_with_context, PublishContext, PublishDryRun, PublishPlanError,
+    dry_run_publish_with_context, validate_publication_with_context, PublishContext, PublishDryRun,
+    PublishPlanError, PublishValidationReport,
 };
 
 #[derive(Debug, Default)]
@@ -18,6 +19,19 @@ pub struct PreviewPublicationRequest {
 #[derive(Debug, Clone)]
 pub struct PreviewPublicationResponse {
     pub plan: PublishDryRun,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidatePublicationRequest {
+    pub project_path: PathBuf,
+    pub target: String,
+    pub hosts_root: Option<PathBuf>,
+    pub identities_root: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidatePublicationResponse {
+    pub report: PublishValidationReport,
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +75,22 @@ impl PublishService {
         )?;
 
         Ok(PreviewPublicationResponse { plan })
+    }
+
+    pub fn validate_publication(
+        &self,
+        request: ValidatePublicationRequest,
+    ) -> Result<ValidatePublicationResponse, PublishPlanError> {
+        let report = validate_publication_with_context(
+            request.project_path,
+            &request.target,
+            &PublishContext {
+                hosts_root: request.hosts_root,
+                identities_root: request.identities_root,
+            },
+        )?;
+
+        Ok(ValidatePublicationResponse { report })
     }
 
     pub fn build_planned_history(
@@ -148,5 +178,22 @@ mod tests {
         assert_eq!(history.record.transfer_result, "completed");
         assert_eq!(history.record.verification_result, "passed");
         assert!(!history.record.rollback.available);
+    }
+
+    #[test]
+    fn service_validates_publication_readiness() {
+        let service = PublishService;
+        let validation = service
+            .validate_publication(ValidatePublicationRequest {
+                project_path: repo_path("examples/projects/ssh-capsule.wayproject"),
+                target: "production".to_string(),
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+            })
+            .expect("validation should succeed");
+
+        assert!(validation.report.valid);
+        assert!(!validation.report.blocked);
+        assert!(validation.report.errors.is_empty());
     }
 }

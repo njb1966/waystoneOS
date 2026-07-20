@@ -222,12 +222,13 @@ Implemented methods:
 
 ```text
 PreviewPublication
+ValidatePublication
 BuildPlannedHistory
 ```
 
-Future methods may include `PreparePublication`, `ValidatePublication`,
-`ComparePublication`, `PreviewTransfer`, `Publish`, `VerifyRemote`,
-`RecordPublication`, and `ListPublicationHistory`.
+Future methods may include `PreparePublication`, `ComparePublication`,
+`PreviewTransfer`, `Publish`, `VerifyRemote`, `RecordPublication`, and
+`ListPublicationHistory`.
 
 ## Error Codes
 
@@ -255,21 +256,22 @@ path, whether the feed XML file exists, how many valid prepared feed-entry
 sidecars target that feed, how many feed-entry sidecars are invalid, and
 per-invalid-sidecar diagnostic paths with validation issue text. It can also
 resolve host and identity metadata when local metadata roots are provided,
-generate planned publication history records without writing them as completed
-history, save planned preview records under project `history/previews/`, list
-saved planned preview records, read selected saved preview TOML, build
-completed history result records from explicit caller-supplied result fields,
-save those completed records under project `history/completed/`, list saved
-completed records, and read selected completed TOML through the `publish` CLI.
-Preview and completed-record saving are local project writes only. Saved
-preview reads are constrained to the selected project's `history/previews/`
-directory, and completed-record reads are constrained to the selected project's
-`history/completed/` directory. These preview and local history operations are
-available through the `publish` CLI; non-mutating preview and planned-history
-generation are also available through the `waystone-publishd` D-Bus adapter. It
-does not generate feeds automatically, compare remote state, perform transfer,
-delete files, access credentials, probe SSH host keys, or verify a remote
-result.
+produce a non-mutating publication readiness report with `valid`, `blocked`,
+`errors`, and `warnings`, generate planned publication history records without
+writing them as completed history, save planned preview records under project
+`history/previews/`, list saved planned preview records, read selected saved
+preview TOML, build completed history result records from explicit
+caller-supplied result fields, save those completed records under project
+`history/completed/`, list saved completed records, and read selected completed
+TOML through the `publish` CLI. Preview and completed-record saving are local
+project writes only. Saved preview reads are constrained to the selected
+project's `history/previews/` directory, and completed-record reads are
+constrained to the selected project's `history/completed/` directory. These
+preview, validation, and local history operations are available through the
+`publish` CLI; non-mutating preview, validation, and planned-history generation
+are also available through the `waystone-publishd` D-Bus adapter. It does not
+generate feeds automatically, compare remote state, perform transfer, delete
+files, access credentials, probe SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

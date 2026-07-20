@@ -1,6 +1,6 @@
 # waystone-publishd
 
-`waystone-publishd` owns non-mutating publication preview and planned-history generation.
+`waystone-publishd` owns non-mutating publication preview, publication readiness validation, and planned-history generation.
 
 Current D-Bus service:
 
@@ -13,6 +13,7 @@ Implemented methods:
 
 ```text
 PreviewPublication
+ValidatePublication
 BuildPlannedHistory
 ```
 

@@ -92,6 +92,40 @@ for expected in ssh-capsule production rsync offgridholdout nick-pub content/ind
   esac
 done
 
+validation_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ValidatePublication \
+  s "{\"project_path\":\"examples/projects/ssh-capsule.wayproject\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\"}")"
+for expected in ssh-capsule production valid blocked confirmation_required; do
+  case "$validation_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ValidatePublication did not report expected validation"
+      echo "$validation_output"
+      exit 1
+      ;;
+  esac
+done
+
+blocked_validation_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ValidatePublication \
+  s "{\"project_path\":\"examples/projects/ssh-capsule.wayproject\",\"target\":\"production\"}")"
+for expected in host_missing identity_missing; do
+  case "$blocked_validation_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ValidatePublication did not report expected blockers"
+      echo "$blocked_validation_output"
+      exit 1
+      ;;
+  esac
+done
+
 history_output="$(busctl --user call \
   org.waystone.Publish1 \
   /org/waystone/Publish \

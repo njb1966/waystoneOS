@@ -59,6 +59,54 @@ fn dry_run_json_reports_resolved_metadata() {
 }
 
 #[test]
+fn validate_json_reports_ready_target() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--validate",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"valid\":true"));
+    assert!(stdout.contains("\"blocked\":false"));
+    assert!(stdout.contains("\"errors\":[]"));
+    assert!(stdout.contains("\"code\":\"confirmation_required\""));
+}
+
+#[test]
+fn validate_json_reports_blocked_target_without_metadata_roots() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--validate",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"valid\":false"));
+    assert!(stdout.contains("\"blocked\":true"));
+    assert!(stdout.contains("\"code\":\"host_missing\""));
+    assert!(stdout.contains("\"code\":\"identity_missing\""));
+}
+
+#[test]
 fn dry_run_json_reports_feed_state() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

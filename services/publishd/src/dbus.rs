@@ -3,6 +3,7 @@ use serde_json::json;
 use std::path::PathBuf;
 use waystone_publish_service::{
     BuildPlannedHistoryRequest, PreviewPublicationRequest, PublishService,
+    ValidatePublicationRequest,
 };
 use zbus::{blocking::connection, interface};
 
@@ -42,6 +43,25 @@ impl PublishDbus {
         match self.preview_plan(request) {
             Ok(plan) => success_response(plan_response(plan)),
             Err(error) => error_response("publication_preview_failed", &error.to_string()),
+        }
+    }
+
+    fn validate_publication(&self, request: &str) -> String {
+        let request = match parse_preview_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+
+        match self
+            .service
+            .validate_publication(ValidatePublicationRequest {
+                project_path: request.project_path,
+                target: request.target,
+                hosts_root: request.hosts_root,
+                identities_root: request.identities_root,
+            }) {
+            Ok(validation) => success_response(validation_report_response(validation.report)),
+            Err(error) => error_response("publication_validation_failed", &error.to_string()),
         }
     }
 
@@ -170,6 +190,29 @@ fn plan_response(
             "checks": plan.verification_checks,
         },
         "confirmations": plan.confirmations,
+    })
+}
+
+fn validation_report_response(
+    report: waystone_publish_plan::PublishValidationReport,
+) -> serde_json::Value {
+    json!({
+        "project": report.project_id,
+        "target": report.target,
+        "valid": report.valid,
+        "blocked": report.blocked,
+        "errors": report.errors.into_iter().map(validation_issue_response).collect::<Vec<_>>(),
+        "warnings": report.warnings.into_iter().map(validation_issue_response).collect::<Vec<_>>(),
+    })
+}
+
+fn validation_issue_response(
+    issue: waystone_publish_plan::PublishValidationIssue,
+) -> serde_json::Value {
+    json!({
+        "code": issue.code,
+        "message": issue.message,
+        "path": issue.path,
     })
 }
 
