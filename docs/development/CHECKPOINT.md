@@ -240,3 +240,10 @@ Recommended next implementation step:
 Alternative next step:
 
 - Add another narrow local audio/feed metadata refinement before starting real audio capture or codec export.
+
+## Pause Marker
+
+Paused on 2026-07-20 after commit `874facc` with the repository clean before
+the pause marker was written. Resume from `.planning/.continue-here.md` and
+`.planning/HANDOFF.json`, then start with the recommended Publish-to-Create
+invalid feed-entry diagnostic handoff unless the user redirects.

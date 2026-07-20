@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-20T02:05:13Z",
+  "context": "default",
+  "status": "paused",
+  "current_commit": "874facc",
+  "current_marker": "docs/development/CHECKPOINT.md",
+  "alignment_marker": "docs/development/PHASE-0-0.1-ALIGNMENT.md",
+  "completed_tasks": [
+    {
+      "name": "Expose feed-entry update in Qt",
+      "status": "done",
+      "commit": "874facc"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "name": "Add a narrow navigation handoff from Publish-pane invalid feed-entry diagnostics back to the Create pane",
+      "status": "recommended_next"
+    },
+    {
+      "name": "Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments",
+      "status": "boundary"
+    },
+    {
+      "name": "Keep packaging/install automation deferred until the repo has a broader install layout",
+      "status": "deferred"
+    }
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "async_jobs": [],
+  "background_processes": [],
+  "decisions": [
+    {
+      "decision": "Continue with small local Qt/CLI slices before installed services, packaging, remote publication, or real audio capture.",
+      "rationale": "This keeps the version 0.1 local-first workflow inspectable and aligned with the Phase 0 architecture baseline."
+    },
+    {
+      "decision": "Next recommended slice is a Publish-to-Create diagnostic handoff.",
+      "rationale": "The feed-entry update control is now implemented, so the remaining useful UI-local step is helping users move from publish-side invalid feed diagnostics back to the relevant Create-pane controls."
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Read docs/development/CHECKPOINT.md, docs/development/PHASE-0-0.1-ALIGNMENT.md, and .planning/.continue-here.md, then propose the Publish-to-Create invalid feed-entry diagnostic handoff before implementation.",
+  "context_notes": "Repository is clean at 874facc before this pause marker. The last completed implementation slice added record update-feed-entry support to the Qt Create pane, updated focused Qt smoke coverage, refreshed docs, and passed Qt, Rust, CLI JSON, formatting, clippy, and diff checks."
+}
