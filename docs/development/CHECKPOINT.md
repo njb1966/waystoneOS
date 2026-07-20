@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after Qt completed-history read-only display
+Status: current after publishd completed-history save/list/read
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -10,6 +10,8 @@ It also includes a non-mutating publication readiness validation report through
 the publish CLI, publish service crate, and `waystone-publishd` D-Bus adapter.
 The Qt Publish pane now surfaces that report and read-only completed-history
 record list/detail views through the local CLI adapter.
+`waystone-publishd` now exposes completed-history save/list/read over D-Bus for
+local project records.
 
 ## Current Position
 
@@ -170,9 +172,10 @@ rollback fields. `publish --save-completed-history --json` writes that result
 under the selected project `history/completed/` directory. `publish
 --list-completed-history --json` and `publish --read-completed-history --json`
 list and read saved records constrained to that same project-local directory.
-`waystone-publishd` exposes non-mutating completed-history result-record
-generation through `BuildCompletedHistory`; it does not write the record.
-These commands and the D-Bus method are local result-recording contracts only;
+`waystone-publishd` exposes completed-history result-record generation and
+project-local completed-history save/list/read through `BuildCompletedHistory`,
+`SaveCompletedHistory`, `ListCompletedHistory`, and `ReadCompletedHistory`.
+These commands and D-Bus methods are local result-recording contracts only;
 they do not transfer files, verify remotes, or mutate remote systems. The Qt
 Publish pane exposes completed-history list/read views through the local CLI
 adapter, but does not create completed records.
@@ -290,13 +293,19 @@ Result after Qt completed-history read-only display: focused checks passed on
 clippy with warnings denied, CLI JSON contract smoke, publishd D-Bus smoke,
 broad Qt smoke, format checks, and git diff whitespace checks.
 
+Result after publishd completed-history save/list/read: focused checks passed
+on 2026-07-20, including publish-service/publishd Rust tests, Rust workspace
+tests, clippy with warnings denied, CLI JSON contract smoke, publishd D-Bus
+smoke, focused Qt project smoke, broad Qt smoke, format checks, and git diff
+whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
 - No files outside this repository were edited by the assistant.
 - Sibling Waystone applications remain future add-ons only.
 - `waystone-projectd` direct D-Bus serving is implemented for project create, list, inspect, and validate.
-- `waystone-publishd` direct D-Bus serving is implemented for non-mutating publication preview, publication readiness validation, planned-history generation, and completed-history result-record generation.
+- `waystone-publishd` direct D-Bus serving is implemented for non-mutating publication preview, publication readiness validation, planned-history generation, completed-history result-record generation, and project-local completed-history save/list/read.
 - `waystone-projectd` fails cleanly without a session bus and rejects duplicate bus ownership.
 - `waystone-projectd` D-Bus service file and systemd user unit are present in the repo.
 - `waystone-publishd` fails cleanly without a session bus and rejects duplicate bus ownership.
@@ -337,9 +346,9 @@ broad Qt smoke, format checks, and git diff whitespace checks.
 
 Recommended next implementation step:
 
-1. Decide whether completed-history save/list/read should be exposed through `waystone-publishd` D-Bus or remain CLI-local for now.
-2. Decide whether the next local publish slice should add remote-state comparison scaffolding without executing transfer.
-3. Decide whether Qt Publish-pane completed-history ergonomics need any small follow-up before moving back to service contracts.
+1. Decide whether the next local publish slice should add remote-state comparison scaffolding without executing transfer.
+2. Decide whether Qt Publish-pane completed-history ergonomics need any small follow-up before moving back to service contracts.
+3. Keep real transfer, remote deletion, credential unlock, and remote verification deferred until comparison/readiness boundaries are stable.
 
 Alternative next step:
 
@@ -347,5 +356,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after Qt completed-history read-only display on 2026-07-20. The
+Current after publishd completed-history save/list/read on 2026-07-20. The
 latest handoff has been resumed and superseded by this checkpoint.

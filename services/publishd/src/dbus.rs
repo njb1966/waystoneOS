@@ -2,8 +2,9 @@ use serde::Deserialize;
 use serde_json::json;
 use std::path::PathBuf;
 use waystone_publish_service::{
-    BuildCompletedHistoryRequest, BuildPlannedHistoryRequest, PreviewPublicationRequest,
-    PublishService, ValidatePublicationRequest,
+    BuildCompletedHistoryRequest, BuildPlannedHistoryRequest, ListCompletedHistoryRequest,
+    PreviewPublicationRequest, PublishService, ReadCompletedHistoryRequest,
+    SaveCompletedHistoryRequest, ValidatePublicationRequest,
 };
 use zbus::{blocking::connection, interface};
 
@@ -43,6 +44,17 @@ struct CompletedHistoryRequest {
     verification_result: String,
     rollback_available: bool,
     rollback_notes: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ProjectHistoryRequest {
+    project_path: PathBuf,
+}
+
+#[derive(Debug, Deserialize)]
+struct CompletedHistoryReadRequest {
+    project_path: PathBuf,
+    record_path: PathBuf,
 }
 
 #[interface(name = "org.waystone.Publish1")]
@@ -147,6 +159,94 @@ impl PublishDbus {
 
         success_response(history_record_response(history.record))
     }
+
+    fn save_completed_history(&self, request: &str) -> String {
+        let request = match parse_completed_history_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+
+        if !is_valid_transfer_result(&request.transfer_result) {
+            return error_response(
+                "invalid_request",
+                "transfer_result must be completed, failed, or skipped",
+            );
+        }
+
+        if !is_valid_verification_result(&request.verification_result) {
+            return error_response(
+                "invalid_request",
+                "verification_result must be not-run, passed, or failed",
+            );
+        }
+
+        let preview = match self.preview_plan(PreviewRequest {
+            project_path: request.project_path.clone(),
+            target: request.target.clone(),
+            hosts_root: request.hosts_root,
+            identities_root: request.identities_root,
+        }) {
+            Ok(plan) => plan,
+            Err(error) => return error_response("publication_preview_failed", &error.to_string()),
+        };
+
+        match self
+            .service
+            .save_completed_history(SaveCompletedHistoryRequest {
+                project_path: request.project_path,
+                plan: preview.plan,
+                date: request.date,
+                transfer_result: request.transfer_result,
+                verification_result: request.verification_result,
+                rollback_available: request.rollback_available,
+                rollback_notes: request.rollback_notes,
+            }) {
+            Ok(saved) => success_response(json!({
+                "output_path": saved.output_path.display().to_string(),
+                "record": history_record_value(saved.record),
+            })),
+            Err(error) => error_response("completed_history_save_failed", &error.to_string()),
+        }
+    }
+
+    fn list_completed_history(&self, request: &str) -> String {
+        let request = match parse_project_history_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+
+        match self
+            .service
+            .list_completed_history(ListCompletedHistoryRequest {
+                project_path: request.project_path,
+            }) {
+            Ok(list) => success_response(json!({
+                "project_path": list.project_path.display().to_string(),
+                "records": list.records.into_iter().map(completed_history_entry_response).collect::<Vec<_>>(),
+            })),
+            Err(error) => error_response("completed_history_list_failed", &error.to_string()),
+        }
+    }
+
+    fn read_completed_history(&self, request: &str) -> String {
+        let request = match parse_completed_history_read_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+        let project_path = request.project_path.clone();
+
+        match self
+            .service
+            .read_completed_history(ReadCompletedHistoryRequest {
+                project_path: request.project_path,
+                record_path: request.record_path,
+            }) {
+            Ok(read) => {
+                success_response(completed_history_detail_response(project_path, read.detail))
+            }
+            Err(error) => error_response("completed_history_read_failed", &error.to_string()),
+        }
+    }
 }
 
 impl PublishDbus {
@@ -189,6 +289,16 @@ fn parse_planned_history_request(request: &str) -> Result<PlannedHistoryRequest,
 }
 
 fn parse_completed_history_request(request: &str) -> Result<CompletedHistoryRequest, String> {
+    serde_json::from_str(request).map_err(|error| error.to_string())
+}
+
+fn parse_project_history_request(request: &str) -> Result<ProjectHistoryRequest, String> {
+    serde_json::from_str(request).map_err(|error| error.to_string())
+}
+
+fn parse_completed_history_read_request(
+    request: &str,
+) -> Result<CompletedHistoryReadRequest, String> {
     serde_json::from_str(request).map_err(|error| error.to_string())
 }
 
@@ -244,27 +354,58 @@ fn history_record_response(
     record: waystone_publication_history::PublicationHistoryRecord,
 ) -> serde_json::Value {
     json!({
-        "record": {
-            "schema": record.schema,
-            "date": record.date,
-            "project_id": record.project_id,
-            "target": record.target,
-            "method": record.method,
-            "destination": record.destination,
-            "transfer_result": record.transfer_result,
-            "verification_result": record.verification_result,
-            "files": record.files.into_iter().map(|file| {
-                json!({
-                    "path": file.path,
-                    "action": file.action,
-                    "sha256": file.sha256,
-                })
-            }).collect::<Vec<_>>(),
-            "rollback": {
-                "available": record.rollback.available,
-                "notes": record.rollback.notes,
-            }
+        "record": history_record_value(record)
+    })
+}
+
+fn history_record_value(
+    record: waystone_publication_history::PublicationHistoryRecord,
+) -> serde_json::Value {
+    json!({
+        "schema": record.schema,
+        "date": record.date,
+        "project_id": record.project_id,
+        "target": record.target,
+        "method": record.method,
+        "destination": record.destination,
+        "transfer_result": record.transfer_result,
+        "verification_result": record.verification_result,
+        "files": record.files.into_iter().map(|file| {
+            json!({
+                "path": file.path,
+                "action": file.action,
+                "sha256": file.sha256,
+            })
+        }).collect::<Vec<_>>(),
+        "rollback": {
+            "available": record.rollback.available,
+            "notes": record.rollback.notes,
         }
+    })
+}
+
+fn completed_history_entry_response(
+    entry: waystone_publication_history::CompletedHistoryEntry,
+) -> serde_json::Value {
+    json!({
+        "path": entry.path.display().to_string(),
+        "filename": entry.filename,
+        "modified_unix": entry.modified_unix,
+        "size_bytes": entry.size_bytes,
+    })
+}
+
+fn completed_history_detail_response(
+    project_path: PathBuf,
+    detail: waystone_publication_history::CompletedHistoryDetail,
+) -> serde_json::Value {
+    json!({
+        "project_path": project_path.display().to_string(),
+        "path": detail.entry.path.display().to_string(),
+        "filename": detail.entry.filename,
+        "modified_unix": detail.entry.modified_unix,
+        "size_bytes": detail.entry.size_bytes,
+        "record_toml": detail.record_toml,
     })
 }
 

@@ -1,6 +1,6 @@
 # waystone-publishd
 
-`waystone-publishd` owns non-mutating publication preview, publication readiness validation, planned-history generation, and completed-history result-record generation.
+`waystone-publishd` owns non-mutating publication preview, publication readiness validation, planned-history generation, and local completed-history result-record generation, save, list, and read operations.
 
 Current D-Bus service:
 
@@ -16,9 +16,12 @@ PreviewPublication
 ValidatePublication
 BuildPlannedHistory
 BuildCompletedHistory
+SaveCompletedHistory
+ListCompletedHistory
+ReadCompletedHistory
 ```
 
-The current daemon does not compare remote state, transfer files, delete files, verify remote results, unlock credentials, or write completed history records.
+The current daemon does not compare remote state, transfer files, delete files, verify remote results, or unlock credentials. `SaveCompletedHistory` writes only a caller-requested project-local record under `history/completed/`.
 
 ## Activation Files
 

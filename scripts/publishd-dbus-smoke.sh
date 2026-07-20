@@ -75,6 +75,11 @@ case "$(cat "$duplicate_log")" in
     ;;
 esac
 
+smoke_root="$(mktemp -d /tmp/waystone-publishd-dbus-smoke-XXXXXX)"
+cp -R examples/projects/ssh-capsule.wayproject "$smoke_root/ssh-capsule.wayproject"
+smoke_project="$smoke_root/ssh-capsule.wayproject"
+completed_record="$smoke_project/history/completed/2026-07-20T00-00-00Z-production-completed.toml"
+
 preview_output="$(busctl --user call \
   org.waystone.Publish1 \
   /org/waystone/Publish \
@@ -155,6 +160,62 @@ for expected in completed passed planned-upload content/index.gmi "No rollback s
     *)
       echo "publishd D-Bus smoke: BuildCompletedHistory did not report expected completed record"
       echo "$completed_history_output"
+      exit 1
+      ;;
+  esac
+done
+
+saved_completed_history_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  SaveCompletedHistory \
+  s "{\"project_path\":\"$smoke_project\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\",\"date\":\"2026-07-20T00:00:00Z\",\"transfer_result\":\"completed\",\"verification_result\":\"passed\",\"rollback_available\":false,\"rollback_notes\":\"D-Bus smoke completed record\"}")"
+for expected in "$completed_record" completed passed planned-upload content/index.gmi "D-Bus smoke completed record"; do
+  case "$saved_completed_history_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: SaveCompletedHistory did not report expected completed record"
+      echo "$saved_completed_history_output"
+      exit 1
+      ;;
+  esac
+done
+if [ ! -f "$completed_record" ]; then
+  echo "publishd D-Bus smoke: SaveCompletedHistory did not write expected record"
+  echo "$saved_completed_history_output"
+  exit 1
+fi
+
+listed_completed_history_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ListCompletedHistory \
+  s "{\"project_path\":\"$smoke_project\"}")"
+for expected in "$smoke_project" "2026-07-20T00-00-00Z-production-completed.toml" "$completed_record"; do
+  case "$listed_completed_history_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ListCompletedHistory did not report expected record"
+      echo "$listed_completed_history_output"
+      exit 1
+      ;;
+  esac
+done
+
+read_completed_history_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ReadCompletedHistory \
+  s "{\"project_path\":\"$smoke_project\",\"record_path\":\"$completed_record\"}")"
+for expected in "$smoke_project" "$completed_record" transfer_result verification_result completed passed "D-Bus smoke completed record"; do
+  case "$read_completed_history_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ReadCompletedHistory did not report expected detail"
+      echo "$read_completed_history_output"
       exit 1
       ;;
   esac
