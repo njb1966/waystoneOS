@@ -149,14 +149,23 @@ Implemented methods:
 ListRecordings
 InspectRecording
 ValidateRecording
+AttachRecording
+UpdateRecording
+CaptureRecording
+ExportOpus
+PrepareFeedEntry
+UpdateFeedEntry
+ValidatePublication
+ValidateFeedEntry
+GenerateFeed
 ```
 
 Still deferred for audio service:
 
-- Audio capture
 - Audio playback
 - Audio device enumeration
 - Audio editing, trimming, normalization, and codec export
+- Remote feed merge or publication
 - Installing activation files into user or system service directories
 
 ## Adapter Rules

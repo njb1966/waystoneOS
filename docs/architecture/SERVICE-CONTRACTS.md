@@ -5,7 +5,7 @@ Date: 2026-07-20
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd`, `waystone-identityd`, and `waystone-audiod` expose read-only list, inspect, and validate operations over D-Bus. The audio service crate also exposes local sidecar attachment, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, and publication/feed-entry handoff validation for the CLI, but mutating audio operations are not yet exposed through `waystone-audiod`. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes non-mutating publication preview and planned-history generation over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` exposes recording list, inspect, validate, local sidecar attachment/update, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, publication/feed-entry handoff validation, and local Atom feed generation over D-Bus. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -25,7 +25,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history; D-Bus adapter for preview and planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
-| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, WAV master capture, Opus publication-copy export, prepare feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for list, inspect, validate |
+| Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, update, WAV master capture, Opus publication-copy export, prepare/update feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for all listed operations |
 
 ## Project Service
 
@@ -192,7 +192,8 @@ Current behavior:
 - Validates project-relative audio and feed paths.
 - Refuses to overwrite existing sidecars.
 - Refuses to overwrite captured masters and publication-copy outputs.
-- Does not enumerate audio devices, play audio, edit audio, perform codec transcoding beyond Opus publication export, merge remote feed state, or expose mutating audio operations over D-Bus.
+- Exposes the local audio/feed operations above through `waystone-audiod` D-Bus using JSON string payloads that adapt the service crate request/response structs.
+- Does not enumerate audio devices, play audio, edit audio, perform codec transcoding beyond Opus publication export, or merge remote feed state.
 
 ## D-Bus Mapping Notes
 
@@ -220,6 +221,15 @@ org.waystone.Identity1.ValidateIdentity
 org.waystone.Audio1.ListRecordings
 org.waystone.Audio1.InspectRecording
 org.waystone.Audio1.ValidateRecording
+org.waystone.Audio1.AttachRecording
+org.waystone.Audio1.UpdateRecording
+org.waystone.Audio1.CaptureRecording
+org.waystone.Audio1.ExportOpus
+org.waystone.Audio1.PrepareFeedEntry
+org.waystone.Audio1.UpdateFeedEntry
+org.waystone.Audio1.ValidatePublication
+org.waystone.Audio1.ValidateFeedEntry
+org.waystone.Audio1.GenerateFeed
 ```
 
 The first D-Bus slices are adapter work only: daemon lifecycle, method dispatch, error mapping, and integration tests. They do not change persistent formats or add remote mutation as a side effect.

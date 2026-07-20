@@ -1,14 +1,13 @@
 # waystone-audiod
 
-`waystone-audiod` owns recording metadata listing, inspection, and validation.
-The audio service crate also supports local sidecar attachment for `record
-attach`, existing sidecar update for `record update`, WAV master capture from
-explicit `ffmpeg` input sources for `record capture`, Opus publication-copy
-export through `ffmpeg/libopus` for `record export-opus`, and feed-entry sidecar
-preparation for `record prepare-feed-entry` plus existing feed-entry refresh
-for `record update-feed-entry`, but those mutating operations are not exposed
-over D-Bus yet. The audio service crate also supports CLI-facing
-publication-copy and feed-entry handoff validation in project context.
+`waystone-audiod` owns recording metadata listing, inspection, validation, and
+local audio/feed mutation over D-Bus. The daemon adapts the existing audio
+service crate contract for local sidecar attachment, existing sidecar update,
+WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy
+export through `ffmpeg/libopus`, feed-entry sidecar preparation and refresh,
+publication-copy validation, feed-entry validation, and local Atom feed
+generation. It does not enumerate audio devices, play audio, publish remotely,
+or install activation files.
 
 Current D-Bus service:
 
@@ -23,6 +22,15 @@ Implemented methods:
 ListRecordings
 InspectRecording
 ValidateRecording
+AttachRecording
+UpdateRecording
+CaptureRecording
+ExportOpus
+PrepareFeedEntry
+UpdateFeedEntry
+ValidatePublication
+ValidateFeedEntry
+GenerateFeed
 ```
 
 Audio device enumeration, playback, editing, codec transcoding beyond Opus

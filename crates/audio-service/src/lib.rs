@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+pub use waystone_audio_metadata::ValidationReport;
 use waystone_audio_metadata::{
     attach_recording, capture_recording_master, export_opus_publication_copy, generate_feed,
     list_recordings, load_audio_metadata, prepare_feed_entry, update_feed_entry,
@@ -8,7 +9,6 @@ use waystone_audio_metadata::{
     ExportedPublicationCopy, GenerateFeedOptions, GeneratedFeed, PrepareFeedEntryOptions,
     PreparedFeedEntry, RecordingSummary, UpdateFeedEntryOptions, UpdateRecordingOptions,
     UpdatedFeedEntry, UpdatedRecording, ValidateFeedEntryOptions, ValidatePublicationOptions,
-    ValidationReport,
 };
 
 #[derive(Debug, Default)]

@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after Qt recording capture controls
+Status: current after audiod local audio/feed D-Bus methods
 Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
@@ -55,7 +55,7 @@ hand a selected invalid feed-entry diagnostic back to the Create pane with the
 matching project and derived recording ID loaded. It can now capture a WAV
 master from an explicit local `ffmpeg` input source, and the Qt Create pane
 exposes that capture command. It still does not enumerate audio devices,
-play audio, or expose feed generation over D-Bus.
+play audio, publish remotely, or install service activation files.
 
 ## Phase 0 Alignment
 
@@ -84,7 +84,7 @@ or approved scope changes.
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run scope | Dry-run plans, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, and Publish-pane inspection exist. Remote comparison, transfer, verification, and completed history are not implemented. |
-| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter exist. Audio device enumeration, playback, and D-Bus feed generation are not implemented. |
+| Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
 
@@ -112,12 +112,11 @@ and selected diagnostic validation detail, a real `ffmpeg/libopus` Opus
 publication-copy command, Qt controls for that export, and Qt controls for
 feed-entry sidecar update. It also has a small Publish-to-Create diagnostic
 handoff for invalid feed-entry sidecars, a narrow local WAV capture contract
-from explicit `ffmpeg` input sources, and Qt Create-pane controls for that
-capture command. The next slice should deliberately choose whether to move
-existing mutating audio/feed operations toward D-Bus or close another local 0.1
-workflow gap before adding more pane polish. It should still avoid device
-enumeration, packaging, installed services, remote transfer, and compositor
-work.
+from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture
+command, and D-Bus exposure for the local audio/feed service operations. The
+next slice should deliberately close another local 0.1 workflow gap before
+adding more pane polish. It should still avoid device enumeration, packaging,
+installed services, remote transfer, and compositor work.
 
 ## Deliberate Next Slice
 
@@ -173,6 +172,8 @@ Concrete deliverables should be small and inspectable:
 - Add a Publish-to-Create handoff for selected invalid feed-entry diagnostics.
 - Add narrow WAV master capture from an explicit local `ffmpeg` input source.
 - Expose narrow WAV master capture in the Qt Create pane.
+- Expose existing local audio/feed service operations through `waystone-audiod`
+  D-Bus.
 
 ## Explicitly Still Deferred
 

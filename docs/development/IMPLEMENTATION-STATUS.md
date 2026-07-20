@@ -375,9 +375,9 @@ Current behavior:
 
 - Wraps audio metadata operations behind request/response structs
 - Provides a service boundary for attach/update/capture/export-opus/prepare-feed-entry/update-feed-entry/validate-publication/validate-feed-entry/generate-feed/list/inspect/validate
-- Exposes list/inspect/validate through `waystone-audiod` D-Bus adapter
+- Exposes attach/update/capture/export-opus/prepare-feed-entry/update-feed-entry/validate-publication/validate-feed-entry/generate-feed/list/inspect/validate through `waystone-audiod` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not enumerate audio devices, play audio, merge remote feed state, or expose mutating audio/feed operations through D-Bus
+- Does not enumerate audio devices, play audio, or merge remote feed state
 
 Current tests cover:
 
@@ -390,6 +390,7 @@ Current tests cover:
 - Feed-entry metadata update through the service wrapper
 - Minimal Atom feed XML generation and local Atom entry merge/update through the service wrapper
 - Publication-copy and feed-entry handoff validation through the service wrapper
+- Local audio/feed operations through the `waystone-audiod` D-Bus smoke path
 
 ## Host CLI
 
@@ -668,7 +669,10 @@ Current state:
 
 - Runs as a direct D-Bus session service when launched manually
 - Owns `org.waystone.Audio1` at `/org/waystone/Audio`
-- Implements `ListRecordings`, `InspectRecording`, and `ValidateRecording`
+- Implements `ListRecordings`, `InspectRecording`, `ValidateRecording`,
+  `AttachRecording`, `UpdateRecording`, `CaptureRecording`, `ExportOpus`,
+  `PrepareFeedEntry`, `UpdateFeedEntry`, `ValidatePublication`,
+  `ValidateFeedEntry`, and `GenerateFeed`
 - Requests single-owner bus name behavior; duplicate daemon instances fail quickly
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - D-Bus autostart is smoke-tested through a generated temporary service file
