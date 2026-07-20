@@ -31,7 +31,7 @@ Implemented:
 - Create-pane selected content-file detail, including editable-index status
 - Local Gemtext preview, link validation, and save validation status for the selected project's content index file
 - Recording adapter using `record` and `listen` CLI JSON output
-- Create-pane mock publication-copy export controls using `record export-opus --json` for existing project-local master files
+- Create-pane Opus publication-copy export controls using `record export-opus --json` for existing project-local master files
 - Create-pane recording attachment controls using `record attach --json` for existing project-local master and publication-copy files
 - Create-pane recording update controls using `record update --json` for existing recording sidecars
 - Create-pane feed-entry preparation, update, and validation controls using `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
@@ -67,7 +67,7 @@ Not implemented:
 - D-Bus
 - Remote publishing
 - Audio device access
-- Audio capture, playback, or real codec transcoding
+- Audio capture, playback, or codec transcoding beyond Opus publication export
 - Browser, Helm, or Comm embedding
 - Custom compositor behavior
 
@@ -171,9 +171,9 @@ the Create pane content-file list, filter, and selected-file detail, and
 verifies a removable publish dry-run preview without touching repository
 examples. It also creates an audio-capable temporary project, verifies that
 project creation supplies audio/feed scaffold defaults, verifies that the
-Create-pane recording export control writes a mock publication copy, verifies
-that recording attachment controls create an inspectable metadata sidecar for
-project-local audio files, verifies that recording update controls rewrite that
+Create-pane recording export control writes an encoded Opus publication copy,
+verifies that recording attachment controls create an inspectable metadata
+sidecar for project-local audio files, verifies that recording update controls rewrite that
 sidecar for revised project-local files, prepares a feed-entry sidecar, updates
 that feed-entry sidecar through the Qt controls, verifies
 publication/feed-entry validation status, generates feed XML, adds one broken

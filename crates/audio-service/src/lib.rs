@@ -224,11 +224,52 @@ mod tests {
     use super::*;
     use std::fs;
     use std::path::Path;
+    use std::process::Command;
 
     fn repo_path(relative: &str) -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
             .join(relative)
+    }
+
+    fn ffmpeg_opus_available() -> bool {
+        Command::new("ffmpeg")
+            .args(["-hide_banner", "-encoders"])
+            .output()
+            .map(|output| {
+                output.status.success()
+                    && String::from_utf8_lossy(&output.stdout).contains("libopus")
+            })
+            .unwrap_or(false)
+    }
+
+    fn write_test_wav(path: &Path) {
+        let sample_rate = 48_000u32;
+        let channels = 1u16;
+        let bits_per_sample = 16u16;
+        let sample_count = 4_800u32;
+        let bytes_per_sample = u32::from(bits_per_sample / 8);
+        let data_len = sample_count * u32::from(channels) * bytes_per_sample;
+        let byte_rate = sample_rate * u32::from(channels) * bytes_per_sample;
+        let block_align = channels * (bits_per_sample / 8);
+
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
+        bytes.extend_from_slice(b"WAVE");
+        bytes.extend_from_slice(b"fmt ");
+        bytes.extend_from_slice(&16u32.to_le_bytes());
+        bytes.extend_from_slice(&1u16.to_le_bytes());
+        bytes.extend_from_slice(&channels.to_le_bytes());
+        bytes.extend_from_slice(&sample_rate.to_le_bytes());
+        bytes.extend_from_slice(&byte_rate.to_le_bytes());
+        bytes.extend_from_slice(&block_align.to_le_bytes());
+        bytes.extend_from_slice(&bits_per_sample.to_le_bytes());
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&data_len.to_le_bytes());
+        bytes.resize(bytes.len() + data_len as usize, 0);
+
+        fs::write(path, bytes).expect("test wav file");
     }
 
     #[test]
@@ -373,7 +414,12 @@ mime_type = "audio/ogg; codecs=opus"
     }
 
     #[test]
-    fn service_exports_mock_opus_publication_copy() {
+    fn service_exports_encoded_opus_publication_copy() {
+        if !ffmpeg_opus_available() {
+            eprintln!("skipping real Opus export test because ffmpeg/libopus is unavailable");
+            return;
+        }
+
         let root = std::env::temp_dir().join(format!(
             "waystone-audio-service-export-{}",
             std::process::id()
@@ -381,21 +427,23 @@ mime_type = "audio/ogg; codecs=opus"
         let project = root.join("audio-project.wayproject");
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
-        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+        write_test_wav(&project.join("audio/masters/note.wav"));
 
         let service = AudioService;
         let exported = service
             .export_opus(ExportOpusRequest {
                 project_root: project.clone(),
-                master: "audio/masters/note.flac".to_string(),
+                master: "audio/masters/note.wav".to_string(),
                 published: "audio/published/note.opus".to_string(),
                 preset: "voice-standard".to_string(),
             })
             .expect("publication copy should export");
 
         assert_eq!(exported.output_relative_path, "audio/published/note.opus");
-        assert_eq!(exported.engine, "mock");
+        assert_eq!(exported.engine, "ffmpeg");
         assert!(exported.output_path.is_file());
+        let output = fs::read(&exported.output_path).expect("encoded output");
+        assert!(output.starts_with(b"OggS"));
 
         let _ = fs::remove_dir_all(root);
     }

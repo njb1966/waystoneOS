@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::process;
 use std::process::Command;
 
@@ -8,6 +9,45 @@ fn repo_path(relative: &str) -> String {
         .join(relative)
         .display()
         .to_string()
+}
+
+fn ffmpeg_opus_available() -> bool {
+    Command::new("ffmpeg")
+        .args(["-hide_banner", "-encoders"])
+        .output()
+        .map(|output| {
+            output.status.success() && String::from_utf8_lossy(&output.stdout).contains("libopus")
+        })
+        .unwrap_or(false)
+}
+
+fn write_test_wav(path: &Path) {
+    let sample_rate = 48_000u32;
+    let channels = 1u16;
+    let bits_per_sample = 16u16;
+    let sample_count = 4_800u32;
+    let bytes_per_sample = u32::from(bits_per_sample / 8);
+    let data_len = sample_count * u32::from(channels) * bytes_per_sample;
+    let byte_rate = sample_rate * u32::from(channels) * bytes_per_sample;
+    let block_align = channels * (bits_per_sample / 8);
+
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
+    bytes.extend_from_slice(b"WAVE");
+    bytes.extend_from_slice(b"fmt ");
+    bytes.extend_from_slice(&16u32.to_le_bytes());
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&channels.to_le_bytes());
+    bytes.extend_from_slice(&sample_rate.to_le_bytes());
+    bytes.extend_from_slice(&byte_rate.to_le_bytes());
+    bytes.extend_from_slice(&block_align.to_le_bytes());
+    bytes.extend_from_slice(&bits_per_sample.to_le_bytes());
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&data_len.to_le_bytes());
+    bytes.resize(bytes.len() + data_len as usize, 0);
+
+    fs::write(path, bytes).expect("test wav file");
 }
 
 #[test]
@@ -27,6 +67,11 @@ fn validate_rejects_invalid_audio_path() {
 
 #[test]
 fn attach_creates_recording_metadata_sidecar() {
+    if !ffmpeg_opus_available() {
+        eprintln!("skipping record CLI publish flow because ffmpeg/libopus is unavailable");
+        return;
+    }
+
     let root = std::env::temp_dir().join(format!("waystone-record-cli-{}", process::id()));
     let project = root.join("attach-audio.wayproject");
     let metadata_path = project.join("audio/metadata/field-note.toml");
@@ -64,14 +109,14 @@ title = "Attach Audio"
 "#,
     )
     .expect("project manifest");
-    fs::write(project.join("audio/masters/field-note.flac"), b"master").expect("master file");
+    write_test_wav(&project.join("audio/masters/field-note.wav"));
 
     let export_output = Command::new(env!("CARGO_BIN_EXE_record"))
         .args([
             "export-opus",
             "--json",
             project.to_str().expect("project path"),
-            "audio/masters/field-note.flac",
+            "audio/masters/field-note.wav",
             "audio/published/field-note.opus",
             "voice-standard",
         ])
@@ -82,7 +127,7 @@ title = "Attach Audio"
     let export_stdout = String::from_utf8_lossy(&export_output.stdout);
     assert!(export_stdout.contains("\"output_relative_path\":\"audio/published/field-note.opus\""));
     assert!(export_stdout.contains("\"mime_type\":\"audio/ogg; codecs=opus\""));
-    assert!(export_stdout.contains("\"engine\":\"mock\""));
+    assert!(export_stdout.contains("\"engine\":\"ffmpeg\""));
     assert!(project.join("audio/published/field-note.opus").is_file());
 
     let output = Command::new(env!("CARGO_BIN_EXE_record"))
@@ -92,7 +137,7 @@ title = "Attach Audio"
             project.to_str().expect("project path"),
             "field-note",
             "Field Note",
-            "audio/masters/field-note.flac",
+            "audio/masters/field-note.wav",
             "audio/published/field-note.opus",
             "feeds/feed.xml",
             "tag:example.invalid,2026:field-note",
@@ -275,7 +320,7 @@ mime_type = "audio/ogg; codecs=opus"
             project.to_str().expect("project path"),
             "field-note",
             "Field Note",
-            "audio/masters/field-note.flac",
+            "audio/masters/field-note.wav",
             "audio/published/field-note.opus",
             "feeds/feed.xml",
             "tag:example.invalid,2026:field-note",
@@ -293,7 +338,7 @@ mime_type = "audio/ogg; codecs=opus"
             "export-opus",
             "--json",
             project.to_str().expect("project path"),
-            "audio/masters/field-note.flac",
+            "audio/masters/field-note.wav",
             "audio/published/field-note.opus",
             "voice-standard",
         ])

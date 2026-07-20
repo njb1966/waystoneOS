@@ -112,8 +112,8 @@ listen library ROOT
 `record attach` creates one metadata sidecar under the selected project's
 configured `[audio].metadata` root. It references an existing project-relative
 master file, an existing project-relative publication copy, and a feed enclosure
-handoff path. It does not copy files, record audio, export real audio, generate
-a feed, or overwrite an existing sidecar.
+handoff path. It does not copy files, record audio, generate a feed, or
+overwrite an existing sidecar.
 
 `record update` rewrites an existing recording sidecar selected from the
 project's configured `[audio].metadata` root. It preserves the existing
@@ -124,13 +124,14 @@ master and publication-copy paths to be existing project-relative files. It
 does not edit audio, create a new sidecar, update prepared feed-entry sidecars,
 or merge feed XML.
 
-`record export-opus` models the master-versus-publication-copy workflow for an
-existing project-local master file. It validates project-relative paths, accepts
-a narrow preset name, requires the output path to end with `.opus`, writes a
-mock publication-copy file, and refuses to overwrite an existing output. The
-JSON response reports `mime_type = "audio/ogg; codecs=opus"` and
-`engine = "mock"` so callers do not mistake the result for real codec output.
-Real Opus encoding remains deferred.
+`record export-opus` creates an Opus publication copy from an existing
+project-local master file through `ffmpeg` with the `libopus` encoder. It
+validates project-relative paths, accepts a narrow preset name, requires the
+output path to end with `.opus`, writes through a temporary output, and refuses
+to overwrite an existing publication copy. The JSON response reports
+`mime_type = "audio/ogg; codecs=opus"` and `engine = "ffmpeg"`. The command
+does not record audio, edit the master file, update metadata sidecars, or
+publish remotely.
 
 `record prepare-feed-entry` creates one feed-entry sidecar under
 `feeds/entries/` from an existing recording sidecar in the selected project's

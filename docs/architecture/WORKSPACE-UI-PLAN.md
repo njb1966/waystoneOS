@@ -151,7 +151,7 @@ editor, load, edit, save, validate, locally preview, and locally link-check the
 selected project's content index file, list files under the selected project's
 content root, filter that file list, show read-only detail for the selected
 content file, attach existing project-local audio files through `record attach
---json`, create mock publication copies through `record export-opus --json`,
+--json`, create Opus publication copies through `record export-opus --json`,
 update existing recording sidecars through `record update --json`, prepare
 feed-entry sidecars through `record prepare-feed-entry --json`, update existing
 feed-entry sidecars through `record update-feed-entry --json`, show

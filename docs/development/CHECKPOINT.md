@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after Publish-to-Create feed diagnostic handoff
+Status: current after real Opus publication-copy export
 Date: 2026-07-20
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, and Publish-to-Create handoff for selected invalid feed-entry diagnostics.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, and Publish-to-Create handoff for selected invalid feed-entry diagnostics.
 
 ## Current Position
 
@@ -37,7 +37,7 @@ The Qt Workspace currently has:
 - Create pane lists files under the selected project's content root with relative path, size, and full path
 - Create pane filters visible content-root files by relative path or full path without changing the editable content index binding
 - Create pane shows read-only detail for the selected content-root file, including whether it is the editable content index
-- Create pane can create a mock Opus publication copy from an existing project-local master through `record export-opus --json`
+- Create pane can create an encoded Opus publication copy from an existing project-local master through `record export-opus --json`
 - Create pane can attach an existing project-local audio master/publication copy through `record attach --json` when the selected project has `[audio].metadata` configured
 - Create pane can update existing recording metadata sidecars through `record update --json`
 - Create pane can prepare feed-entry sidecars and show publication/feed-entry validation status through `record prepare-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
@@ -69,7 +69,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project mock publication copies, creates and updates selected project audio metadata sidecars, creates and updates selected project feed-entry sidecars, and generates the selected project's feed XML from prepared sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project Opus publication copies through `ffmpeg/libopus`, creates and updates selected project audio metadata sidecars, creates and updates selected project feed-entry sidecars, and generates the selected project's feed XML from prepared sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 The Create-pane audio attachment controls call `record attach --json`. They
 create metadata sidecars for existing project-local master and publication-copy
@@ -86,11 +86,11 @@ project. It does not edit audio, create new sidecars, update prepared
 feed-entry sidecars, merge feed XML, or call D-Bus. The Qt Create pane exposes
 it through the local CLI adapter.
 
-The Create-pane mock export control calls `record export-opus --json`. It
-models publication-copy export for an existing project-local master file,
-writes a mock `.opus` output, refuses to overwrite an existing output, and
-reports `engine = "mock"` so callers know real Opus encoding did not occur.
-Real codec export remains deferred.
+The Create-pane export control calls `record export-opus --json`. It creates
+an encoded `.opus` publication copy from an existing project-local master file
+through `ffmpeg/libopus`, refuses to overwrite an existing output, and reports
+`engine = "ffmpeg"`. It does not record audio, edit metadata sidecars, publish
+remotely, call D-Bus, or access audio devices.
 
 The Create-pane feed-entry controls call `record prepare-feed-entry --json`,
 `record validate-publication --json`, and `record validate-feed-entry --json`.
@@ -175,11 +175,9 @@ Result after Publish-pane feed readiness reporting: relevant checks passed on
 2026-07-19, including Rust tests, clippy, CLI JSON contract smoke, publishd
 smoke checks, and Qt smoke checks.
 
-Result after mock Opus publication-copy export: relevant checks passed on
-2026-07-20, including Rust tests, clippy, and CLI JSON contract smoke.
-
-Result after Qt mock Opus publication-copy export controls: relevant checks
-passed on 2026-07-20, including Qt build and focused Qt project smoke.
+Result after real `ffmpeg/libopus` Opus publication-copy export: relevant
+checks passed on 2026-07-20, including Rust tests, clippy, CLI JSON contract
+smoke, Qt build, focused Qt project smoke, and broad Qt smoke.
 
 Result after Publish-pane invalid feed-entry diagnostics: relevant checks
 passed on 2026-07-20, including Rust tests, clippy, CLI JSON contract smoke,
@@ -217,7 +215,7 @@ on 2026-07-20, including Qt build and focused Qt project smoke.
 - `waystone-audiod` direct D-Bus serving is implemented for recording metadata list, inspect, and validate.
 - `record attach` creates local audio metadata sidecars under a project's configured `[audio].metadata` root without copying audio, transcoding, generating feeds, or overwriting existing sidecars.
 - `record update` rewrites existing local audio metadata sidecars in place while preserving the embedded recording ID, sidecar path, and optional measurement fields.
-- `record export-opus` creates a mock local Opus publication-copy file from an existing project-local master without real codec encoding or overwriting existing outputs.
+- `record export-opus` creates an encoded local Opus publication-copy file from an existing project-local master through `ffmpeg/libopus` without overwriting existing outputs.
 - `record prepare-feed-entry` creates local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record update-feed-entry` rewrites existing local feed-entry metadata sidecars under `feeds/entries/` without generating or updating feed XML.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
@@ -235,7 +233,7 @@ on 2026-07-20, including Qt build and focused Qt project smoke.
 - `waystone-audiod` D-Bus service file and systemd user unit are present in the repo.
 - D-Bus autostart is verified on a private test session bus with generated temporary service files.
 - Activation files have not been installed into user or system service directories.
-- `waystone-audiod` remains read-only over D-Bus; the attachment, update, mock publication-copy export, feed-entry preparation/update, project-context publication validation, and feed generation operations are not exposed through IPC yet.
+- `waystone-audiod` remains read-only over D-Bus; the attachment, update, Opus publication-copy export, feed-entry preparation/update, project-context publication validation, and feed generation operations are not exposed through IPC yet.
 - Remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -244,8 +242,8 @@ on 2026-07-20, including Qt build and focused Qt project smoke.
 Recommended next implementation step:
 
 1. Review the remaining 0.1 audio/feed gaps and choose the next CLI/service-first contract deliberately.
-2. Candidate: replace mock Opus export with a narrow real encoder contract after confirming native Debian dependency expectations.
-3. Candidate: add an explicit feed XML update/merge contract while keeping remote publishing deferred.
+2. Candidate: add an explicit feed XML update/merge contract while keeping remote publishing deferred.
+3. Candidate: add a narrow local recording-capture contract if the project needs capture before publication polish.
 
 Alternative next step:
 
@@ -253,6 +251,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Paused on 2026-07-20 after commit `874facc` with the repository clean before
-the pause marker was written. That handoff has now been resumed and superseded
-by this checkpoint.
+Current after the real Opus export slice on 2026-07-20. The latest handoff has
+been resumed and superseded by this checkpoint.

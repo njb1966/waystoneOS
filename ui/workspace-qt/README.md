@@ -48,7 +48,7 @@ Current UI data is limited to:
 - local removable publish-target metadata setup
 - local reads and writes of the selected project's content index file
 - local content-root file listing, filtering, and selected-file detail for the selected project
-- local mock publication-copy export from existing project-local master files
+- local Opus publication-copy export from existing project-local master files through `record export-opus --json`
 - local audio metadata sidecar attachment for existing project-local master and publication-copy files
 - local audio metadata sidecar updates for existing project recordings
 - local feed-entry sidecar preparation, update, and validation status for attached project recordings

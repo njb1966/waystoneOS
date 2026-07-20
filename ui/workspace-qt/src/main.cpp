@@ -3,6 +3,7 @@
 #include "workspace_pages.h"
 
 #include <QApplication>
+#include <QByteArray>
 #include <QButtonGroup>
 #include <QComboBox>
 #include <QDir>
@@ -116,6 +117,47 @@ bool writeFile(const QString &path, const QByteArray &content, QString *error) {
         return false;
     }
     return true;
+}
+
+void appendLe16(QByteArray *bytes, quint16 value) {
+    bytes->append(static_cast<char>(value & 0xff));
+    bytes->append(static_cast<char>((value >> 8) & 0xff));
+}
+
+void appendLe32(QByteArray *bytes, quint32 value) {
+    bytes->append(static_cast<char>(value & 0xff));
+    bytes->append(static_cast<char>((value >> 8) & 0xff));
+    bytes->append(static_cast<char>((value >> 16) & 0xff));
+    bytes->append(static_cast<char>((value >> 24) & 0xff));
+}
+
+bool writeTestWav(const QString &path, QString *error) {
+    const quint32 sampleRate = 48000;
+    const quint16 channels = 1;
+    const quint16 bitsPerSample = 16;
+    const quint32 sampleCount = 4800;
+    const quint32 bytesPerSample = bitsPerSample / 8;
+    const quint32 dataLen = sampleCount * channels * bytesPerSample;
+    const quint32 byteRate = sampleRate * channels * bytesPerSample;
+    const quint16 blockAlign = channels * (bitsPerSample / 8);
+
+    QByteArray bytes;
+    bytes.append("RIFF", 4);
+    appendLe32(&bytes, 36 + dataLen);
+    bytes.append("WAVE", 4);
+    bytes.append("fmt ", 4);
+    appendLe32(&bytes, 16);
+    appendLe16(&bytes, 1);
+    appendLe16(&bytes, channels);
+    appendLe32(&bytes, sampleRate);
+    appendLe32(&bytes, byteRate);
+    appendLe16(&bytes, blockAlign);
+    appendLe16(&bytes, bitsPerSample);
+    bytes.append("data", 4);
+    appendLe32(&bytes, dataLen);
+    bytes.append(QByteArray(static_cast<int>(dataLen), '\0'));
+
+    return writeFile(path, bytes, error);
 }
 
 QString readFile(const QString &path, QString *error) {
@@ -295,8 +337,8 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     }
 
     QString setupError;
-    if (!writeFile(projectDir.filePath("audio/masters/field-note.flac"), "master",
-                   &setupError)) {
+    if (!writeTestWav(projectDir.filePath("audio/masters/field-note.wav"),
+                      &setupError)) {
         err << "workspace recording smoke: audio file setup failed: " << setupError
             << Qt::endl;
         return 1;
@@ -359,7 +401,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
 
     recordingId->setText("field-note");
     recordingTitle->setText("Field Note");
-    recordingMaster->setText("audio/masters/field-note.flac");
+    recordingMaster->setText("audio/masters/field-note.wav");
     recordingPublished->setText("audio/published/field-note.opus");
     recordingExportPreset->setCurrentText("voice-standard");
     recordingFeed->setText("feeds/feed.xml");
@@ -374,9 +416,9 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         projectDir.filePath("audio/published/field-note.opus");
     if (!QFileInfo::exists(publishedPath) ||
         !status->text().contains("audio/published/field-note.opus") ||
-        !status->text().contains("mock") ||
+        !status->text().contains("ffmpeg") ||
         !details->toPlainText().contains("Publication copy: audio/published/field-note.opus") ||
-        !details->toPlainText().contains("Engine: mock")) {
+        !details->toPlainText().contains("Engine: ffmpeg")) {
         err << "workspace recording smoke: Opus export was not reflected"
             << Qt::endl;
         err << "status: " << status->text() << Qt::endl;
@@ -402,8 +444,8 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         return 1;
     }
 
-    if (!writeFile(projectDir.filePath("audio/masters/field-note-revised.flac"),
-                   "revised master", &setupError) ||
+    if (!writeTestWav(projectDir.filePath("audio/masters/field-note-revised.wav"),
+                      &setupError) ||
         !writeFile(projectDir.filePath("audio/published/field-note-revised.opus"),
                    "revised published", &setupError)) {
         err << "workspace recording smoke: revised audio file setup failed: "
@@ -413,7 +455,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     }
 
     recordingTitle->setText("Field Note Revised");
-    recordingMaster->setText("audio/masters/field-note-revised.flac");
+    recordingMaster->setText("audio/masters/field-note-revised.wav");
     recordingPublished->setText("audio/published/field-note-revised.opus");
     recordingEntryId->setText("tag:example.invalid,2026:field-note-revised");
     updateRecording->click();

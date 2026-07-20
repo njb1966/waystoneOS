@@ -18,9 +18,17 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import wave
 from pathlib import Path
 
 repo_root = sys.argv[1]
+
+def write_test_wav(path):
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(48000)
+        wav.writeframes(b"\x00\x00" * 4800)
 
 def run(command):
     completed = subprocess.run(
@@ -36,6 +44,19 @@ def run(command):
 def require(condition, message):
     if not condition:
         raise SystemExit(message)
+
+require(shutil.which("ffmpeg") is not None,
+        "ffmpeg is required for record export-opus contract smoke")
+encoders = subprocess.run(
+    ["ffmpeg", "-hide_banner", "-encoders"],
+    cwd=repo_root,
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+)
+require("libopus" in encoders.stdout,
+        "ffmpeg libopus encoder is required for record export-opus contract smoke")
 
 project_list = run(["target/debug/project", "list", "--json", "examples/projects"])
 projects = project_list["data"]["projects"]
@@ -129,10 +150,10 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
     require("[publication]" in read_history["data"]["record_toml"],
             "publish read planned-history preview did not return record TOML")
 
-    (temp_project / "audio" / "masters" / "second-note.flac").write_bytes(b"master")
+    write_test_wav(temp_project / "audio" / "masters" / "second-note.wav")
     exported_opus = run([
         "target/debug/record", "export-opus", "--json", str(temp_project),
-        "audio/masters/second-note.flac",
+        "audio/masters/second-note.wav",
         "audio/published/second-note.opus",
         "voice-standard",
     ])
@@ -144,14 +165,14 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record export-opus output path changed")
     require(exported_opus["data"]["mime_type"] == "audio/ogg; codecs=opus",
             "record export-opus MIME type changed")
-    require(exported_opus["data"]["engine"] == "mock",
+    require(exported_opus["data"]["engine"] == "ffmpeg",
             "record export-opus engine changed")
     require((temp_project / "audio" / "published" / "second-note.opus").exists(),
             "record export-opus did not write publication copy")
     attached_recording = run([
         "target/debug/record", "attach", "--json", str(temp_project),
         "second-note", "Second Note",
-        "audio/masters/second-note.flac",
+        "audio/masters/second-note.wav",
         "audio/published/second-note.opus",
         "feeds/feed.xml",
         "tag:example.invalid,2026:second-note",
@@ -166,16 +187,14 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "record attach metadata path changed")
     require((temp_project / "audio" / "metadata" / "second-note.toml").exists(),
             "record attach did not write metadata sidecar")
-    (temp_project / "audio" / "masters" / "second-note-revised.flac").write_bytes(
-        b"revised master"
-    )
+    write_test_wav(temp_project / "audio" / "masters" / "second-note-revised.wav")
     (temp_project / "audio" / "published" / "second-note-revised.opus").write_bytes(
         b"revised published"
     )
     updated_recording = run([
         "target/debug/record", "update", "--json", str(temp_project),
         "second-note", "Second Note Revised",
-        "audio/masters/second-note-revised.flac",
+        "audio/masters/second-note-revised.wav",
         "audio/published/second-note-revised.opus",
         "feeds/feed.xml",
         "tag:example.invalid,2026:second-note-revised",

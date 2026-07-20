@@ -2,6 +2,7 @@ use serde::Deserialize;
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command;
 use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
@@ -308,6 +309,12 @@ pub enum AudioMetadataError {
     #[error("unsupported Opus export preset: {0}")]
     UnsupportedOpusPreset(String),
 
+    #[error("Opus encoder could not be started: {source}")]
+    OpusEncoderUnavailable { source: io::Error },
+
+    #[error("Opus encoder failed with status {status:?}: {stderr}")]
+    OpusEncoderFailed { status: Option<i32>, stderr: String },
+
     #[error("publication copy could not be written: {path}: {source}")]
     WritePublicationCopyFailed { path: PathBuf, source: io::Error },
 
@@ -582,14 +589,7 @@ pub fn export_opus_publication_copy(
             .expect("publication copy output has a file name")
             .to_string_lossy()
     ));
-    fs::write(
-        &temp_output_path,
-        render_mock_opus_publication_copy(options).as_bytes(),
-    )
-    .map_err(|source| AudioMetadataError::WritePublicationCopyFailed {
-        path: temp_output_path.clone(),
-        source,
-    })?;
+    export_opus_with_ffmpeg(options, &temp_output_path)?;
     fs::rename(&temp_output_path, &output_path).map_err(|source| {
         AudioMetadataError::InstallPublicationCopyFailed {
             path: output_path.clone(),
@@ -604,7 +604,7 @@ pub fn export_opus_publication_copy(
         output_relative_path,
         preset: options.preset.clone(),
         mime_type: "audio/ogg; codecs=opus".to_string(),
-        engine: "mock".to_string(),
+        engine: "ffmpeg".to_string(),
     })
 }
 
@@ -1499,6 +1499,71 @@ fn validate_opus_preset(value: &str) -> Result<(), AudioMetadataError> {
     }
 }
 
+fn opus_preset_args(value: &str) -> Result<&'static [&'static str], AudioMetadataError> {
+    match value {
+        "voice-compact" => Ok(&[
+            "-ac",
+            "1",
+            "-ar",
+            "48000",
+            "-b:a",
+            "32k",
+            "-application",
+            "voip",
+        ]),
+        "voice-standard" => Ok(&[
+            "-ac",
+            "1",
+            "-ar",
+            "48000",
+            "-b:a",
+            "48k",
+            "-application",
+            "voip",
+        ]),
+        "spoken-program" => Ok(&[
+            "-ac",
+            "1",
+            "-ar",
+            "48000",
+            "-b:a",
+            "64k",
+            "-application",
+            "audio",
+        ]),
+        "music-efficient" => Ok(&["-ar", "48000", "-b:a", "96k", "-application", "audio"]),
+        "music-quality" => Ok(&["-ar", "48000", "-b:a", "160k", "-application", "audio"]),
+        _ => Err(AudioMetadataError::UnsupportedOpusPreset(value.to_string())),
+    }
+}
+
+fn export_opus_with_ffmpeg(
+    options: &ExportOpusOptions,
+    temp_output_path: &Path,
+) -> Result<(), AudioMetadataError> {
+    let master_path = options.project_root.join(&options.master);
+    let mut command = Command::new("ffmpeg");
+    command.args(["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i"]);
+    command.arg(master_path);
+    command.args(["-vn", "-c:a", "libopus"]);
+    command.args(opus_preset_args(&options.preset)?);
+    command.args(["-f", "opus"]);
+    command.arg(temp_output_path);
+
+    let output = command
+        .output()
+        .map_err(|source| AudioMetadataError::OpusEncoderUnavailable { source })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(AudioMetadataError::OpusEncoderFailed {
+            status: output.status.code(),
+            stderr,
+        });
+    }
+
+    Ok(())
+}
+
 fn recording_id_is_valid(value: &str) -> bool {
     !value.is_empty()
         && value
@@ -1637,17 +1702,6 @@ fn render_prepared_feed_entry(fields: &PreparedFeedEntryRender<'_>) -> String {
     entry
 }
 
-fn render_mock_opus_publication_copy(options: &ExportOpusOptions) -> String {
-    let mut copy = String::new();
-    copy.push_str("WaystoneOS mock Opus publication copy\n");
-    copy.push_str("This file models the publication-copy workflow; it is not encoded audio.\n");
-    copy.push_str(&format!("master = {}\n", options.master));
-    copy.push_str(&format!("published = {}\n", options.published));
-    copy.push_str(&format!("preset = {}\n", options.preset));
-    copy.push_str("mime_type = audio/ogg; codecs=opus\n");
-    copy
-}
-
 fn render_atom_feed(
     title: &str,
     feed_path: &str,
@@ -1734,6 +1788,46 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
             .join(relative)
+    }
+
+    fn ffmpeg_opus_available() -> bool {
+        Command::new("ffmpeg")
+            .args(["-hide_banner", "-encoders"])
+            .output()
+            .map(|output| {
+                output.status.success()
+                    && String::from_utf8_lossy(&output.stdout).contains("libopus")
+            })
+            .unwrap_or(false)
+    }
+
+    fn write_test_wav(path: &Path) {
+        let sample_rate = 48_000u32;
+        let channels = 1u16;
+        let bits_per_sample = 16u16;
+        let sample_count = 4_800u32;
+        let bytes_per_sample = u32::from(bits_per_sample / 8);
+        let data_len = sample_count * u32::from(channels) * bytes_per_sample;
+        let byte_rate = sample_rate * u32::from(channels) * bytes_per_sample;
+        let block_align = channels * (bits_per_sample / 8);
+
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
+        bytes.extend_from_slice(b"WAVE");
+        bytes.extend_from_slice(b"fmt ");
+        bytes.extend_from_slice(&16u32.to_le_bytes());
+        bytes.extend_from_slice(&1u16.to_le_bytes());
+        bytes.extend_from_slice(&channels.to_le_bytes());
+        bytes.extend_from_slice(&sample_rate.to_le_bytes());
+        bytes.extend_from_slice(&byte_rate.to_le_bytes());
+        bytes.extend_from_slice(&block_align.to_le_bytes());
+        bytes.extend_from_slice(&bits_per_sample.to_le_bytes());
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&data_len.to_le_bytes());
+        bytes.resize(bytes.len() + data_len as usize, 0);
+
+        fs::write(path, bytes).expect("test wav file");
     }
 
     #[test]
@@ -1934,17 +2028,22 @@ mime_type = "audio/ogg; codecs=opus"
     }
 
     #[test]
-    fn export_opus_writes_mock_publication_copy() {
+    fn export_opus_writes_encoded_publication_copy() {
+        if !ffmpeg_opus_available() {
+            eprintln!("skipping real Opus export test because ffmpeg/libopus is unavailable");
+            return;
+        }
+
         let root =
             std::env::temp_dir().join(format!("waystone-audio-export-{}", std::process::id()));
         let project = root.join("export.wayproject");
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(project.join("audio/masters")).expect("masters directory");
-        fs::write(project.join("audio/masters/note.flac"), b"master").expect("master file");
+        write_test_wav(&project.join("audio/masters/note.wav"));
 
         let exported = export_opus_publication_copy(&ExportOpusOptions {
             project_root: project.clone(),
-            master: "audio/masters/note.flac".to_string(),
+            master: "audio/masters/note.wav".to_string(),
             published: "audio/published/note.opus".to_string(),
             preset: "voice-standard".to_string(),
         })
@@ -1952,15 +2051,14 @@ mime_type = "audio/ogg; codecs=opus"
 
         assert_eq!(exported.output_relative_path, "audio/published/note.opus");
         assert_eq!(exported.mime_type, "audio/ogg; codecs=opus");
-        assert_eq!(exported.engine, "mock");
+        assert_eq!(exported.engine, "ffmpeg");
         assert!(exported.output_path.is_file());
-        let output = fs::read_to_string(&exported.output_path).expect("mock output");
-        assert!(output.contains("WaystoneOS mock Opus publication copy"));
-        assert!(output.contains("preset = voice-standard"));
+        let output = fs::read(&exported.output_path).expect("encoded output");
+        assert!(output.starts_with(b"OggS"));
 
         let duplicate = export_opus_publication_copy(&ExportOpusOptions {
             project_root: project.clone(),
-            master: "audio/masters/note.flac".to_string(),
+            master: "audio/masters/note.wav".to_string(),
             published: "audio/published/note.opus".to_string(),
             preset: "voice-standard".to_string(),
         })
@@ -1972,7 +2070,7 @@ mime_type = "audio/ogg; codecs=opus"
 
         let invalid_preset = export_opus_publication_copy(&ExportOpusOptions {
             project_root: project,
-            master: "audio/masters/note.flac".to_string(),
+            master: "audio/masters/note.wav".to_string(),
             published: "audio/published/other.opus".to_string(),
             preset: "podcast".to_string(),
         })

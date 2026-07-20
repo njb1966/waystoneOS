@@ -329,7 +329,7 @@ Current behavior:
 
 - Creates recording metadata sidecars for existing project-local master and publication-copy files
 - Updates existing recording metadata sidecars in place while preserving recording ID, sidecar path, and optional measurement fields
-- Creates mock Opus publication-copy files from existing project-local master files
+- Creates Opus publication-copy files from existing project-local master files through `ffmpeg/libopus`
 - Creates feed-entry metadata sidecars under `feeds/entries/` from existing recording metadata
 - Updates existing feed-entry metadata sidecars from current recording metadata
 - Validates publication-copy and feed-entry handoff metadata in project context
@@ -458,10 +458,10 @@ new master and publication-copy files to exist, and does not edit audio or
 prepared feed-entry sidecars.
 
 `record export-opus` validates an existing project-local master file and writes
-a mock `.opus` publication-copy output for the requested project-relative path.
-It refuses to overwrite an existing publication copy and reports
-`engine = "mock"` in JSON output. It models the export workflow only; it does
-not perform real Opus encoding.
+an encoded `.opus` publication-copy output for the requested project-relative
+path through `ffmpeg/libopus`. It refuses to overwrite an existing publication
+copy and reports `engine = "ffmpeg"` in JSON output. It does not record audio,
+edit metadata sidecars, or publish remotely.
 
 `record prepare-feed-entry` creates a feed-entry metadata sidecar under
 `feeds/entries/` for an existing recording sidecar. It requires the recording
@@ -541,7 +541,7 @@ Current behavior:
 - Filters the Create pane content-root file list by relative path or full path
 - Shows read-only detail for the selected Create pane content-root file, including whether it is the editable content index
 - Uses the existing `record` and `listen` CLI JSON output for Create-pane recording list, inspect, validate, playable state, and local metadata sidecar attachment
-- Uses `record export-opus --json` in the Create pane to create mock publication copies from existing project-local master files
+- Uses `record export-opus --json` in the Create pane to create encoded Opus publication copies from existing project-local master files
 - Uses `record attach --json` in the Create pane to create audio metadata sidecars for existing project-local master and publication-copy files when the selected project has audio metadata configured
 - Uses `record update --json` in the Create pane to update existing recording metadata sidecars for selected projects
 - Uses `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json` in the Create pane to prepare, update, and validate local feed-entry handoff metadata for attached recordings
@@ -673,7 +673,7 @@ Current tests cover:
 - `host validate` rejects invalid trust state
 - `identity validate` rejects private-key material
 - `record validate` rejects invalid audio paths
-- `record export-opus --json` writes a mock Opus publication copy, `record attach --json` creates recording metadata, `record update --json` rewrites existing recording metadata, `record prepare-feed-entry --json` creates feed-entry metadata, `record update-feed-entry --json` rewrites existing feed-entry metadata, `record validate-publication --json` plus `record validate-feed-entry --json` validate local audio publication handoff, and `record generate-feed --json` writes a local Atom feed
+- `record export-opus --json` writes an encoded Opus publication copy through `ffmpeg/libopus`, `record attach --json` creates recording metadata, `record update --json` rewrites existing recording metadata, `record prepare-feed-entry --json` creates feed-entry metadata, `record update-feed-entry --json` rewrites existing feed-entry metadata, `record validate-publication --json` plus `record validate-feed-entry --json` validate local audio publication handoff, and `record generate-feed --json` writes a local Atom feed
 - `listen library --json` lists recording metadata
 - `way --help` lists current core commands
 
@@ -735,9 +735,10 @@ scripts/audiod-systemd-unit-smoke.sh
 
 Local result on 2026-07-19: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the Create pane content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same smoke creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for existing project-local audio files, verifies that the Create-pane recording update controls rewrite that sidecar for revised project-local files, prepares a feed-entry sidecar, verifies publication/feed-entry validation status, generates feed XML, verifies that the generated Atom feed contains the expected entry, and verifies that the Publish pane reports the generated feed as ready with one prepared entry. The same focused smoke also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, no target, feed missing, feed entries invalid, feed present, or feed ready, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without writing completed history or mutating remotes. The CLI JSON contract smoke verifies `record attach --json`, `record update --json`, `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, `record validate-feed-entry --json`, `record generate-feed --json`, and publish dry-run feed readiness against temporary project data. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
-Local result on 2026-07-20: mock Opus publication-copy export passed Rust
-tests, clippy with warnings denied, and the CLI JSON contract smoke. Qt
-Create-pane mock export controls passed Qt build and focused Qt project smoke.
+Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
+passed Rust tests, clippy with warnings denied, and the CLI JSON contract
+smoke. Qt Create-pane export controls passed Qt build and focused Qt project
+smoke.
 Publish feed diagnostics passed Rust tests, clippy with warnings denied, CLI
 JSON contract smoke, publishd D-Bus smoke, and focused Qt project smoke.
 Publish feed-entry validation detail passed Qt build and focused Qt project
@@ -792,7 +793,7 @@ scripts/workspace-qt-project-smoke.sh
 - Audio device enumeration
 - Audio recording
 - Audio playback
-- Audio trimming, normalization, or real codec export/transcoding
+- Audio trimming, normalization, or codec export/transcoding beyond Opus publication copies
 - Full audio metadata merge editing beyond the narrow `record update` replacement command
 - Existing feed XML merge updates or non-Atom feed generation
 - Deeper Workspace actions beyond local inspect, authoring, preview, and feed generation
