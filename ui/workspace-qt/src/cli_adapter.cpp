@@ -893,6 +893,45 @@ RecordingAttachResult CliAdapter::attachRecording(
     return attached;
 }
 
+RecordingUpdateResult CliAdapter::updateRecording(
+    const QString &projectPath, const QString &id, const QString &title,
+    const QString &master, const QString &published, const QString &feed,
+    const QString &entryId, const QString &mimeType) const {
+    RecordingUpdateResult updated;
+    const CommandResult result =
+        runCommand("record", {"update", "--json", projectPath, id, title, master,
+                              published, feed, entryId, mimeType});
+
+    if (!result.error.isEmpty()) {
+        updated.error = result.error;
+        return updated;
+    }
+
+    if (result.exitCode != 0) {
+        updated.error = commandFailureDetail(result, "record update failed");
+        return updated;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        updated.error = "record update returned unreadable JSON";
+        return updated;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    updated.id = data.value("id").toString();
+    updated.title = data.value("title").toString();
+    updated.metadataPath = data.value("metadata_path").toString();
+    updated.metadataRelativePath =
+        data.value("metadata_relative_path").toString();
+    updated.master = data.value("master").toString();
+    updated.published = data.value("published").toString();
+    updated.feed = data.value("feed").toString();
+    updated.ok = true;
+    return updated;
+}
+
 FeedEntryPrepareResult CliAdapter::prepareFeedEntry(
     const QString &projectPath, const QString &recordingId, const QString &updated,
     const QString &summary) const {

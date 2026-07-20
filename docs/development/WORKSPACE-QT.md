@@ -33,6 +33,7 @@ Implemented:
 - Recording adapter using `record` and `listen` CLI JSON output
 - Create-pane mock publication-copy export controls using `record export-opus --json` for existing project-local master files
 - Create-pane recording attachment controls using `record attach --json` for existing project-local master and publication-copy files
+- Create-pane recording update controls using `record update --json` for existing recording sidecars
 - Create-pane feed-entry preparation and validation controls using `record prepare-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
 - Publish-pane target selection derived from `project inspect --json` metadata
@@ -171,10 +172,11 @@ examples. It also creates an audio-capable temporary project, verifies that
 project creation supplies audio/feed scaffold defaults, verifies that the
 Create-pane recording export control writes a mock publication copy, verifies
 that recording attachment controls create an inspectable metadata sidecar for
-project-local audio files, prepares a feed-entry sidecar, verifies
-publication/feed-entry validation status, generates feed XML, adds one broken
-feed-entry sidecar, and verifies that the Publish pane reports invalid feed
-state with a diagnostic path and validation issue text. It also verifies that
+project-local audio files, verifies that recording update controls rewrite that
+sidecar for revised project-local files, prepares a feed-entry sidecar,
+verifies publication/feed-entry validation status, generates feed XML, adds one
+broken feed-entry sidecar, and verifies that the Publish pane reports invalid
+feed state with a diagnostic path and validation issue text. It also verifies that
 the selected feed diagnostic can be validated from the Publish pane. It also
 creates a separate temporary project with multiple publish targets and verifies
 that the Publish pane target selector drives ready,
@@ -202,6 +204,7 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `project validate --json`
 - `record export-opus --json`
 - `record attach --json`
+- `record update --json`
 - `record prepare-feed-entry --json`
 - `record validate-publication --json`
 - `record validate-feed-entry --json`

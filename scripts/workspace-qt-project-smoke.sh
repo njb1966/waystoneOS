@@ -187,9 +187,9 @@ fi
 
 recording_inspect_output="$(cargo run -q -p waystone-record-cli -- inspect --json "$recording_metadata_path")"
 case "$recording_inspect_output" in
-  *'"id":"field-note"'*'"published":"audio/published/field-note.opus"'*) ;;
+  *'"id":"field-note"'*'"title":"Field Note Revised"'*'"published":"audio/published/field-note-revised.opus"'*) ;;
   *)
-    echo "workspace project smoke: attached recording was not inspectable"
+    echo "workspace project smoke: updated recording was not inspectable"
     echo "$recording_inspect_output"
     exit 1
     ;;
@@ -213,7 +213,7 @@ case "$recording_feed_validation" in
     ;;
 esac
 case "$(cat "$feed_path")" in
-  *'<feed xmlns="http://www.w3.org/2005/Atom">'*'<id>tag:example.invalid,2026:field-note</id>'*) ;;
+  *'<feed xmlns="http://www.w3.org/2005/Atom">'*'<id>tag:example.invalid,2026:field-note-revised</id>'*) ;;
   *)
     echo "workspace project smoke: generated feed XML did not contain expected entry"
     cat "$feed_path"

@@ -1130,6 +1130,9 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *attachRecording = new QPushButton("Attach Recording", attachActions);
     attachRecording->setObjectName("createAttachRecording");
     attachRecording->setEnabled(false);
+    auto *updateRecording = new QPushButton("Update Recording", attachActions);
+    updateRecording->setObjectName("createUpdateRecording");
+    updateRecording->setEnabled(false);
     auto *prepareFeedEntry = new QPushButton("Prepare Feed Entry", attachActions);
     prepareFeedEntry->setObjectName("createPrepareFeedEntry");
     prepareFeedEntry->setEnabled(false);
@@ -1138,6 +1141,7 @@ QWidget *createPage(const CliAdapter *adapter) {
     attachStatus->setWordWrap(true);
     attachActionsLayout->addWidget(exportOpus);
     attachActionsLayout->addWidget(attachRecording);
+    attachActionsLayout->addWidget(updateRecording);
     attachActionsLayout->addWidget(prepareFeedEntry);
     attachActionsLayout->addWidget(attachStatus, 1);
     auto *feedActions = new QWidget(attachForm);
@@ -1229,6 +1233,7 @@ QWidget *createPage(const CliAdapter *adapter) {
             addTarget->setEnabled(false);
             exportOpus->setEnabled(false);
             attachRecording->setEnabled(false);
+            updateRecording->setEnabled(false);
             prepareFeedEntry->setEnabled(false);
             validatePublication->setEnabled(false);
             validateFeedEntry->setEnabled(false);
@@ -1250,6 +1255,7 @@ QWidget *createPage(const CliAdapter *adapter) {
         addTarget->setEnabled(true);
         exportOpus->setEnabled(true);
         attachRecording->setEnabled(true);
+        updateRecording->setEnabled(true);
         prepareFeedEntry->setEnabled(true);
         validatePublication->setEnabled(true);
         validateFeedEntry->setEnabled(true);
@@ -1397,6 +1403,40 @@ QWidget *createPage(const CliAdapter *adapter) {
         recordingId->setText(attached.id);
         recordingTitle->clear();
         recordingEntryId->clear();
+    });
+
+    QObject::connect(updateRecording, &QPushButton::clicked, [=]() {
+        if (currentDocument->projectPath.isEmpty()) {
+            attachStatus->setText("Update: no project selected");
+            return;
+        }
+
+        const QString id = activeRecordingId();
+        const QString title = recordingTitle->text().trimmed();
+        const QString master = recordingMaster->text().trimmed();
+        const QString published = recordingPublished->text().trimmed();
+        const QString feed = recordingFeed->text().trimmed();
+        const QString entryId = recordingEntryId->text().trimmed();
+        const QString mimeType = recordingMime->text().trimmed();
+        if (id.isEmpty() || title.isEmpty() || master.isEmpty() ||
+            published.isEmpty() || feed.isEmpty() || entryId.isEmpty() ||
+            mimeType.isEmpty()) {
+            attachStatus->setText("Update fields are required");
+            return;
+        }
+
+        const RecordingUpdateResult updated = adapter->updateRecording(
+            currentDocument->projectPath, id, title, master, published, feed,
+            entryId, mimeType);
+        if (!updated.ok) {
+            attachStatus->setText("Update failed: " + updated.error);
+            return;
+        }
+
+        populateRecordingTable(recordingsTable, recordingDetails, adapter);
+        attachStatus->setText("Updated: " + updated.metadataRelativePath);
+        recordingDetails->setPlainText(adapter->inspectRecording(updated.metadataPath));
+        recordingId->setText(updated.id);
     });
 
     QObject::connect(prepareFeedEntry, &QPushButton::clicked, [=]() {

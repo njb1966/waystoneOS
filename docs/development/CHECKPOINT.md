@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after recording metadata update command
+Status: current after Qt recording metadata update controls
 Date: 2026-07-20
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, and the CLI/service recording metadata update command.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation, Qt feed generation controls, Publish-pane feed readiness reporting, the mock Opus publication-copy export command, Qt Create-pane controls for that mock export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, and Qt Create-pane controls for that update command.
 
 ## Current Position
 
@@ -39,6 +39,7 @@ The Qt Workspace currently has:
 - Create pane shows read-only detail for the selected content-root file, including whether it is the editable content index
 - Create pane can create a mock Opus publication copy from an existing project-local master through `record export-opus --json`
 - Create pane can attach an existing project-local audio master/publication copy through `record attach --json` when the selected project has `[audio].metadata` configured
+- Create pane can update existing recording metadata sidecars through `record update --json`
 - Create pane can prepare feed-entry sidecars and show publication/feed-entry validation status through `record prepare-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
 - Publish pane lists configured local projects and derives preview targets from `project inspect --json`
 - Publish pane shows all discovered project targets, exposes them through a target selector, and reports preview readiness as ready, blocked, failed, no project, or no target
@@ -66,7 +67,7 @@ The Qt Workspace currently has:
 - Page construction in `ui/workspace-qt/src/workspace_pages.*`
 - Application frame setup in `ui/workspace-qt/src/main.cpp`
 
-The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project mock publication copies, creates selected project audio metadata sidecars, creates selected project feed-entry sidecars, and generates the selected project's feed XML from prepared sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
+The UI is intentionally local-only. It writes user root settings, creates projects under the configured projects root, adds removable publish target metadata, edits selected project content index files, saves planned history preview records under selected project `history/previews/` directories, lists those saved preview records, reads selected preview TOML only from that project-local preview directory, creates selected project mock publication copies, creates and updates selected project audio metadata sidecars, creates selected project feed-entry sidecars, and generates the selected project's feed XML from prepared sidecars; it does not call D-Bus, mutate remotes, unlock credentials, capture audio, or embed Browser, Helm, or Comm.
 
 The Create-pane audio attachment controls call `record attach --json`. They
 create metadata sidecars for existing project-local master and publication-copy
@@ -80,7 +81,8 @@ sidecar path, embedded `recording.id`, and optional measurement fields while
 replacing title, master, publication-copy, feed, entry ID, and MIME fields. It
 requires replacement master and publication-copy files to exist inside the
 project. It does not edit audio, create new sidecars, update prepared
-feed-entry sidecars, merge feed XML, call D-Bus, or expose a Qt control yet.
+feed-entry sidecars, merge feed XML, or call D-Bus. The Qt Create pane exposes
+it through the local CLI adapter.
 
 The Create-pane mock export control calls `record export-opus --json`. It
 models publication-copy export for an existing project-local master file,
@@ -172,6 +174,9 @@ publishd D-Bus smoke, and focused Qt project smoke.
 Result after Publish-pane feed-entry validation detail action: relevant checks
 passed on 2026-07-20, including Qt build and focused Qt project smoke.
 
+Result after Qt recording metadata update controls: relevant checks passed on
+2026-07-20, including Qt build and focused Qt project smoke.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -194,6 +199,7 @@ passed on 2026-07-20, including Qt build and focused Qt project smoke.
 - `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars without merging existing XML or publishing remotely.
 - `publish --dry-run` reports feed readiness and invalid feed-entry diagnostics without generating or publishing feeds.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
+- The Qt Create pane exposes `record update` through local CLI adapters for selected project recording sidecars.
 - The Qt Create pane exposes `record export-opus` through local CLI adapters for selected projects before recording attachment.
 - The Qt Create pane exposes feed-entry preparation, publication/feed-entry validation status, and feed XML generation through local CLI adapters.
 - `project create` scaffolds audio/feed defaults for `audio-series` and `mixed-publication` projects.
@@ -211,7 +217,7 @@ passed on 2026-07-20, including Qt build and focused Qt project smoke.
 
 Recommended next implementation step:
 
-1. Expose `record update --json` in the Qt Create pane for selected project recording sidecars.
+1. Choose the next small audio/feed action deliberately: either a navigation handoff from Publish diagnostics back to Create, or a narrow feed-entry update command.
 2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 3. Keep packaging/install automation deferred until the repo has a broader install layout.
 

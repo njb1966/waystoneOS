@@ -116,6 +116,17 @@ bool writeFile(const QString &path, const QByteArray &content, QString *error) {
     return true;
 }
 
+QString readFile(const QString &path, QString *error) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        if (error != nullptr) {
+            *error = "could not read file: " + path;
+        }
+        return {};
+    }
+    return QString::fromUtf8(file.readAll());
+}
+
 bool comboContains(const QComboBox *combo, const QString &value) {
     for (int index = 0; index < combo->count(); ++index) {
         if (combo->itemText(index) == value) {
@@ -307,6 +318,7 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
     auto *feedSummary = page->findChild<QLineEdit *>("createFeedEntrySummary");
     auto *exportOpus = page->findChild<QPushButton *>("createExportOpus");
     auto *attach = page->findChild<QPushButton *>("createAttachRecording");
+    auto *updateRecording = page->findChild<QPushButton *>("createUpdateRecording");
     auto *prepareFeedEntry = page->findChild<QPushButton *>("createPrepareFeedEntry");
     auto *validatePublication =
         page->findChild<QPushButton *>("createValidatePublication");
@@ -322,8 +334,9 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
         recordingEntryId == nullptr || recordingMime == nullptr ||
         recordingExportPreset == nullptr || feedUpdated == nullptr ||
         feedSummary == nullptr || exportOpus == nullptr || attach == nullptr ||
-        prepareFeedEntry == nullptr || validatePublication == nullptr ||
-        validateFeedEntry == nullptr || generateFeed == nullptr ||
+        updateRecording == nullptr || prepareFeedEntry == nullptr ||
+        validatePublication == nullptr || validateFeedEntry == nullptr ||
+        generateFeed == nullptr ||
         status == nullptr || feedStatus == nullptr || details == nullptr) {
         err << "workspace recording smoke: recording widgets were not discoverable"
             << Qt::endl;
@@ -382,6 +395,41 @@ int runRecordingAttachSmoke(const CliAdapter &adapter, const QApplication &app) 
             << Qt::endl;
         err << "status: " << status->text() << Qt::endl;
         err << "details: " << details->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    if (!writeFile(projectDir.filePath("audio/masters/field-note-revised.flac"),
+                   "revised master", &setupError) ||
+        !writeFile(projectDir.filePath("audio/published/field-note-revised.opus"),
+                   "revised published", &setupError)) {
+        err << "workspace recording smoke: revised audio file setup failed: "
+            << setupError << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    recordingTitle->setText("Field Note Revised");
+    recordingMaster->setText("audio/masters/field-note-revised.flac");
+    recordingPublished->setText("audio/published/field-note-revised.opus");
+    recordingEntryId->setText("tag:example.invalid,2026:field-note-revised");
+    updateRecording->click();
+    QApplication::processEvents();
+
+    const QString revisedMetadata = readFile(metadataPath, &setupError);
+    if (!status->text().contains("Updated: audio/metadata/field-note.toml") ||
+        !details->toPlainText().contains("Recording: Field Note Revised") ||
+        !details->toPlainText().contains(
+            "Published: audio/published/field-note-revised.opus") ||
+        !revisedMetadata.contains("id = \"field-note\"") ||
+        !revisedMetadata.contains("title = \"Field Note Revised\"") ||
+        !revisedMetadata.contains(
+            "published = \"audio/published/field-note-revised.opus\"")) {
+        err << "workspace recording smoke: recording update was not reflected"
+            << Qt::endl;
+        err << "status: " << status->text() << Qt::endl;
+        err << "details: " << details->toPlainText() << Qt::endl;
+        err << "metadata: " << revisedMetadata << Qt::endl;
         delete page;
         return 1;
     }

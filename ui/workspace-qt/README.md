@@ -35,6 +35,7 @@ Current UI data is limited to:
 - `record list --json`
 - `record export-opus --json`
 - `record attach --json`
+- `record update --json`
 - `record prepare-feed-entry --json`
 - `record validate-publication --json`
 - `record validate-feed-entry --json`
@@ -48,6 +49,7 @@ Current UI data is limited to:
 - local content-root file listing, filtering, and selected-file detail for the selected project
 - local mock publication-copy export from existing project-local master files
 - local audio metadata sidecar attachment for existing project-local master and publication-copy files
+- local audio metadata sidecar updates for existing project recordings
 - local feed-entry sidecar preparation and validation status for attached project recordings
 - local feed XML generation from prepared entries through `record generate-feed --json`
 - local Publish-pane invalid feed-entry diagnostic paths and issue text

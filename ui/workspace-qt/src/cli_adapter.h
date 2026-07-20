@@ -170,6 +170,18 @@ struct RecordingAttachResult {
     QString error;
 };
 
+struct RecordingUpdateResult {
+    bool ok = false;
+    QString id;
+    QString title;
+    QString metadataPath;
+    QString metadataRelativePath;
+    QString master;
+    QString published;
+    QString feed;
+    QString error;
+};
+
 struct FeedEntryPrepareResult {
     bool ok = false;
     QString recordingId;
@@ -228,6 +240,14 @@ public:
                                                     const QString &published,
                                                     const QString &preset) const;
     RecordingAttachResult attachRecording(const QString &projectPath,
+                                          const QString &id,
+                                          const QString &title,
+                                          const QString &master,
+                                          const QString &published,
+                                          const QString &feed,
+                                          const QString &entryId,
+                                          const QString &mimeType) const;
+    RecordingUpdateResult updateRecording(const QString &projectPath,
                                           const QString &id,
                                           const QString &title,
                                           const QString &master,
