@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after publishd completed-history generation
+Status: current after Qt completed-history read-only display
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -8,7 +8,8 @@ It also includes local completed publication-history result records through the
 publish CLI, publish service crate, and `waystone-publishd` D-Bus adapter.
 It also includes a non-mutating publication readiness validation report through
 the publish CLI, publish service crate, and `waystone-publishd` D-Bus adapter.
-The Qt Publish pane now surfaces that report through the local CLI adapter.
+The Qt Publish pane now surfaces that report and read-only completed-history
+record list/detail views through the local CLI adapter.
 
 ## Current Position
 
@@ -62,6 +63,9 @@ The Qt Workspace currently has:
 - Publish pane preserves the selected saved preview row across preview-list refreshes when that row still exists
 - Publish pane compares generated planned history against the selected saved preview and reports the first differing line
 - Publish pane filters saved previews by filename or path without reading outside the selected project
+- Publish pane lists saved completed publication-history records for the selected project through `publish --list-completed-history --json`
+- Publish pane loads selected completed publication-history record TOML through `publish --read-completed-history --json`
+- Publish pane filters saved completed records by filename or path without reading outside the selected project
 - Publish pane shows a compact per-target overview for the selected project using read-only dry-run status, method, upload count, verification count, and destination
 - Publish pane lets target overview row selection choose the active target and refresh the existing preview/history panes
 - Publish pane filters visible projects by project name, ID, type, path, or target names
@@ -170,7 +174,8 @@ list and read saved records constrained to that same project-local directory.
 generation through `BuildCompletedHistory`; it does not write the record.
 These commands and the D-Bus method are local result-recording contracts only;
 they do not transfer files, verify remotes, or mutate remote systems. The Qt
-Publish pane does not expose completed history yet.
+Publish pane exposes completed-history list/read views through the local CLI
+adapter, but does not create completed records.
 
 The `publish --validate --json` command produces a non-mutating publication
 readiness report with `valid`, `blocked`, `errors`, and `warnings`. The
@@ -280,6 +285,11 @@ tests, clippy with warnings denied, CLI JSON contract smoke, publishd D-Bus
 smoke, focused Qt project smoke, broad Qt smoke, format checks, and git diff
 whitespace checks.
 
+Result after Qt completed-history read-only display: focused checks passed on
+2026-07-20, including Qt build, focused Qt project smoke, Rust workspace tests,
+clippy with warnings denied, CLI JSON contract smoke, publishd D-Bus smoke,
+broad Qt smoke, format checks, and git diff whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -306,6 +316,7 @@ whitespace checks.
 - `publish --validate` reports publication readiness without comparing remote state, transferring files, unlocking credentials, or verifying remotes.
 - The Qt Publish pane displays `publish --validate` results for the selected project and target without mutating projects or remotes.
 - `publish --completed-history` and `publish --save-completed-history` create local completed history result records from explicit result fields and do not execute remote transfer or verification.
+- The Qt Publish pane lists and reads saved completed history records without creating completed records or mutating remotes.
 - The Qt Publish pane can hand selected invalid feed-entry diagnostics back to the Create pane without editing metadata.
 - The Qt Create pane exposes `record capture` through local CLI adapters for selected projects before Opus export or recording attachment.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
@@ -326,9 +337,9 @@ whitespace checks.
 
 Recommended next implementation step:
 
-1. Decide whether the Qt Publish pane should list/read completed records or remain focused on planned previews until remote transfer exists.
-2. Decide whether completed-history save/list/read should be exposed through `waystone-publishd` D-Bus or remain CLI-local for now.
-3. Decide whether the next local publish slice should add remote-state comparison scaffolding without executing transfer.
+1. Decide whether completed-history save/list/read should be exposed through `waystone-publishd` D-Bus or remain CLI-local for now.
+2. Decide whether the next local publish slice should add remote-state comparison scaffolding without executing transfer.
+3. Decide whether Qt Publish-pane completed-history ergonomics need any small follow-up before moving back to service contracts.
 
 Alternative next step:
 
@@ -336,5 +347,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after publishd completed-history generation on 2026-07-20. The
+Current after Qt completed-history read-only display on 2026-07-20. The
 latest handoff has been resumed and superseded by this checkpoint.

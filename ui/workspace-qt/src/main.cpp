@@ -739,6 +739,16 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         return 1;
     }
 
+    const CompletedHistorySaveResult completedRecord =
+        adapter.saveCompletedPublicationHistory(
+            created.projectPath, "export", "2026-07-20T00:00:00Z", "completed",
+            "passed", false, "Workspace smoke completed record");
+    if (!completedRecord.ok) {
+        err << "workspace publish smoke: completed history seed failed: "
+            << completedRecord.error << Qt::endl;
+        return 1;
+    }
+
     QWidget *page = publishPage(&adapter);
     QApplication::processEvents();
 
@@ -756,6 +766,12 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         page->findChild<QPlainTextEdit *>("publishSavedPreviewDetail");
     auto *historyComparison =
         page->findChild<QPlainTextEdit *>("publishHistoryComparison");
+    auto *completedHistoryFilter =
+        page->findChild<QLineEdit *>("publishCompletedHistoryFilter");
+    auto *completedRecords =
+        page->findChild<QTableWidget *>("publishCompletedHistoryTable");
+    auto *completedRecordDetail =
+        page->findChild<QPlainTextEdit *>("publishCompletedHistoryDetail");
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     auto *targetOverview = page->findChild<QTableWidget *>("publishTargetOverviewTable");
@@ -763,8 +779,10 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         saveStatus == nullptr || plan == nullptr || validation == nullptr ||
         historySummary == nullptr || projectFilter == nullptr ||
         savedPreviewFilter == nullptr || savedPreviews == nullptr ||
-        savedPreviewDetail == nullptr || historyComparison == nullptr || history == nullptr ||
-        projects == nullptr || targetOverview == nullptr) {
+        savedPreviewDetail == nullptr || historyComparison == nullptr ||
+        completedHistoryFilter == nullptr || completedRecords == nullptr ||
+        completedRecordDetail == nullptr || history == nullptr || projects == nullptr ||
+        targetOverview == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
         delete page;
@@ -840,6 +858,21 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     }
     if (!historyComparison->toPlainText().startsWith("Comparison:")) {
         err << "workspace publish smoke: saved preview comparison was not updated"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    if (completedRecords->rowCount() < 1 || completedRecords->item(0, 0) == nullptr ||
+        !completedRecords->item(0, 0)->text().contains("export") ||
+        !completedRecordDetail->toPlainText().contains("export-completed.toml") ||
+        !completedRecordDetail->toPlainText().contains("transfer_result = \"completed\"") ||
+        !completedRecordDetail->toPlainText().contains(
+            "verification_result = \"passed\"") ||
+        !completedRecordDetail->toPlainText().contains(
+            "Workspace smoke completed record")) {
+        err << "workspace publish smoke: completed history record was not listed"
+            << Qt::endl;
+        err << "completed detail: " << completedRecordDetail->toPlainText()
             << Qt::endl;
         delete page;
         return 1;
@@ -954,6 +987,20 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !savedPreviews->item(0, 0)->text().contains("backup") ||
         !savedPreviewDetail->toPlainText().contains("target = \"backup\"")) {
         err << "workspace publish smoke: saved preview filter did not isolate backup"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    completedHistoryFilter->setText("export");
+    QApplication::processEvents();
+    if (completedRecords->rowCount() != 1 ||
+        completedRecords->item(0, 0) == nullptr ||
+        !completedRecords->item(0, 0)->text().contains("export") ||
+        !completedRecordDetail->toPlainText().contains("target = \"export\"")) {
+        err << "workspace publish smoke: completed history filter did not isolate export"
+            << Qt::endl;
+        err << "completed detail: " << completedRecordDetail->toPlainText()
             << Qt::endl;
         delete page;
         return 1;

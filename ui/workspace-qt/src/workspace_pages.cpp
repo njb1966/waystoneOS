@@ -683,6 +683,19 @@ QString renderSavedPlannedHistoryPreviewDetail(
     return text;
 }
 
+QString renderCompletedHistoryRecordDetail(const CompletedHistoryRecordDetail &detail) {
+    if (!detail.ok) {
+        return "Completed record detail failed\n" + detail.error;
+    }
+
+    QString text;
+    text += "File: " + detail.filename + "\n";
+    text += "Path: " + detail.path + "\n";
+    text += QString("Size: %1 bytes\n\n").arg(detail.sizeBytes);
+    text += detail.recordToml;
+    return text;
+}
+
 QString lineAtOrMissing(const QStringList &lines, int index) {
     if (index < 0 || index >= lines.size()) {
         return "<missing>";
@@ -1924,6 +1937,21 @@ QWidget *publishPage(const CliAdapter *adapter,
     historyComparison->setReadOnly(true);
     historyComparison->setMaximumHeight(130);
     historyLayout->addWidget(historyComparison);
+    historyLayout->addWidget(new QLabel("Completed History Records", historyArea));
+    auto *completedHistoryFilter = new QLineEdit(historyArea);
+    completedHistoryFilter->setObjectName("publishCompletedHistoryFilter");
+    completedHistoryFilter->setPlaceholderText("Filter completed records");
+    historyLayout->addWidget(completedHistoryFilter);
+    auto *completedRecords = table({"Record", "Modified", "Size", "Path"}, {});
+    completedRecords->setObjectName("publishCompletedHistoryTable");
+    completedRecords->setMaximumHeight(150);
+    historyLayout->addWidget(completedRecords);
+    historyLayout->addWidget(new QLabel("Completed Record Detail", historyArea));
+    auto *completedRecordDetail = new QPlainTextEdit(historyArea);
+    completedRecordDetail->setObjectName("publishCompletedHistoryDetail");
+    completedRecordDetail->setReadOnly(true);
+    completedRecordDetail->setMaximumHeight(180);
+    historyLayout->addWidget(completedRecordDetail);
     historyLayout->addWidget(new QLabel("Planned History Record", historyArea));
     auto *history = new QPlainTextEdit(historyArea);
     history->setObjectName("publishPlannedHistory");
@@ -2037,6 +2065,97 @@ QWidget *publishPage(const CliAdapter *adapter,
         return item->data(Qt::UserRole).toString();
     };
 
+    auto loadCompletedRecordDetail = [=](int row) {
+        const QString projectPath = currentProjectPath();
+        if (projectPath.isEmpty() || row < 0) {
+            completedRecordDetail->setPlainText("No completed record selected");
+            return;
+        }
+        auto *item = completedRecords->item(row, 0);
+        if (item == nullptr) {
+            completedRecordDetail->setPlainText("No completed record selected");
+            return;
+        }
+
+        const CompletedHistoryRecordDetail detail =
+            adapter->readCompletedPublicationHistory(
+                projectPath, item->data(Qt::UserRole).toString());
+        completedRecordDetail->setPlainText(renderCompletedHistoryRecordDetail(detail));
+    };
+
+    auto selectedCompletedRecordPath = [=]() -> QString {
+        const int row = completedRecords->currentRow();
+        if (row < 0) {
+            return {};
+        }
+        auto *item = completedRecords->item(row, 0);
+        if (item == nullptr) {
+            return {};
+        }
+        return item->data(Qt::UserRole).toString();
+    };
+
+    auto refreshCompletedRecords = [=]() {
+        const QString previousRecordPath = selectedCompletedRecordPath();
+        const QString filterText = completedHistoryFilter->text().trimmed();
+        int rowToSelect = 0;
+        QSignalBlocker blocker(completedRecords);
+        completedRecords->setRowCount(0);
+        const QString projectPath = currentProjectPath();
+        if (projectPath.isEmpty()) {
+            completedRecordDetail->setPlainText("No completed records");
+            return;
+        }
+
+        const CompletedHistoryRecordList records =
+            adapter->listCompletedPublicationHistory(projectPath);
+        if (!records.ok) {
+            completedRecordDetail->setPlainText("Completed records failed\n" +
+                                                records.error);
+            return;
+        }
+        if (records.records.isEmpty()) {
+            completedRecordDetail->setPlainText("No completed records");
+            return;
+        }
+
+        int row = 0;
+        for (const CompletedHistoryRecord &record : records.records) {
+            if (!filterText.isEmpty() &&
+                !record.filename.contains(filterText, Qt::CaseInsensitive) &&
+                !record.path.contains(filterText, Qt::CaseInsensitive)) {
+                continue;
+            }
+
+            completedRecords->setRowCount(row + 1);
+            if (!previousRecordPath.isEmpty() &&
+                QDir::cleanPath(record.path) == QDir::cleanPath(previousRecordPath)) {
+                rowToSelect = row;
+            }
+            const QString modified =
+                record.modifiedUnix > 0
+                    ? QDateTime::fromSecsSinceEpoch(record.modifiedUnix)
+                          .toLocalTime()
+                          .toString(Qt::ISODate)
+                    : "unknown";
+            auto *name = new QTableWidgetItem(record.filename);
+            name->setData(Qt::UserRole, record.path);
+            completedRecords->setItem(row, 0, name);
+            completedRecords->setItem(row, 1, new QTableWidgetItem(modified));
+            completedRecords->setItem(
+                row, 2, new QTableWidgetItem(QString::number(record.sizeBytes)));
+            completedRecords->setItem(row, 3, new QTableWidgetItem(record.path));
+            ++row;
+        }
+        if (completedRecords->rowCount() == 0) {
+            completedRecordDetail->setPlainText("No completed records match filter");
+            return;
+        }
+        completedRecords->selectRow(rowToSelect);
+        blocker.unblock();
+        loadCompletedRecordDetail(rowToSelect);
+    };
+
     auto refreshSavedPreviews = [=]() {
         const QString previousPreviewPath = selectedSavedPreviewPath();
         const QString filterText = savedPreviewFilter->text().trimmed();
@@ -2116,6 +2235,8 @@ QWidget *publishPage(const CliAdapter *adapter,
             savedPreviews->setRowCount(0);
             savedPreviewDetail->setPlainText("No saved previews");
             savedPreviewDetail->setProperty("recordToml", QString{});
+            completedRecords->setRowCount(0);
+            completedRecordDetail->setPlainText("No completed records");
             history->setPlainText("No planned history");
             updateHistoryComparison();
             return;
@@ -2130,6 +2251,8 @@ QWidget *publishPage(const CliAdapter *adapter,
             savedPreviews->setRowCount(0);
             savedPreviewDetail->setPlainText("No saved previews");
             savedPreviewDetail->setProperty("recordToml", QString{});
+            completedRecords->setRowCount(0);
+            completedRecordDetail->setPlainText("No completed records");
             history->setPlainText("No planned history");
             updateHistoryComparison();
             return;
@@ -2143,11 +2266,13 @@ QWidget *publishPage(const CliAdapter *adapter,
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             refreshSavedPreviews();
+            refreshCompletedRecords();
             history->setPlainText("No planned history");
             updateHistoryComparison();
             return;
         }
         refreshSavedPreviews();
+        refreshCompletedRecords();
         const PublishPreview preview = adapter->previewPublication(path, targetName);
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
@@ -2185,6 +2310,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             updateHistoryComparison();
         }
         refreshSavedPreviews();
+        refreshCompletedRecords();
     };
 
     QObject::connect(refresh, &QPushButton::clicked, refreshPublishProjects);
@@ -2236,6 +2362,16 @@ QWidget *publishPage(const CliAdapter *adapter,
     QObject::connect(savedPreviews, &QTableWidget::currentCellChanged,
                      [=](int row, int, int, int) {
                          loadSavedPreviewDetail(row);
+                     });
+
+    QObject::connect(completedHistoryFilter, &QLineEdit::textChanged,
+                     [=](const QString &) {
+                         refreshCompletedRecords();
+                     });
+
+    QObject::connect(completedRecords, &QTableWidget::currentCellChanged,
+                     [=](int row, int, int, int) {
+                         loadCompletedRecordDetail(row);
                      });
 
     QObject::connect(feedDiagnostic, &QComboBox::currentIndexChanged,
@@ -2323,6 +2459,8 @@ QWidget *publishPage(const CliAdapter *adapter,
                              savedPreviews->setRowCount(0);
                              savedPreviewDetail->setPlainText("No saved previews");
                              savedPreviewDetail->setProperty("recordToml", QString{});
+                             completedRecords->setRowCount(0);
+                             completedRecordDetail->setPlainText("No completed records");
                              history->setPlainText("No planned history");
                              updateHistoryComparison();
                              return;
@@ -2337,6 +2475,8 @@ QWidget *publishPage(const CliAdapter *adapter,
                              savedPreviews->setRowCount(0);
                              savedPreviewDetail->setPlainText("No saved previews");
                              savedPreviewDetail->setProperty("recordToml", QString{});
+                             completedRecords->setRowCount(0);
+                             completedRecordDetail->setPlainText("No completed records");
                              history->setPlainText("No planned history");
                              updateHistoryComparison();
                              return;
@@ -2354,6 +2494,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              refreshSavedPreviews();
+                             refreshCompletedRecords();
                              history->setPlainText("No planned history");
                              updateHistoryComparison();
                              return;

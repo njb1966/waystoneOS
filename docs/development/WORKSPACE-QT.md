@@ -47,6 +47,9 @@ Implemented:
 - Publish-pane saved preview row selection preservation across refreshes
 - Publish-pane generated-vs-saved planned-history comparison summary
 - Publish-pane saved-preview filename/path filter
+- Publish-pane completed-history listing using `publish --list-completed-history --json`
+- Publish-pane selected completed-history detail loading using `publish --read-completed-history --json`
+- Publish-pane completed-history filename/path filter
 - Publish-pane per-target overview table using read-only dry-run status, method, upload count, verification count, and destination
 - Publish-pane target overview row selection updates the active target and refreshes the existing preview/history panes
 - Publish-pane project filter by name, ID, type, path, or target names
@@ -192,7 +195,9 @@ selection, planned-history summary, raw planned-history record preview, saved
 planned-history preview transitions, saved-preview listing, selected saved
 preview detail loading, saved-preview row selection preservation,
 generated-vs-saved comparison reporting, and saved-preview filtering without
-remote publication.
+remote publication. It also seeds a local completed-history result record and
+verifies completed-record listing, selected-record detail loading, and
+completed-record filtering in the Publish pane.
 
 CLI JSON contract smoke test:
 
@@ -222,6 +227,8 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `publish --save-planned-history-preview --json`
 - `publish --list-planned-history-previews --json`
 - `publish --read-planned-history-preview --json`
+- `publish --list-completed-history --json`
+- `publish --read-completed-history --json`
 - `host list --json`
 - `host inspect --json`
 - `host validate --json`

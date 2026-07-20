@@ -647,6 +647,140 @@ CliAdapter::readPlannedPublicationHistoryPreview(const QString &projectPath,
     return detail;
 }
 
+CompletedHistorySaveResult CliAdapter::saveCompletedPublicationHistory(
+    const QString &path, const QString &target, const QString &date,
+    const QString &transferResult, const QString &verificationResult,
+    bool rollbackAvailable, const QString &rollbackNotes) const {
+    const CommandResult result = runCommand(
+        "publish",
+        {"--save-completed-history",
+         "--project",
+         path,
+         "--target",
+         target,
+         "--date",
+         date,
+         "--transfer-result",
+         transferResult,
+         "--verification-result",
+         verificationResult,
+         "--rollback-available",
+         rollbackAvailable ? "true" : "false",
+         "--rollback-notes",
+         rollbackNotes,
+         "--hosts",
+         config_.hostsRoot,
+         "--identities",
+         config_.identitiesRoot,
+         "--json"});
+
+    CompletedHistorySaveResult saved;
+    if (!result.error.isEmpty()) {
+        saved.error = result.error;
+        return saved;
+    }
+
+    if (result.exitCode != 0) {
+        saved.error = commandFailureDetail(result, "publish save completed-history failed");
+        return saved;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        saved.error = "publish save completed-history returned unreadable JSON";
+        return saved;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    saved.ok = true;
+    saved.project = data.value("project").toString();
+    saved.target = data.value("target").toString();
+    saved.outputPath = data.value("output_path").toString();
+    return saved;
+}
+
+CompletedHistoryRecordList
+CliAdapter::listCompletedPublicationHistory(const QString &path) const {
+    const CommandResult result =
+        runCommand("publish", {"--list-completed-history", "--project", path, "--json"});
+
+    CompletedHistoryRecordList list;
+    if (!result.error.isEmpty()) {
+        list.error = result.error;
+        return list;
+    }
+
+    if (result.exitCode != 0) {
+        list.error = commandFailureDetail(result, "publish list completed-history failed");
+        return list;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        list.error = "publish list completed-history returned unreadable JSON";
+        return list;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    list.ok = true;
+    list.projectPath = data.value("project_path").toString();
+
+    const QJsonArray records = data.value("records").toArray();
+    for (const auto &item : records) {
+        const QJsonObject object = item.toObject();
+        CompletedHistoryRecord record;
+        record.path = object.value("path").toString();
+        record.filename = object.value("filename").toString();
+        record.modifiedUnix = object.value("modified_unix").toInteger();
+        record.sizeBytes = object.value("size_bytes").toInteger();
+        list.records.append(record);
+    }
+
+    return list;
+}
+
+CompletedHistoryRecordDetail CliAdapter::readCompletedPublicationHistory(
+    const QString &projectPath, const QString &recordPath) const {
+    const CommandResult result =
+        runCommand("publish",
+                   {"--read-completed-history",
+                    "--project",
+                    projectPath,
+                    "--record",
+                    recordPath,
+                    "--json"});
+
+    CompletedHistoryRecordDetail detail;
+    if (!result.error.isEmpty()) {
+        detail.error = result.error;
+        return detail;
+    }
+
+    if (result.exitCode != 0) {
+        detail.error = commandFailureDetail(result, "publish read completed-history failed");
+        return detail;
+    }
+
+    QString parseError;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &parseError);
+    if (!parseError.isEmpty()) {
+        detail.error = "publish read completed-history returned unreadable JSON";
+        return detail;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    detail.ok = true;
+    detail.projectPath = data.value("project_path").toString();
+    detail.path = data.value("path").toString();
+    detail.filename = data.value("filename").toString();
+    detail.modifiedUnix = data.value("modified_unix").toInteger();
+    detail.sizeBytes = data.value("size_bytes").toInteger();
+    detail.recordToml = data.value("record_toml").toString();
+    return detail;
+}
+
 QList<HostSummary> CliAdapter::listHosts(QString *error) const {
     if (rootMissing(config_.hostsRoot, "hosts", error)) {
         return {};

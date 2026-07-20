@@ -178,8 +178,12 @@ lists saved preview records through `publish --list-planned-history-previews
 --read-planned-history-preview --json`, preserves the selected saved-preview row
 across refreshes when the preview still exists, reports first-line differences
 between generated and selected saved planned history, and filters visible
-saved-preview records by filename or path. The Operate pane uses read-only
-`host` and `identity` CLI JSON output for list, inspect, and validate.
+saved-preview records by filename or path. It also lists saved completed
+history records through `publish --list-completed-history --json`, loads
+selected completed-record TOML through `publish --read-completed-history
+--json`, and filters visible completed records by filename or path. The
+Operate pane uses read-only `host` and `identity` CLI JSON output for list,
+inspect, and validate.
 
 The UI accepts local root configuration through `--config` using an INI file. Without an explicit config file, it checks Qt's user app config location for `workspace.ini`; if absent, it defaults to repository examples. The Explore pane displays the active roots and can write persistent user root settings for later launches. The same binary also exposes a local `--check-roots` diagnostic mode for startup and smoke-test verification.
 

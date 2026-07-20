@@ -140,6 +140,39 @@ struct PlannedHistorySavedPreviewDetail {
     QString error;
 };
 
+struct CompletedHistorySaveResult {
+    bool ok = false;
+    QString project;
+    QString target;
+    QString outputPath;
+    QString error;
+};
+
+struct CompletedHistoryRecord {
+    QString path;
+    QString filename;
+    qint64 modifiedUnix = 0;
+    qint64 sizeBytes = 0;
+};
+
+struct CompletedHistoryRecordList {
+    bool ok = false;
+    QString projectPath;
+    QList<CompletedHistoryRecord> records;
+    QString error;
+};
+
+struct CompletedHistoryRecordDetail {
+    bool ok = false;
+    QString projectPath;
+    QString path;
+    QString filename;
+    qint64 modifiedUnix = 0;
+    qint64 sizeBytes = 0;
+    QString recordToml;
+    QString error;
+};
+
 struct HostSummary {
     QString id;
     QString displayName;
@@ -260,6 +293,14 @@ public:
         const QString &path) const;
     PlannedHistorySavedPreviewDetail readPlannedPublicationHistoryPreview(
         const QString &projectPath, const QString &previewPath) const;
+    CompletedHistorySaveResult saveCompletedPublicationHistory(
+        const QString &path, const QString &target, const QString &date,
+        const QString &transferResult, const QString &verificationResult,
+        bool rollbackAvailable, const QString &rollbackNotes) const;
+    CompletedHistoryRecordList listCompletedPublicationHistory(
+        const QString &path) const;
+    CompletedHistoryRecordDetail readCompletedPublicationHistory(
+        const QString &projectPath, const QString &recordPath) const;
     QList<HostSummary> listHosts(QString *error) const;
     QString inspectHost(const QString &path) const;
     QString hostValidationState(const QString &path) const;
