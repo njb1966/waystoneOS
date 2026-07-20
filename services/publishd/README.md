@@ -16,7 +16,7 @@ PreviewPublication
 BuildPlannedHistory
 ```
 
-The current daemon does not compare remote state, transfer files, delete files, verify remote results, unlock credentials, or write history records.
+The current daemon does not compare remote state, transfer files, delete files, verify remote results, unlock credentials, or write completed history records.
 
 ## Activation Files
 

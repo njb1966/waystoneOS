@@ -211,6 +211,10 @@ publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT
 publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]
 publish --list-planned-history-previews --project PATH [--json]
 publish --read-planned-history-preview --project PATH --preview PATH [--json]
+publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]
+publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]
+publish --list-completed-history --project PATH [--json]
+publish --read-completed-history --project PATH --record PATH [--json]
 ```
 
 Current behavior:
@@ -221,6 +225,11 @@ Current behavior:
 - Local planned history preview save under `history/previews/` inside the selected project
 - Read-only saved planned history preview listing from `history/previews/` inside the selected project
 - Read-only saved planned history preview detail loading constrained to the selected project's `history/previews/` directory
+- Human-readable completed publication history result record generation from explicit result fields
+- Local completed history save under `history/completed/` inside the selected project
+- Read-only saved completed history listing from `history/completed/` inside the selected project
+- Read-only saved completed history detail loading constrained to the selected project's `history/completed/` directory
+- Completed-history result validation for transfer result and verification result fields
 - JSON output
 - Exit code `0` for success
 - Exit code `2` for usage errors
@@ -253,15 +262,22 @@ crates/publication-history/
 Current behavior:
 
 - Builds planned publication history records from dry-run plans
+- Builds completed publication history result records from dry-run plans plus explicit result fields
 - Renders inspectable TOML
 - Marks transfer result as `planned`
 - Marks verification result as `not-run`
-- Does not write completed history records
+- Writes planned previews under project `history/previews/`
+- Writes completed history records under project `history/completed/`
+- Lists and reads planned previews constrained to project `history/previews/`
+- Lists and reads completed records constrained to project `history/completed/`
 
 Current tests cover:
 
 - Planned history generation from SSH dry-run
+- Completed history generation from SSH dry-run plus explicit result fields
 - TOML rendering shape
+- Planned preview write, list, read, and outside-directory rejection
+- Completed history write, list, read, and outside-directory rejection
 
 ## Publish Service Crate
 
@@ -275,14 +291,15 @@ Current behavior:
 
 - Wraps publish dry-run preview behind request/response structs
 - Builds planned publication history records
+- Builds completed publication history result records from explicit result fields
 - Preserves blocked dry-run state
 - Exposes preview and planned-history generation through `waystone-publishd` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not perform remote mutation
+- Does not perform remote mutation or expose completed-history writes over D-Bus
 
 Current tests cover:
 
-- SSH preview and planned-history generation through the service wrapper
+- SSH preview, planned-history generation, and completed-history result generation through the service wrapper
 
 ## Host and Identity Crate
 
@@ -689,6 +706,7 @@ Current tests cover:
 - `project validate` reports invalid fixtures
 - `publish --dry-run --json` reports resolved host and identity metadata
 - `publish --dry-run --json` reports configured feed readiness, prepared feed-entry counts, and invalid feed-entry diagnostics
+- `publish --planned-history --json`, planned preview save/list/read, `publish --completed-history --json`, and completed history save/list/read report stable JSON contracts and reject reads outside the selected project history directories
 - `host validate` rejects invalid trust state
 - `identity validate` rejects private-key material
 - `record validate` rejects invalid audio paths
@@ -752,7 +770,7 @@ scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 ```
 
-Local results through 2026-07-20: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the Create pane content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same smoke creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording capture controls create a WAV master from an explicit `ffmpeg` input source, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for project-local audio files, verifies that the Create-pane recording update controls rewrite that sidecar for revised project-local files, prepares a feed-entry sidecar, verifies publication/feed-entry validation status, generates feed XML, verifies that the generated Atom feed contains the expected entry, and verifies that the Publish pane reports the generated feed as ready with one prepared entry. The same focused smoke also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, no target, feed missing, feed entries invalid, feed present, or feed ready, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without writing completed history or mutating remotes. The CLI JSON contract smoke verifies `record capture --json`, `record attach --json`, `record update --json`, `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, `record validate-feed-entry --json`, `record generate-feed --json`, and publish dry-run feed readiness against temporary project data. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
+Local results through 2026-07-20: Qt 6 was discoverable after installing `qt6-base-dev`; configure and build passed. The offscreen Qt startup smoke script launched the app successfully and verified root handling. The focused Qt project smoke created a minimal project in a generated `/tmp` workspace root, added a removable `export` target, loaded its content index, saved edited Gemtext through the Qt CLI adapter, verified the Create pane content-file list reported `index.gmi`, verified the Create pane content-file filter isolated `index.gmi`, verified selected-file detail for index and non-index content files, verified `project inspect --json` reported the target, validated the result, and verified a removable publish dry-run preview. The same smoke creates an audio-capable temporary project, verifies that project creation supplies audio/feed scaffold defaults, verifies that the Create-pane recording capture controls create a WAV master from an explicit `ffmpeg` input source, verifies that the Create-pane recording attachment controls create an inspectable metadata sidecar for project-local audio files, verifies that the Create-pane recording update controls rewrite that sidecar for revised project-local files, prepares a feed-entry sidecar, verifies publication/feed-entry validation status, generates feed XML, verifies that the generated Atom feed contains the expected entry, and verifies that the Publish pane reports the generated feed as ready with one prepared entry. The same focused smoke also creates a separate temporary project with multiple publish targets and verifies that the Publish pane target selector drives ready, blocked, project filtering, per-target overview rows, overview-row target selection, planned-history summary, raw planned-history record preview, saved planned-history preview transitions, saved-preview listing, selected saved-preview detail loading, saved-preview row selection preservation, generated-vs-saved comparison reporting, and saved-preview filtering. The Publish pane derives all discovered project targets into a selector, filters visible projects, reports dry-run preview state as ready, blocked, failed, no project, no target, feed missing, feed entries invalid, feed present, or feed ready, shows a compact per-target overview, lets overview row selection update the active target, shows planned publication history file-action grouping plus raw TOML, saves planned previews under project `history/previews/`, lists saved preview records, loads selected preview TOML, preserves the selected saved preview across refreshes, reports first-line differences between generated and selected saved planned history, and filters the visible saved-preview list without mutating remotes. The `publish` CLI also builds completed history result records from explicit result fields and saves, lists, and reads them under project `history/completed/`; this is not exposed through the Qt Publish pane yet. The CLI JSON contract smoke verifies completed-history generation/save/list/read, `record capture --json`, `record attach --json`, `record update --json`, `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, `record validate-feed-entry --json`, `record generate-feed --json`, and publish dry-run feed readiness against temporary project data. The projectd D-Bus smoke script verified create, list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The publishd D-Bus smoke script verified preview, planned-history generation, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The host/identity D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure for both adapters on a private test session bus. The audiod D-Bus smoke script verified list, inspect, validate, invalid-request handling, unavailable-bus failure, and duplicate-owner failure on a private test session bus. The activation smokes verified projectd, publishd, host/identity, and audiod D-Bus service-file autostart. The systemd smokes verified projectd, publishd, host/identity, and audiod unit syntax through temporary paths.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract
@@ -775,6 +793,9 @@ smoke, format checks, and git diff whitespace checks. Qt recording capture
 controls passed Qt build, focused Qt project smoke, broad Qt smoke, Rust tests,
 clippy with warnings denied, CLI JSON contract smoke, format checks, and git
 diff whitespace checks.
+Completed publication-history result records passed targeted Rust tests for the
+history crate, publish service crate, and publish CLI; full-slice verification
+is recorded in `docs/development/CHECKPOINT.md`.
 
 Useful CLI smoke checks:
 

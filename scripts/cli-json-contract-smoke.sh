@@ -113,6 +113,25 @@ require(planned_history["data"]["files"] and
         {"path", "action"} <= planned_history["data"]["files"][0].keys(),
         "publish planned-history file contract changed")
 
+completed_history = run([
+    "target/debug/publish", "--completed-history", "--project", project_path,
+    "--target", "export", "--date", "2026-07-20T00:00:00Z",
+    "--transfer-result", "completed",
+    "--verification-result", "passed",
+    "--rollback-available", "false",
+    "--rollback-notes", "No rollback snapshot recorded",
+    "--json"
+])
+require({"project", "target", "transfer_result", "verification_result", "files", "record_toml"}
+        <= completed_history["data"].keys(), "publish completed-history contract changed")
+require(completed_history["data"]["transfer_result"] == "completed",
+        "publish completed-history transfer result changed")
+require(completed_history["data"]["verification_result"] == "passed",
+        "publish completed-history verification result changed")
+require(completed_history["data"]["files"] and
+        {"path", "action"} <= completed_history["data"]["files"][0].keys(),
+        "publish completed-history file contract changed")
+
 with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_root:
     temp_project = Path(temp_root) / "audio-capsule.wayproject"
     shutil.copytree(Path(repo_root) / project_path, temp_project)
@@ -149,6 +168,48 @@ with tempfile.TemporaryDirectory(prefix="waystone-cli-json-contract-") as temp_r
             "publish read planned-history preview contract changed")
     require("[publication]" in read_history["data"]["record_toml"],
             "publish read planned-history preview did not return record TOML")
+
+    saved_completed_history = run([
+        "target/debug/publish", "--save-completed-history", "--project", str(temp_project),
+        "--target", "export", "--date", "2026-07-20T00:00:00Z",
+        "--transfer-result", "completed",
+        "--verification-result", "passed",
+        "--rollback-available", "false",
+        "--rollback-notes", "No rollback snapshot recorded",
+        "--json"
+    ])
+    require({"project", "target", "output_path", "transfer_result", "verification_result", "files"}
+            <= saved_completed_history["data"].keys(),
+            "publish save completed-history contract changed")
+    completed_output_path = Path(saved_completed_history["data"]["output_path"])
+    require(completed_output_path.exists(),
+            "publish save completed-history did not write output")
+    require((temp_project / "history" / "completed") in completed_output_path.parents,
+            "publish save completed-history escaped project completed history directory")
+    listed_completed_history = run([
+        "target/debug/publish", "--list-completed-history",
+        "--project", str(temp_project), "--json"
+    ])
+    require({"project_path", "records"} <= listed_completed_history["data"].keys(),
+            "publish list completed-history contract changed")
+    require(listed_completed_history["data"]["records"],
+            "publish list completed-history did not report saved output")
+    require({"path", "filename", "modified_unix", "size_bytes"}
+            <= listed_completed_history["data"]["records"][0].keys(),
+            "publish list completed-history item contract changed")
+    read_completed_history = run([
+        "target/debug/publish", "--read-completed-history",
+        "--project", str(temp_project),
+        "--record", listed_completed_history["data"]["records"][0]["path"],
+        "--json"
+    ])
+    require({"project_path", "path", "filename", "modified_unix", "size_bytes", "record_toml"}
+            <= read_completed_history["data"].keys(),
+            "publish read completed-history contract changed")
+    require("[publication]" in read_completed_history["data"]["record_toml"],
+            "publish read completed-history did not return record TOML")
+    require("transfer_result = \"completed\"" in read_completed_history["data"]["record_toml"],
+            "publish read completed-history returned wrong transfer result")
 
     captured_recording = run([
         "target/debug/record", "capture", "--json", str(temp_project),

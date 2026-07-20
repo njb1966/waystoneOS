@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after audiod local audio/feed D-Bus methods
+Status: current after completed publication-history result records
 Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
@@ -30,7 +30,8 @@ foundational areas:
 
 - Inspectable `.wayproject` format and validation
 - Native CLI contracts with JSON output
-- Non-mutating publish dry-runs and planned history previews
+- Non-mutating publish dry-runs, planned history previews, and local completed
+  history result records
 - Host, identity, and audio metadata inspection boundaries
 - D-Bus adapter binaries and repo-local activation artifacts
 - Qt Workspace prototype with Explore, Create, Publish, and Operate panes
@@ -83,7 +84,7 @@ or approved scope changes.
 | Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
-| Publishing Model | Strong for dry-run scope | Dry-run plans, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, and Publish-pane inspection exist. Remote comparison, transfer, verification, and completed history are not implemented. |
+| Publishing Model | Strong for dry-run and local-history scope | Dry-run plans, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, and Publish-pane inspection exist. Remote comparison, transfer, and verification are not implemented. |
 | Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
@@ -103,7 +104,7 @@ Version 0.1 scope defines this local flow:
 | Configure a host/destination | Partially implemented through examples, host/identity metadata, and removable targets |
 | Run publication validation | Partially implemented through project, audio, host, identity, and dry-run validation |
 | Perform a dry-run publish | Implemented for local plans without remote mutation |
-| Show publication history or planned transfer state | Implemented as planned history previews and saved preview records |
+| Show publication history or planned transfer state | Implemented as planned history previews, saved preview records, and CLI-local completed history result records |
 
 The current 0.1 slice has connected prepared feed entries, minimal feed XML
 generation with local existing-entry merge/update, Qt generation controls,
@@ -113,10 +114,11 @@ publication-copy command, Qt controls for that export, and Qt controls for
 feed-entry sidecar update. It also has a small Publish-to-Create diagnostic
 handoff for invalid feed-entry sidecars, a narrow local WAV capture contract
 from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture
-command, and D-Bus exposure for the local audio/feed service operations. The
-next slice should deliberately close another local 0.1 workflow gap before
-adding more pane polish. It should still avoid device enumeration, packaging,
-installed services, remote transfer, and compositor work.
+command, D-Bus exposure for the local audio/feed service operations, and
+CLI-local completed publication-history result records. The next slice should
+deliberately close another local 0.1 workflow gap before adding more pane
+polish. It should still avoid device enumeration, packaging, installed
+services, remote transfer, and compositor work.
 
 ## Deliberate Next Slice
 
@@ -174,6 +176,8 @@ Concrete deliverables should be small and inspectable:
 - Expose narrow WAV master capture in the Qt Create pane.
 - Expose existing local audio/feed service operations through `waystone-audiod`
   D-Bus.
+- Add completed publication-history result records from explicit result fields
+  and save/list/read them under project `history/completed/`.
 
 ## Explicitly Still Deferred
 

@@ -5,7 +5,9 @@ use waystone_cli_output::{
     escape_json, json_optional_string, json_string_array, print_command_error,
 };
 use waystone_publication_history::{
-    list_planned_history_previews, read_planned_history_preview, write_planned_history_preview,
+    list_completed_history_records, list_planned_history_previews, read_completed_history_record,
+    read_planned_history_preview, write_completed_history_record, write_planned_history_preview,
+    CompletedHistoryDetail, CompletedHistoryEntry, CompletedHistoryOptions,
     PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
@@ -31,6 +33,16 @@ fn run(args: &[String]) -> i32 {
             print_help();
             0
         }
+        _ if positional.contains(&"--list-completed-history") => {
+            list_completed_history_files(&positional, json)
+        }
+        _ if positional.contains(&"--read-completed-history") => {
+            read_completed_history_file(&positional, json)
+        }
+        _ if positional.contains(&"--save-completed-history") => {
+            save_completed_history(&positional, json)
+        }
+        _ if positional.contains(&"--completed-history") => completed_history(&positional, json),
         _ if positional.contains(&"--list-planned-history-previews") => {
             list_planned_history_preview_files(&positional, json)
         }
@@ -48,6 +60,17 @@ fn run(args: &[String]) -> i32 {
             2
         }
     }
+}
+
+#[derive(Debug)]
+struct CompletedHistoryInputs<'a> {
+    project: &'a str,
+    target: &'a str,
+    date: &'a str,
+    transfer_result: &'a str,
+    verification_result: &'a str,
+    rollback_available: bool,
+    rollback_notes: &'a str,
 }
 
 fn publish_context(args: &[&str]) -> PublishContext {
@@ -131,6 +154,36 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
     }
 }
 
+fn completed_history(args: &[&str], json: bool) -> i32 {
+    let inputs = match completed_history_inputs(args) {
+        Ok(inputs) => inputs,
+        Err(message) => return usage_error(&message),
+    };
+
+    let context = publish_context(args);
+    match dry_run_publish_with_context(Path::new(inputs.project), inputs.target, &context) {
+        Ok(plan) => {
+            let record = completed_history_record_from_plan(&plan, &inputs);
+            let toml = record.to_toml();
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"transfer_result\":\"{}\",\"verification_result\":\"{}\",\"files\":[{}],\"record_toml\":\"{}\"}}}}",
+                    escape_json(&record.project_id),
+                    escape_json(&record.target),
+                    escape_json(&record.transfer_result),
+                    escape_json(&record.verification_result),
+                    json_history_files(&record),
+                    escape_json(&toml)
+                );
+            } else {
+                print!("{toml}");
+            }
+            0
+        }
+        Err(error) => print_command_error("publish", "completed_history", &error.to_string(), json),
+    }
+}
+
 fn planned_history(args: &[&str], json: bool) -> i32 {
     let Some(project) = option_value(args, "--project") else {
         return usage_error("missing --project");
@@ -163,6 +216,50 @@ fn planned_history(args: &[&str], json: bool) -> i32 {
             0
         }
         Err(error) => print_command_error("publish", "planned_history", &error.to_string(), json),
+    }
+}
+
+fn save_completed_history(args: &[&str], json: bool) -> i32 {
+    let inputs = match completed_history_inputs(args) {
+        Ok(inputs) => inputs,
+        Err(message) => return usage_error(&message),
+    };
+
+    let context = publish_context(args);
+    match dry_run_publish_with_context(Path::new(inputs.project), inputs.target, &context) {
+        Ok(plan) => {
+            let record = completed_history_record_from_plan(&plan, &inputs);
+            match write_completed_history_record(Path::new(inputs.project), &record) {
+                Ok(output_path) => {
+                    if json {
+                        println!(
+                            "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"output_path\":\"{}\",\"transfer_result\":\"{}\",\"verification_result\":\"{}\",\"files\":[{}]}}}}",
+                            escape_json(&record.project_id),
+                            escape_json(&record.target),
+                            escape_json(&output_path.display().to_string()),
+                            escape_json(&record.transfer_result),
+                            escape_json(&record.verification_result),
+                            json_history_files(&record)
+                        );
+                    } else {
+                        println!("Saved completed history record: {}", output_path.display());
+                    }
+                    0
+                }
+                Err(error) => print_command_error(
+                    "publish",
+                    "save_completed_history",
+                    &error.to_string(),
+                    json,
+                ),
+            }
+        }
+        Err(error) => print_command_error(
+            "publish",
+            "save_completed_history",
+            &error.to_string(),
+            json,
+        ),
     }
 }
 
@@ -215,6 +312,43 @@ fn save_planned_history_preview(args: &[&str], json: bool) -> i32 {
     }
 }
 
+fn list_completed_history_files(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+
+    match list_completed_history_records(Path::new(project)) {
+        Ok(records) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project_path\":\"{}\",\"records\":[{}]}}}}",
+                    escape_json(project),
+                    json_completed_history_records(&records)
+                );
+            } else if records.is_empty() {
+                println!("No completed history records");
+            } else {
+                println!("Completed history records");
+                for record in records {
+                    println!(
+                        "  {} ({} bytes, modified {})",
+                        record.path.display(),
+                        record.size_bytes,
+                        record.modified_unix
+                    );
+                }
+            }
+            0
+        }
+        Err(error) => print_command_error(
+            "publish",
+            "list_completed_history",
+            &error.to_string(),
+            json,
+        ),
+    }
+}
+
 fn list_planned_history_preview_files(args: &[&str], json: bool) -> i32 {
     let Some(project) = option_value(args, "--project") else {
         return usage_error("missing --project");
@@ -246,6 +380,36 @@ fn list_planned_history_preview_files(args: &[&str], json: bool) -> i32 {
         Err(error) => print_command_error(
             "publish",
             "list_planned_history_previews",
+            &error.to_string(),
+            json,
+        ),
+    }
+}
+
+fn read_completed_history_file(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(record) = option_value(args, "--record") else {
+        return usage_error("missing --record");
+    };
+
+    match read_completed_history_record(Path::new(project), Path::new(record)) {
+        Ok(detail) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project_path\":\"{}\",{}}}}}",
+                    escape_json(project),
+                    json_completed_history_detail(&detail)
+                );
+            } else {
+                print!("{}", detail.record_toml);
+            }
+            0
+        }
+        Err(error) => print_command_error(
+            "publish",
+            "read_completed_history",
             &error.to_string(),
             json,
         ),
@@ -293,6 +457,17 @@ fn json_planned_history_preview_detail(detail: &PlannedHistoryPreviewDetail) -> 
     )
 }
 
+fn json_completed_history_detail(detail: &CompletedHistoryDetail) -> String {
+    format!(
+        "\"path\":\"{}\",\"filename\":\"{}\",\"modified_unix\":{},\"size_bytes\":{},\"record_toml\":\"{}\"",
+        escape_json(&detail.entry.path.display().to_string()),
+        escape_json(&detail.entry.filename),
+        detail.entry.modified_unix,
+        detail.entry.size_bytes,
+        escape_json(&detail.record_toml)
+    )
+}
+
 fn json_planned_history_previews(previews: &[PlannedHistoryPreviewEntry]) -> String {
     previews
         .iter()
@@ -303,6 +478,22 @@ fn json_planned_history_previews(previews: &[PlannedHistoryPreviewEntry]) -> Str
                 escape_json(&preview.filename),
                 preview.modified_unix,
                 preview.size_bytes
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn json_completed_history_records(records: &[CompletedHistoryEntry]) -> String {
+    records
+        .iter()
+        .map(|record| {
+            format!(
+                "{{\"path\":\"{}\",\"filename\":\"{}\",\"modified_unix\":{},\"size_bytes\":{}}}",
+                escape_json(&record.path.display().to_string()),
+                escape_json(&record.filename),
+                record.modified_unix,
+                record.size_bytes
             )
         })
         .collect::<Vec<_>>()
@@ -324,6 +515,53 @@ fn json_history_files(record: &PublicationHistoryRecord) -> String {
         .join(",")
 }
 
+fn completed_history_record_from_plan(
+    plan: &waystone_publish_plan::PublishDryRun,
+    inputs: &CompletedHistoryInputs,
+) -> PublicationHistoryRecord {
+    PublicationHistoryRecord::completed_from_dry_run(
+        plan,
+        inputs.date,
+        CompletedHistoryOptions {
+            transfer_result: inputs.transfer_result.to_string(),
+            verification_result: inputs.verification_result.to_string(),
+            rollback_available: inputs.rollback_available,
+            rollback_notes: inputs.rollback_notes.to_string(),
+        },
+    )
+}
+
+fn completed_history_inputs<'a>(args: &'a [&str]) -> Result<CompletedHistoryInputs<'a>, String> {
+    let project = required_option(args, "--project")?;
+    let target = required_option(args, "--target")?;
+    let date = required_option(args, "--date")?;
+    let transfer_result = required_option(args, "--transfer-result")?;
+    let verification_result = required_option(args, "--verification-result")?;
+    let rollback_available = parse_bool_option(required_option(args, "--rollback-available")?)?;
+    let rollback_notes = required_option(args, "--rollback-notes")?;
+
+    validate_option_value(
+        "--transfer-result",
+        transfer_result,
+        &["completed", "failed", "skipped"],
+    )?;
+    validate_option_value(
+        "--verification-result",
+        verification_result,
+        &["not-run", "passed", "failed"],
+    )?;
+
+    Ok(CompletedHistoryInputs {
+        project,
+        target,
+        date,
+        transfer_result,
+        verification_result,
+        rollback_available,
+        rollback_notes,
+    })
+}
+
 fn print_help() {
     println!("Usage:");
     println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]");
@@ -331,6 +569,10 @@ fn print_help() {
     println!("  publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
     println!("  publish --list-planned-history-previews --project PATH [--json]");
     println!("  publish --read-planned-history-preview --project PATH --preview PATH [--json]");
+    println!("  publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]");
+    println!("  publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]");
+    println!("  publish --list-completed-history --project PATH [--json]");
+    println!("  publish --read-completed-history --project PATH --record PATH [--json]");
 }
 
 fn usage_error(message: &str) -> i32 {
@@ -343,6 +585,29 @@ fn option_value<'a>(args: &'a [&str], option: &str) -> Option<&'a str> {
     args.windows(2)
         .find(|window| window[0] == option)
         .map(|window| window[1])
+}
+
+fn required_option<'a>(args: &'a [&str], option: &str) -> Result<&'a str, String> {
+    option_value(args, option).ok_or_else(|| format!("missing {option}"))
+}
+
+fn parse_bool_option(value: &str) -> Result<bool, String> {
+    match value {
+        "true" | "yes" | "1" => Ok(true),
+        "false" | "no" | "0" => Ok(false),
+        _ => Err("invalid --rollback-available (use true or false)".to_string()),
+    }
+}
+
+fn validate_option_value(option: &str, value: &str, allowed: &[&str]) -> Result<(), String> {
+    if allowed.contains(&value) {
+        Ok(())
+    } else {
+        Err(format!(
+            "invalid {option} value '{value}' (allowed: {})",
+            allowed.join(", ")
+        ))
+    }
 }
 
 fn json_resolution(resolution: Option<&Resolution>) -> String {

@@ -139,6 +139,12 @@ History records should be stored under the project `history/` directory as inspe
 
 The current implementation can generate a planned history record from a dry-run. Planned records are previews only; they must not be written as completed publication history because no transfer or verification has occurred.
 
+The current implementation can also build and save a separate completed
+history record from a dry-run plus explicit caller-supplied result fields.
+Completed records are written under project `history/completed/` by the
+`publish` CLI. This is a local write-result contract only; it does not execute
+remote transfer or perform remote verification.
+
 Current planned TOML shape:
 
 ```toml
@@ -160,6 +166,30 @@ action = "planned-upload"
 [rollback]
 available = false
 notes = "Dry-run only; no remote state changed"
+```
+
+Current completed TOML uses the same inspectable shape, but records explicit
+results:
+
+```toml
+[publication]
+schema = 1
+date = "2026-07-20T12:00:00Z"
+project_id = "long-century"
+target = "production"
+method = "rsync"
+identity = "nick-pub"
+destination = "gemini://example.org"
+transfer_result = "completed"
+verification_result = "passed"
+
+[[files]]
+path = "content/index.gmi"
+action = "planned-upload"
+
+[rollback]
+available = false
+notes = "No rollback snapshot recorded"
 ```
 
 ## Remote Verification
@@ -227,14 +257,19 @@ per-invalid-sidecar diagnostic paths with validation issue text. It can also
 resolve host and identity metadata when local metadata roots are provided,
 generate planned publication history records without writing them as completed
 history, save planned preview records under project `history/previews/`, list
-saved planned preview records, and read selected saved preview TOML through the
-`publish` CLI. Preview saving is a local project write only. Saved preview
-reads are constrained to the selected project's `history/previews/` directory.
-These preview operations are available through the `publish` CLI; non-mutating
-preview and planned-history generation are also available through the
-`waystone-publishd` D-Bus adapter. It does not generate feeds automatically,
-compare remote state, perform transfer, delete files, access credentials, probe
-SSH host keys, or verify a remote result.
+saved planned preview records, read selected saved preview TOML, build
+completed history result records from explicit caller-supplied result fields,
+save those completed records under project `history/completed/`, list saved
+completed records, and read selected completed TOML through the `publish` CLI.
+Preview and completed-record saving are local project writes only. Saved
+preview reads are constrained to the selected project's `history/previews/`
+directory, and completed-record reads are constrained to the selected project's
+`history/completed/` directory. These preview and local history operations are
+available through the `publish` CLI; non-mutating preview and planned-history
+generation are also available through the `waystone-publishd` D-Bus adapter. It
+does not generate feeds automatically, compare remote state, perform transfer,
+delete files, access credentials, probe SSH host keys, or verify a remote
+result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

@@ -165,6 +165,45 @@ fn planned_history_json_reports_inspectable_record() {
 }
 
 #[test]
+fn completed_history_json_reports_inspectable_result_record() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--completed-history",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--date",
+            "2026-07-20T00:00:00Z",
+            "--transfer-result",
+            "completed",
+            "--verification-result",
+            "passed",
+            "--rollback-available",
+            "false",
+            "--rollback-notes",
+            "No rollback snapshot recorded",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"transfer_result\":\"completed\""));
+    assert!(stdout.contains("\"verification_result\":\"passed\""));
+    assert!(stdout.contains("\"files\":["));
+    assert!(stdout.contains("\"action\":\"planned-upload\""));
+    assert!(stdout.contains("[publication]\\n"));
+    assert!(stdout.contains("transfer_result = \\\"completed\\\""));
+    assert!(stdout.contains("verification_result = \\\"passed\\\""));
+}
+
+#[test]
 fn save_planned_history_preview_writes_under_project_history_previews() {
     let project_root = unique_temp_project_root("history-preview");
     copy_directory(
@@ -204,6 +243,56 @@ fn save_planned_history_preview_writes_under_project_history_previews() {
     assert!(std::fs::read_to_string(saved_path)
         .expect("saved preview should be readable")
         .contains("transfer_result = \"planned\""));
+}
+
+#[test]
+fn save_completed_history_writes_under_project_history_completed() {
+    let project_root = unique_temp_project_root("history-completed");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--save-completed-history",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--target",
+            "production",
+            "--date",
+            "2026-07-20T00:00:00Z",
+            "--transfer-result",
+            "completed",
+            "--verification-result",
+            "passed",
+            "--rollback-available",
+            "false",
+            "--rollback-notes",
+            "No rollback snapshot recorded",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"output_path\""));
+    assert!(stdout.contains("history/completed"));
+    assert!(stdout.contains("2026-07-20T00-00-00Z-production-completed.toml"));
+
+    let saved_path = project_root
+        .join("history")
+        .join("completed")
+        .join("2026-07-20T00-00-00Z-production-completed.toml");
+    assert!(saved_path.exists());
+    let record = std::fs::read_to_string(saved_path).expect("saved record should be readable");
+    assert!(record.contains("transfer_result = \"completed\""));
+    assert!(record.contains("verification_result = \"passed\""));
 }
 
 #[test]
@@ -250,6 +339,60 @@ fn list_planned_history_previews_reports_saved_previews() {
     assert!(stdout.contains("\"modified_unix\":"));
     assert!(stdout.contains("\"size_bytes\":"));
     assert!(stdout.contains("history/previews"));
+}
+
+#[test]
+fn list_completed_history_reports_saved_records() {
+    let project_root = unique_temp_project_root("history-completed-list");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+
+    let save_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--save-completed-history",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--target",
+            "production",
+            "--date",
+            "2026-07-20T00:00:00Z",
+            "--transfer-result",
+            "completed",
+            "--verification-result",
+            "passed",
+            "--rollback-available",
+            "false",
+            "--rollback-notes",
+            "No rollback snapshot recorded",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+    assert!(save_output.status.success());
+
+    let list_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--list-completed-history",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(list_output.status.success());
+    let stdout = String::from_utf8_lossy(&list_output.stdout);
+    assert!(stdout.contains("\"records\":["));
+    assert!(stdout.contains("\"filename\":\"2026-07-20T00-00-00Z-production-completed.toml\""));
+    assert!(stdout.contains("\"modified_unix\":"));
+    assert!(stdout.contains("\"size_bytes\":"));
+    assert!(stdout.contains("history/completed"));
 }
 
 #[test]
@@ -303,6 +446,64 @@ fn read_planned_history_preview_reports_saved_preview_detail() {
 }
 
 #[test]
+fn read_completed_history_reports_saved_record_detail() {
+    let project_root = unique_temp_project_root("history-completed-read");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+
+    let save_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--save-completed-history",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--target",
+            "production",
+            "--date",
+            "2026-07-20T00:00:00Z",
+            "--transfer-result",
+            "completed",
+            "--verification-result",
+            "passed",
+            "--rollback-available",
+            "false",
+            "--rollback-notes",
+            "No rollback snapshot recorded",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+    assert!(save_output.status.success());
+
+    let saved_path = project_root
+        .join("history")
+        .join("completed")
+        .join("2026-07-20T00-00-00Z-production-completed.toml");
+    let read_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--read-completed-history",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--record",
+            saved_path.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(read_output.status.success());
+    let stdout = String::from_utf8_lossy(&read_output.stdout);
+    assert!(stdout.contains("\"record_toml\":\"[publication]\\n"));
+    assert!(stdout.contains("\"filename\":\"2026-07-20T00-00-00Z-production-completed.toml\""));
+    assert!(stdout.contains("transfer_result = \\\"completed\\\""));
+}
+
+#[test]
 fn read_planned_history_preview_rejects_outside_project_previews() {
     let project_root = unique_temp_project_root("history-preview-read-reject");
     copy_directory(
@@ -330,4 +531,34 @@ fn read_planned_history_preview_rejects_outside_project_previews() {
     let stdout = String::from_utf8_lossy(&read_output.stdout);
     assert!(stdout.contains("\"status\":\"error\""));
     assert!(stdout.contains("outside project preview directory"));
+}
+
+#[test]
+fn read_completed_history_rejects_outside_project_completed_history() {
+    let project_root = unique_temp_project_root("history-completed-read-reject");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/ssh-capsule.wayproject")),
+        &project_root,
+    );
+    std::fs::create_dir_all(project_root.join("history").join("completed"))
+        .expect("completed history directory should be created");
+    let outside = project_root.join("outside.toml");
+    std::fs::write(&outside, "[publication]\n").expect("outside file should be written");
+
+    let read_output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--read-completed-history",
+            "--project",
+            project_root.to_str().expect("temp path should be utf-8"),
+            "--record",
+            outside.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(!read_output.status.success());
+    let stdout = String::from_utf8_lossy(&read_output.stdout);
+    assert!(stdout.contains("\"status\":\"error\""));
+    assert!(stdout.contains("outside project completed history directory"));
 }

@@ -1,9 +1,11 @@
 # WaystoneOS Checkpoint
 
-Status: current after audiod local audio/feed D-Bus methods
+Status: current after completed publication-history result records
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
+It also includes local completed publication-history result records through the
+publish CLI and publish service crate.
 
 ## Current Position
 
@@ -153,6 +155,17 @@ feed-entry diagnostic to the Create pane. It selects the same project, derives
 the recording ID from the diagnostic sidecar filename, fills the Create-pane
 recording ID field, and leaves repair to the existing local Create controls.
 
+The `publish --completed-history --json` command builds an inspectable
+completed publication-history result record from the same dry-run plan as
+planned history plus explicit transfer result, verification result, and
+rollback fields. `publish --save-completed-history --json` writes that result
+under the selected project `history/completed/` directory. `publish
+--list-completed-history --json` and `publish --read-completed-history --json`
+list and read saved records constrained to that same project-local directory.
+These commands are local result-recording contracts only; they do not transfer
+files, verify remotes, call D-Bus, or mutate remote systems. The Qt Publish
+pane does not expose completed history yet.
+
 ## Verification Marker
 
 The current expected verification set is:
@@ -232,6 +245,11 @@ Result after audiod local audio/feed D-Bus methods: relevant checks passed on
 contract smoke, audiod D-Bus smoke, focused Qt project smoke, broad Qt smoke,
 format checks, and git diff whitespace checks.
 
+Result after completed publication-history result records: relevant checks
+passed on 2026-07-20, including Rust tests, clippy with warnings denied, CLI
+JSON contract smoke, publishd D-Bus smoke, focused Qt project smoke, broad Qt
+smoke, format checks, and git diff whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -255,6 +273,7 @@ format checks, and git diff whitespace checks.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
 - `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars, replaces matching existing Atom entries by ID, and preserves unrelated existing Atom entries without publishing remotely.
 - `publish --dry-run` reports feed readiness and invalid feed-entry diagnostics without generating or publishing feeds.
+- `publish --completed-history` and `publish --save-completed-history` create local completed history result records from explicit result fields and do not execute remote transfer or verification.
 - The Qt Publish pane can hand selected invalid feed-entry diagnostics back to the Create pane without editing metadata.
 - The Qt Create pane exposes `record capture` through local CLI adapters for selected projects before Opus export or recording attachment.
 - The Qt Create pane exposes `record attach` through local CLI adapters for selected projects with audio metadata configured.
@@ -275,9 +294,9 @@ format checks, and git diff whitespace checks.
 
 Recommended next implementation step:
 
-1. Review the remaining 0.1 workflow gaps now that local audio/feed operations exist through CLI, Qt, service crates, and audiod D-Bus.
-2. Candidate: add completed publication-history/write-result handling before remote transfer.
-3. Candidate: add the next narrow publish validation contract needed before remote execution.
+1. Add the next narrow publish validation contract needed before remote execution.
+2. Decide whether completed publication-history result records should be exposed through `waystone-publishd` D-Bus.
+3. Decide whether the Qt Publish pane should list/read completed records or remain focused on planned previews until remote transfer exists.
 
 Alternative next step:
 
@@ -285,5 +304,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after the real Opus export slice on 2026-07-20. The latest handoff has
-been resumed and superseded by this checkpoint.
+Current after completed publication-history result records on 2026-07-20. The
+latest handoff has been resumed and superseded by this checkpoint.

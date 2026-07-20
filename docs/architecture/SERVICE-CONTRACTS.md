@@ -22,7 +22,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Domain | Current crate | Service daemon | D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
 | Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
-| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history; D-Bus adapter for preview and planned history |
+| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, planned history, completed-history record construction; D-Bus adapter for preview and planned history |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, update, WAV master capture, Opus publication-copy export, prepare/update feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for all listed operations |
@@ -78,6 +78,8 @@ Current contract:
 - `PreviewPublicationResponse`
 - `BuildPlannedHistoryRequest`
 - `BuildPlannedHistoryResponse`
+- `BuildCompletedHistoryRequest`
+- `BuildCompletedHistoryResponse`
 - `PublishService`
 
 Current behavior:
@@ -85,10 +87,10 @@ Current behavior:
 - Builds non-mutating dry-run publication plans through `waystone-publish-plan`.
 - Reports feed readiness in dry-run previews, including configured path, file existence, prepared entry count, invalid entry count, and per-invalid-sidecar diagnostics.
 - Resolves host and identity metadata when caller supplies roots.
-- Builds planned publication history records through `waystone-publication-history`.
+- Builds planned and completed publication history records through `waystone-publication-history`.
 - Preserves blocked dry-run state.
 - Exposes preview and planned-history generation through `waystone-publishd` D-Bus adapter.
-- Does not compare remote state, transfer files, delete files, verify remotes, or unlock credentials.
+- Does not compare remote state, transfer files, delete files, verify remotes, unlock credentials, or write completed history over D-Bus.
 
 ## Host Service
 

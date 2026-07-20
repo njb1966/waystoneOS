@@ -127,7 +127,7 @@ Still deferred for publish service:
 - Remote deletion
 - Remote verification
 - Credential unlock
-- Writing completed history records
+- Exposing completed-history record writes over D-Bus
 - Installing activation files into user or system service directories
 
 Audio daemon:
