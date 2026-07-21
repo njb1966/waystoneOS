@@ -12,7 +12,8 @@ use waystone_publication_history::{
 };
 use waystone_publish_plan::{
     dry_run_publish_with_context, validate_publication_with_context, FeedEntryDiagnostic,
-    FeedPublicationState, PublishContext, PublishValidationIssue, Resolution,
+    FeedPublicationState, PublishContext, PublishValidationIssue, RemoteComparisonState,
+    Resolution,
 };
 
 fn main() {
@@ -121,6 +122,7 @@ fn publish_context(args: &[&str]) -> PublishContext {
     PublishContext {
         hosts_root: option_value(args, "--hosts").map(PathBuf::from),
         identities_root: option_value(args, "--identities").map(PathBuf::from),
+        remote_state_path: option_value(args, "--remote-state").map(PathBuf::from),
     }
 }
 
@@ -138,7 +140,7 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
         Ok(plan) => {
             if json {
                 println!(
-                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination\":{},\"blocked\":{},\"host_resolution\":{},\"identity_resolution\":{},\"feed\":{},\"changes\":{{\"upload\":[{}],\"update\":[],\"delete\":[],\"skip\":[]}},\"verification\":{{\"checks\":[{}]}},\"confirmations\":[{}]}}}}",
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination\":{},\"blocked\":{},\"host_resolution\":{},\"identity_resolution\":{},\"feed\":{},\"comparison\":{},\"changes\":{{\"upload\":[{}],\"update\":[{}],\"delete\":[{}],\"skip\":[{}]}},\"verification\":{{\"checks\":[{}]}},\"confirmations\":[{}]}}}}",
                     escape_json(&plan.project_id),
                     escape_json(&plan.target),
                     escape_json(&plan.method),
@@ -147,7 +149,11 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
                     json_resolution(plan.host_resolution.as_ref()),
                     json_resolution(plan.identity_resolution.as_ref()),
                     json_feed_state(&plan.feed),
+                    json_remote_comparison(&plan.comparison),
                     json_string_array(&plan.upload),
+                    json_string_array(&plan.update),
+                    json_string_array(&plan.delete),
+                    json_string_array(&plan.skip),
                     json_string_array(&plan.verification_checks),
                     json_string_array(&plan.confirmations)
                 );
@@ -172,6 +178,7 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
                     println!("Blocked: yes");
                 }
                 println!("Feed: {}", human_feed_state(&plan.feed));
+                println!("Comparison: {}", human_remote_comparison(&plan.comparison));
                 if !plan.feed.invalid_entry_diagnostics.is_empty() {
                     println!("Feed diagnostics:");
                     for diagnostic in &plan.feed.invalid_entry_diagnostics {
@@ -182,7 +189,19 @@ fn dry_run(args: &[&str], json: bool) -> i32 {
                     }
                 }
                 println!("Upload:");
-                for path in plan.upload {
+                for path in &plan.upload {
+                    println!("  {path}");
+                }
+                println!("Update:");
+                for path in &plan.update {
+                    println!("  {path}");
+                }
+                println!("Delete:");
+                for path in &plan.delete {
+                    println!("  {path}");
+                }
+                println!("Skip:");
+                for path in &plan.skip {
                     println!("  {path}");
                 }
                 if !plan.confirmations.is_empty() {
@@ -623,14 +642,14 @@ fn completed_history_inputs<'a>(args: &'a [&str]) -> Result<CompletedHistoryInpu
 
 fn print_help() {
     println!("Usage:");
-    println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]");
-    println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]");
-    println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
-    println!("  publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]");
+    println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
+    println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
+    println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
+    println!("  publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --list-planned-history-previews --project PATH [--json]");
     println!("  publish --read-planned-history-preview --project PATH --preview PATH [--json]");
-    println!("  publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]");
-    println!("  publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]");
+    println!("  publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
+    println!("  publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --list-completed-history --project PATH [--json]");
     println!("  publish --read-completed-history --project PATH --record PATH [--json]");
 }
@@ -697,6 +716,15 @@ fn json_feed_state(feed: &FeedPublicationState) -> String {
     )
 }
 
+fn json_remote_comparison(comparison: &RemoteComparisonState) -> String {
+    format!(
+        "{{\"configured\":{},\"source\":{},\"remote_paths\":{}}}",
+        comparison.configured,
+        json_optional_string(comparison.source.as_deref()),
+        comparison.remote_paths
+    )
+}
+
 fn json_feed_diagnostics(diagnostics: &[FeedEntryDiagnostic]) -> String {
     diagnostics
         .iter()
@@ -722,5 +750,17 @@ fn human_feed_state(feed: &FeedPublicationState) -> String {
         if feed.exists { "exists" } else { "missing" },
         feed.prepared_entries,
         feed.invalid_entries
+    )
+}
+
+fn human_remote_comparison(comparison: &RemoteComparisonState) -> String {
+    if !comparison.configured {
+        return "not configured".to_string();
+    }
+
+    format!(
+        "{} ({} remote paths)",
+        comparison.source.as_deref().unwrap_or("unknown source"),
+        comparison.remote_paths
     )
 }

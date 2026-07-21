@@ -59,6 +59,44 @@ fn dry_run_json_reports_resolved_metadata() {
 }
 
 #[test]
+fn dry_run_json_reports_remote_state_comparison() {
+    let temp_root = unique_temp_project_root("remote-state");
+    std::fs::create_dir_all(&temp_root).expect("temp root should be created");
+    let remote_state = temp_root.join("remote-state.txt");
+    std::fs::write(&remote_state, "content/index.gmi\nstale.gmi\n")
+        .expect("remote state should be written");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--dry-run",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--remote-state",
+            remote_state.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"comparison\":{\"configured\":true"));
+    assert!(stdout.contains("\"remote_paths\":2"));
+    assert!(stdout.contains("\"upload\":[]"));
+    assert!(stdout.contains("\"update\":[]"));
+    assert!(stdout.contains("\"delete\":[\"stale.gmi\"]"));
+    assert!(stdout.contains("\"skip\":[\"content/index.gmi\"]"));
+
+    let _ = std::fs::remove_dir_all(temp_root);
+}
+
+#[test]
 fn validate_json_reports_ready_target() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

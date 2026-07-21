@@ -79,6 +79,8 @@ smoke_root="$(mktemp -d /tmp/waystone-publishd-dbus-smoke-XXXXXX)"
 cp -R examples/projects/ssh-capsule.wayproject "$smoke_root/ssh-capsule.wayproject"
 smoke_project="$smoke_root/ssh-capsule.wayproject"
 completed_record="$smoke_project/history/completed/2026-07-20T00-00-00Z-production-completed.toml"
+remote_state="$smoke_root/remote-state.txt"
+printf "content/index.gmi\nstale.gmi\n" > "$remote_state"
 
 preview_output="$(busctl --user call \
   org.waystone.Publish1 \
@@ -92,6 +94,23 @@ for expected in ssh-capsule production rsync offgridholdout nick-pub content/ind
     *)
       echo "publishd D-Bus smoke: PreviewPublication did not report expected plan"
       echo "$preview_output"
+      exit 1
+      ;;
+  esac
+done
+
+compared_preview_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  PreviewPublication \
+  s "{\"project_path\":\"$smoke_project\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\",\"remote_state_path\":\"$remote_state\"}")"
+for expected in comparison remote_paths content/index.gmi stale.gmi delete skip; do
+  case "$compared_preview_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: PreviewPublication did not report expected remote-state comparison"
+      echo "$compared_preview_output"
       exit 1
       ;;
   esac

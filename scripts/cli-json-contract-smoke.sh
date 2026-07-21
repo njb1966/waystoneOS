@@ -95,11 +95,37 @@ publish = run([
     "--target", "export", "--json"
 ])
 require({"project", "target", "method", "destination", "blocked", "changes",
-         "verification", "confirmations", "feed"} <= publish["data"].keys(),
+         "verification", "confirmations", "feed", "comparison"} <= publish["data"].keys(),
         "publish dry-run contract changed")
 require({"configured", "enabled", "type", "path", "exists", "prepared_entries",
          "invalid_entries", "invalid_entry_diagnostics"} <= publish["data"]["feed"].keys(),
         "publish dry-run feed contract changed")
+require({"configured", "source", "remote_paths"} <= publish["data"]["comparison"].keys(),
+        "publish dry-run comparison contract changed")
+with tempfile.TemporaryDirectory(prefix="waystone-remote-state-contract-") as temp_root:
+    remote_state = Path(temp_root) / "remote-state.txt"
+    remote_state.write_text("content/index.gmi\nstale.gmi\n", encoding="utf-8")
+    compared_publish = run([
+        "target/debug/publish", "--dry-run",
+        "--project", "examples/projects/ssh-capsule.wayproject",
+        "--target", "production",
+        "--hosts", "examples/connections/hosts",
+        "--identities", "examples/connections/identities",
+        "--remote-state", str(remote_state),
+        "--json"
+    ])
+    require(compared_publish["data"]["comparison"]["configured"] is True,
+            "publish dry-run remote comparison was not enabled")
+    require(compared_publish["data"]["comparison"]["remote_paths"] == 2,
+            "publish dry-run remote comparison path count changed")
+    require(compared_publish["data"]["changes"]["upload"] == [],
+            "publish dry-run remote comparison upload set changed")
+    require(compared_publish["data"]["changes"]["update"] == [],
+            "publish dry-run remote comparison update set changed")
+    require(compared_publish["data"]["changes"]["delete"] == ["stale.gmi"],
+            "publish dry-run remote comparison delete set changed")
+    require(compared_publish["data"]["changes"]["skip"] == ["content/index.gmi"],
+            "publish dry-run remote comparison skip set changed")
 
 publish_validation = run([
     "target/debug/publish", "--validate", "--project", project_path,

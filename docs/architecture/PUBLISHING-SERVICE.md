@@ -84,6 +84,7 @@ Dry-run output must include:
 - Files to update
 - Files to delete
 - Files to skip
+- Remote comparison state when caller-supplied local state is provided
 - Validation status
 - Verification plan
 - Required confirmations
@@ -100,6 +101,11 @@ Example:
     "method": "rsync",
     "identity": "nick-pub",
     "destination": "gemini://example.org",
+    "comparison": {
+      "configured": true,
+      "source": "/tmp/remote-state.txt",
+      "remote_paths": 2
+    },
     "changes": {
       "upload": ["content/index.gmi"],
       "update": ["feeds/feed.xml"],
@@ -120,6 +126,27 @@ Example:
 ```
 
 Dry-run must not claim transfer or verification success.
+
+## Current Remote-State Comparison
+
+The current implementation can compare local publishable files against a
+caller-supplied local remote-state manifest. The manifest is a plain text file:
+one remote-relative path per line, with blank lines and `#` comments ignored.
+Absolute paths and parent-directory traversal are rejected.
+
+This comparison is local-only. It does not contact a remote host, unlock
+credentials, probe host keys, transfer files, delete files, or verify remote
+content.
+
+Current classification:
+
+- Local file absent from the supplied state: `upload`
+- Local file present in the supplied state: `skip`
+- State path absent locally and target delete policy allows delete planning:
+  `delete`
+- State path absent locally and target delete policy is `forbid`: `skip`
+- `update` is reserved until remote-state metadata includes hashes or other
+  content comparison data
 
 ## Destructive Deletion
 

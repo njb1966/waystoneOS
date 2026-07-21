@@ -22,6 +22,7 @@ struct PreviewRequest {
     target: String,
     hosts_root: Option<PathBuf>,
     identities_root: Option<PathBuf>,
+    remote_state_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,6 +31,7 @@ struct PlannedHistoryRequest {
     target: String,
     hosts_root: Option<PathBuf>,
     identities_root: Option<PathBuf>,
+    remote_state_path: Option<PathBuf>,
     date: String,
 }
 
@@ -39,6 +41,7 @@ struct CompletedHistoryRequest {
     target: String,
     hosts_root: Option<PathBuf>,
     identities_root: Option<PathBuf>,
+    remote_state_path: Option<PathBuf>,
     date: String,
     transfer_result: String,
     verification_result: String,
@@ -84,6 +87,7 @@ impl PublishDbus {
                 target: request.target,
                 hosts_root: request.hosts_root,
                 identities_root: request.identities_root,
+                remote_state_path: request.remote_state_path,
             }) {
             Ok(validation) => success_response(validation_report_response(validation.report)),
             Err(error) => error_response("publication_validation_failed", &error.to_string()),
@@ -101,6 +105,7 @@ impl PublishDbus {
             target: request.target,
             hosts_root: request.hosts_root,
             identities_root: request.identities_root,
+            remote_state_path: request.remote_state_path,
         }) {
             Ok(plan) => plan,
             Err(error) => return error_response("publication_preview_failed", &error.to_string()),
@@ -141,6 +146,7 @@ impl PublishDbus {
             target: request.target,
             hosts_root: request.hosts_root,
             identities_root: request.identities_root,
+            remote_state_path: request.remote_state_path,
         }) {
             Ok(plan) => plan,
             Err(error) => return error_response("publication_preview_failed", &error.to_string()),
@@ -185,6 +191,7 @@ impl PublishDbus {
             target: request.target.clone(),
             hosts_root: request.hosts_root,
             identities_root: request.identities_root,
+            remote_state_path: request.remote_state_path,
         }) {
             Ok(plan) => plan,
             Err(error) => return error_response("publication_preview_failed", &error.to_string()),
@@ -262,6 +269,7 @@ impl PublishDbus {
             target: request.target,
             hosts_root: request.hosts_root,
             identities_root: request.identities_root,
+            remote_state_path: request.remote_state_path,
         })
     }
 }
@@ -336,6 +344,11 @@ fn plan_response(
                     "issues": diagnostic.issues,
                 })
             }).collect::<Vec<_>>(),
+        },
+        "comparison": {
+            "configured": plan.comparison.configured,
+            "source": plan.comparison.source,
+            "remote_paths": plan.comparison.remote_paths,
         },
         "changes": {
             "upload": plan.upload,

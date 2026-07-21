@@ -180,10 +180,11 @@ Current behavior:
 - Resolves local host metadata when `--hosts` is provided
 - Resolves local identity metadata when `--identities` is provided
 - Marks dry-run plans blocked when required host or identity metadata is missing or invalid
-- Reports planned uploads only
-- Does not compare remote state
+- Compares local publishable files against a caller-supplied remote-state manifest when provided
+- Classifies dry-run changes as upload, delete, and skip; update remains reserved until remote metadata includes hashes
+- Reports comparison metadata in the dry-run plan
 - Does not perform transfers
-- Does not delete remote files
+- Does not execute remote deletions
 - Does not access credentials
 - Does not probe SSH host keys
 
@@ -194,6 +195,7 @@ Current tests cover:
 - Missing publish target rejection
 - SSH target host and identity resolution
 - Blocked dry-run when host metadata is not provided
+- Caller-supplied remote-state comparison and invalid remote-state path rejection
 
 ## Publish CLI
 
@@ -206,14 +208,14 @@ cli/publish/
 Current command:
 
 ```text
-publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]
-publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--json]
-publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]
-publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--json]
+publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
+publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
+publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
+publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --list-planned-history-previews --project PATH [--json]
 publish --read-planned-history-preview --project PATH --preview PATH [--json]
-publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]
-publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--json]
+publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
+publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --list-completed-history --project PATH [--json]
 publish --read-completed-history --project PATH --record PATH [--json]
 ```
@@ -225,6 +227,8 @@ Current behavior:
 - JSON publication readiness validation report with `valid`, `blocked`, `errors`, and `warnings`
 - Publish validation checks project validation, host and identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans, and required confirmations
 - Feed readiness in dry-run JSON and human output
+- Optional local remote-state comparison through `--remote-state PATH`
+- Dry-run JSON includes `comparison` metadata and populated `upload`, `update`, `delete`, and `skip` arrays
 - Human-readable planned publication history record
 - Local planned history preview save under `history/previews/` inside the selected project
 - Read-only saved planned history preview listing from `history/previews/` inside the selected project
@@ -237,7 +241,7 @@ Current behavior:
 - JSON output
 - Exit code `0` for success
 - Exit code `2` for usage errors
-- No remote mutation
+- No remote probing or mutation
 
 ## CLI Output Helper Crate
 
@@ -298,6 +302,7 @@ Current behavior:
 - Builds planned publication history records
 - Builds completed publication history result records from explicit result fields
 - Saves, lists, and reads completed history records under project `history/completed/`
+- Passes optional caller-supplied remote-state manifests into dry-run preview and validation planning
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, planned-history generation, and completed-history result-record generation/save/list/read through `waystone-publishd` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
@@ -658,7 +663,8 @@ Current state:
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - D-Bus autostart is smoke-tested through a generated temporary service file
 - Systemd user unit syntax is smoke-tested through a generated temporary daemon path
-- Does not compare remote state, perform transfers, delete remote files, unlock credentials, or verify remote results
+- Accepts caller-supplied local remote-state manifests for preview comparison
+- Does not probe remote hosts, perform transfers, execute deletions, unlock credentials, or verify remote results
 - Uses `crates/publish-service/` as its internal boundary
 
 ## Host and Identity Services

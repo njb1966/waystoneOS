@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after publishd completed-history save/list/read
+Status: current after local remote-state comparison scaffolding
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -11,7 +11,9 @@ the publish CLI, publish service crate, and `waystone-publishd` D-Bus adapter.
 The Qt Publish pane now surfaces that report and read-only completed-history
 record list/detail views through the local CLI adapter.
 `waystone-publishd` now exposes completed-history save/list/read over D-Bus for
-local project records.
+local project records. Dry-run preview can now compare local publishable files
+against a caller-supplied local remote-state manifest and classify
+upload/delete/skip without contacting or mutating a remote.
 
 ## Current Position
 
@@ -299,6 +301,12 @@ tests, clippy with warnings denied, CLI JSON contract smoke, publishd D-Bus
 smoke, focused Qt project smoke, broad Qt smoke, format checks, and git diff
 whitespace checks.
 
+Result after local remote-state comparison scaffolding: checks passed on
+2026-07-20, including focused publish Rust tests, Rust workspace tests, clippy
+with warnings denied, CLI JSON contract smoke, publishd D-Bus smoke, focused
+Qt project smoke, broad Qt smoke, format checks, and git diff whitespace
+checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -322,7 +330,8 @@ whitespace checks.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
 - `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars, replaces matching existing Atom entries by ID, and preserves unrelated existing Atom entries without publishing remotely.
 - `publish --dry-run` reports feed readiness and invalid feed-entry diagnostics without generating or publishing feeds.
-- `publish --validate` reports publication readiness without comparing remote state, transferring files, unlocking credentials, or verifying remotes.
+- `publish --dry-run --remote-state PATH` compares local publishable files against a caller-supplied local state manifest and reports comparison metadata plus upload/delete/skip buckets without contacting or mutating a remote.
+- `publish --validate` reports publication readiness without probing remote state, transferring files, unlocking credentials, or verifying remotes.
 - The Qt Publish pane displays `publish --validate` results for the selected project and target without mutating projects or remotes.
 - `publish --completed-history` and `publish --save-completed-history` create local completed history result records from explicit result fields and do not execute remote transfer or verification.
 - The Qt Publish pane lists and reads saved completed history records without creating completed records or mutating remotes.
@@ -346,9 +355,9 @@ whitespace checks.
 
 Recommended next implementation step:
 
-1. Decide whether the next local publish slice should add remote-state comparison scaffolding without executing transfer.
-2. Decide whether Qt Publish-pane completed-history ergonomics need any small follow-up before moving back to service contracts.
-3. Keep real transfer, remote deletion, credential unlock, and remote verification deferred until comparison/readiness boundaries are stable.
+1. Commit and push the local remote-state comparison slice.
+2. Choose the next local publish slice: either expose comparison ergonomics in the Qt Publish pane or add a narrow local remote-state export/inspection helper.
+3. Keep real transfer, remote deletion execution, credential unlock, and remote verification deferred until comparison/readiness boundaries are stable.
 
 Alternative next step:
 
@@ -356,5 +365,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after publishd completed-history save/list/read on 2026-07-20. The
+Current after local remote-state comparison scaffolding on 2026-07-20. The
 latest handoff has been resumed and superseded by this checkpoint.

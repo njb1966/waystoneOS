@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -22,7 +23,15 @@ pub struct PublishDryRun {
     pub host_resolution: Option<Resolution>,
     pub identity_resolution: Option<Resolution>,
     pub feed: FeedPublicationState,
+    pub comparison: RemoteComparisonState,
     pub blocked: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct RemoteComparisonState {
+    pub configured: bool,
+    pub source: Option<String>,
+    pub remote_paths: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +89,7 @@ pub enum ResolutionStatus {
 pub struct PublishContext {
     pub hosts_root: Option<PathBuf>,
     pub identities_root: Option<PathBuf>,
+    pub remote_state_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Error)]
@@ -97,6 +107,19 @@ pub enum PublishPlanError {
     ReadDirectoryFailed {
         path: PathBuf,
         source: std::io::Error,
+    },
+
+    #[error("remote state could not be read: {path}: {source}")]
+    ReadRemoteStateFailed {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+
+    #[error("remote state contains invalid path at {path}:{line}: {entry}")]
+    InvalidRemoteStateEntry {
+        path: PathBuf,
+        line: usize,
+        entry: String,
     },
 }
 
@@ -128,8 +151,37 @@ pub fn dry_run_publish_with_context(
     let identity_resolution = resolve_identity(target, context);
     let blocked = resolution_blocks(&host_resolution) || resolution_blocks(&identity_resolution);
     let feed = feed_publication_state(project_root, &manifest);
-    let mut upload = collect_publishable_files(project_root, &manifest)?;
-    upload.sort();
+    let local_files = collect_publishable_files(project_root, &manifest)?;
+    let (upload, update, delete, skip, comparison) = match &context.remote_state_path {
+        Some(remote_state_path) => {
+            let remote_state = read_remote_state(remote_state_path)?;
+            let remote_paths = remote_state.paths.len();
+            let (upload, update, delete, skip) =
+                compare_remote_state(&local_files, target, &remote_state);
+            (
+                upload,
+                update,
+                delete,
+                skip,
+                RemoteComparisonState {
+                    configured: true,
+                    source: Some(remote_state_path.display().to_string()),
+                    remote_paths,
+                },
+            )
+        }
+        None => (
+            local_files,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            RemoteComparisonState {
+                configured: false,
+                source: None,
+                remote_paths: 0,
+            },
+        ),
+    };
 
     let confirmations = if target.delete_policy.as_deref() == Some("confirm") {
         vec!["remote deletion requires explicit confirmation".to_string()]
@@ -143,14 +195,15 @@ pub fn dry_run_publish_with_context(
         method,
         destination,
         upload,
-        update: Vec::new(),
-        delete: Vec::new(),
-        skip: Vec::new(),
+        update,
+        delete,
+        skip,
         confirmations,
         verification_checks: vec!["fetch".to_string(), "mime".to_string()],
         host_resolution,
         identity_resolution,
         feed,
+        comparison,
         blocked,
     })
 }
@@ -470,6 +523,78 @@ fn collect_publishable_files(
     files.sort();
     files.dedup();
     Ok(files)
+}
+
+#[derive(Debug)]
+struct RemoteState {
+    paths: BTreeSet<String>,
+}
+
+fn read_remote_state(path: &Path) -> Result<RemoteState, PublishPlanError> {
+    let content =
+        fs::read_to_string(path).map_err(|source| PublishPlanError::ReadRemoteStateFailed {
+            path: path.to_path_buf(),
+            source,
+        })?;
+
+    let mut paths = BTreeSet::new();
+    for (index, line) in content.lines().enumerate() {
+        let entry = line.trim();
+        if entry.is_empty() || entry.starts_with('#') {
+            continue;
+        }
+        if !is_valid_remote_state_path(entry) {
+            return Err(PublishPlanError::InvalidRemoteStateEntry {
+                path: path.to_path_buf(),
+                line: index + 1,
+                entry: entry.to_string(),
+            });
+        }
+        paths.insert(entry.to_string());
+    }
+
+    Ok(RemoteState { paths })
+}
+
+fn is_valid_remote_state_path(entry: &str) -> bool {
+    let path = Path::new(entry);
+    !path.is_absolute()
+        && path
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)))
+}
+
+fn compare_remote_state(
+    local_files: &[String],
+    target: &PublishTarget,
+    remote_state: &RemoteState,
+) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
+    let local_paths = local_files.iter().cloned().collect::<BTreeSet<_>>();
+    let mut upload = Vec::new();
+    let update = Vec::new();
+    let mut delete = Vec::new();
+    let mut skip = Vec::new();
+
+    for local_path in &local_paths {
+        if remote_state.paths.contains(local_path) {
+            skip.push(local_path.clone());
+        } else {
+            upload.push(local_path.clone());
+        }
+    }
+
+    for remote_path in &remote_state.paths {
+        if local_paths.contains(remote_path) {
+            continue;
+        }
+        if target.delete_policy.as_deref() == Some("forbid") {
+            skip.push(remote_path.clone());
+        } else {
+            delete.push(remote_path.clone());
+        }
+    }
+
+    (upload, update, delete, skip)
 }
 
 fn feed_publication_state(
@@ -856,6 +981,7 @@ mime_type = "audio/ogg; codecs=opus"
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("ssh capsule dry-run should plan");
@@ -879,6 +1005,7 @@ mime_type = "audio/ogg; codecs=opus"
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("ssh target should validate");
@@ -923,6 +1050,64 @@ mime_type = "audio/ogg; codecs=opus"
             .errors
             .iter()
             .any(|issue| issue.code == "identity_missing"));
+    }
+
+    #[test]
+    fn compares_local_files_with_supplied_remote_state() {
+        let remote_state = temp_project_root("remote-state").join("remote-state.txt");
+        fs::create_dir_all(remote_state.parent().expect("remote state has parent"))
+            .expect("remote state parent");
+        fs::write(&remote_state, "content/index.gmi\nstale.gmi\n").expect("remote state");
+
+        let plan = dry_run_publish_with_context(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+            &PublishContext {
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: Some(remote_state.clone()),
+            },
+        )
+        .expect("ssh capsule dry-run should compare remote state");
+
+        assert!(plan.upload.is_empty());
+        assert!(plan.update.is_empty());
+        assert_eq!(plan.delete, vec!["stale.gmi"]);
+        assert_eq!(plan.skip, vec!["content/index.gmi"]);
+        assert!(plan.comparison.configured);
+        assert_eq!(plan.comparison.remote_paths, 2);
+        assert_eq!(
+            plan.comparison.source.as_deref(),
+            Some(remote_state.display().to_string().as_str())
+        );
+
+        let _ = fs::remove_file(remote_state);
+    }
+
+    #[test]
+    fn refuses_invalid_remote_state_paths() {
+        let remote_state = temp_project_root("invalid-remote-state").join("remote-state.txt");
+        fs::create_dir_all(remote_state.parent().expect("remote state has parent"))
+            .expect("remote state parent");
+        fs::write(&remote_state, "content/index.gmi\n../escape.gmi\n").expect("remote state");
+
+        let error = dry_run_publish_with_context(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+            &PublishContext {
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: Some(remote_state.clone()),
+            },
+        )
+        .expect_err("invalid remote state should fail");
+
+        assert!(matches!(
+            error,
+            PublishPlanError::InvalidRemoteStateEntry { .. }
+        ));
+
+        let _ = fs::remove_file(remote_state);
     }
 
     #[test]

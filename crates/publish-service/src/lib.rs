@@ -18,6 +18,7 @@ pub struct PreviewPublicationRequest {
     pub target: String,
     pub hosts_root: Option<PathBuf>,
     pub identities_root: Option<PathBuf>,
+    pub remote_state_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,7 @@ pub struct ValidatePublicationRequest {
     pub target: String,
     pub hosts_root: Option<PathBuf>,
     pub identities_root: Option<PathBuf>,
+    pub remote_state_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -114,6 +116,7 @@ impl PublishService {
             &PublishContext {
                 hosts_root: request.hosts_root,
                 identities_root: request.identities_root,
+                remote_state_path: request.remote_state_path,
             },
         )?;
 
@@ -130,6 +133,7 @@ impl PublishService {
             &PublishContext {
                 hosts_root: request.hosts_root,
                 identities_root: request.identities_root,
+                remote_state_path: request.remote_state_path,
             },
         )?;
 
@@ -224,6 +228,7 @@ mod tests {
                 target: "production".to_string(),
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             })
             .expect("preview should succeed");
 
@@ -246,6 +251,7 @@ mod tests {
                 target: "production".to_string(),
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             })
             .expect("preview should succeed");
 
@@ -281,6 +287,7 @@ mod tests {
                 target: "production".to_string(),
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             })
             .expect("preview should succeed");
 
@@ -329,6 +336,7 @@ mod tests {
                 target: "production".to_string(),
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             })
             .expect("validation should succeed");
 

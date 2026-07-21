@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after publishd completed-history save/list/read
+Status: current after local remote-state comparison scaffolding
 Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
@@ -89,7 +89,7 @@ or approved scope changes.
 | Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
-| Publishing Model | Strong for dry-run, validation, and local-history scope | Dry-run plans, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote comparison, transfer, and verification are not implemented. |
+| Publishing Model | Strong for dry-run, validation, local comparison, and local-history scope | Dry-run plans, caller-supplied local remote-state comparison, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, transfer, and verification are not implemented. |
 | Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
@@ -107,8 +107,8 @@ Version 0.1 scope defines this local flow:
 | Export an Opus publication copy | Implemented through `record export-opus` using `ffmpeg/libopus` from an existing project-local master and exposed in the Qt Create pane |
 | Generate or update feed metadata | Implemented for local Atom feeds through feed-entry sidecar preparation/update, validation, minimal feed XML generation with existing-entry merge/update, and publish dry-run feed readiness reporting with invalid feed-entry diagnostics; non-Atom feed formats and remote feed merge are not implemented |
 | Configure a host/destination | Partially implemented through examples, host/identity metadata, and removable targets |
-| Run publication validation | Implemented as non-mutating publish readiness validation through CLI, service crate, and publishd D-Bus; remote comparison and remote verification remain deferred |
-| Perform a dry-run publish | Implemented for local plans without remote mutation |
+| Run publication validation | Implemented as non-mutating publish readiness validation through CLI, service crate, and publishd D-Bus; caller-supplied local remote-state comparison is available, while remote probing and remote verification remain deferred |
+| Perform a dry-run publish | Implemented for local plans and caller-supplied local remote-state comparison without remote mutation |
 | Show publication history or planned transfer state | Implemented as planned history previews, saved preview records, CLI-local completed history save/list/read, D-Bus completed-history result-record generation/save/list/read, and Qt read-only completed-history list/detail display |
 
 The current 0.1 slice has connected prepared feed entries, minimal feed XML
@@ -124,10 +124,12 @@ CLI-local completed publication-history result records and D-Bus
 completed-history result-record generation/save/list/read. The Qt Publish pane
 can list and read saved completed records without creating them. It also has an
 explicit non-mutating publication readiness validation report through the CLI,
-service crate, publishd D-Bus, and Qt Publish pane. The next slice should
-deliberately close another local 0.1 workflow gap before adding more pane
-polish. It should still avoid device enumeration, packaging, installed
-services, remote transfer, and compositor work.
+service crate, publishd D-Bus, and Qt Publish pane. Dry-run preview can compare
+local publishable files against a caller-supplied local remote-state manifest
+and classify upload/delete/skip without contacting or mutating a remote. The
+next slice should deliberately close another local 0.1 workflow gap before
+adding more pane polish. It should still avoid device enumeration, packaging,
+installed services, remote transfer, and compositor work.
 
 ## Deliberate Next Slice
 
@@ -194,6 +196,8 @@ Concrete deliverables should be small and inspectable:
   CLI list/read adapters.
 - Add a non-mutating publication readiness report for project, host/identity,
   feed, file-change, and confirmation readiness before remote execution.
+- Add caller-supplied local remote-state comparison for dry-run previews,
+  validation planning, history preview generation, and publishd preview JSON.
 
 ## Explicitly Still Deferred
 
@@ -205,6 +209,7 @@ The following remain intentionally out of scope for the next slice:
 - Custom compositor
 - Encrypted persistence implementation
 - Installed D-Bus activation
+- Remote probing for comparison
 - Real SSH transfer execution
 - Remote verification
 - Secret storage

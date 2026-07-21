@@ -433,6 +433,7 @@ mod tests {
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("dry-run should plan");
@@ -456,6 +457,7 @@ mod tests {
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("dry-run should plan");
@@ -490,6 +492,7 @@ mod tests {
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("dry-run should plan");
@@ -520,6 +523,7 @@ mod tests {
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("dry-run should plan");
@@ -554,6 +558,7 @@ mod tests {
             &PublishContext {
                 hosts_root: Some(repo_path("examples/connections/hosts")),
                 identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
             },
         )
         .expect("dry-run should plan");
