@@ -323,7 +323,8 @@ it does not copy files, delete files, create directories, write completed
 history, call D-Bus, or contact a remote. The publish service crate and
 `publish` CLI can execute confirmed local/removable file-copy transfers from
 that preparation contract with `--execute-removable --confirm-transfer`, refuse
-upload overwrites, and write completed history from executor results with
+upload overwrites, copy through destination-directory temporary files before
+renaming into place, and write completed history from executor results with
 verification left as `not-run`. Preview and completed-record saving are local
 project writes only.
 Saved preview reads are constrained to the selected project's

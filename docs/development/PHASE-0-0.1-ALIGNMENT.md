@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after removable file-copy execution
+Status: current after removable file-copy execution hardening
 Date: 2026-07-21
 
 This document records the deliberate alignment check between the Phase 0

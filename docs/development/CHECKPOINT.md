@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after removable file-copy execution
+Status: current after removable file-copy execution hardening
 Date: 2026-07-21
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -45,6 +45,9 @@ into the configured removable destination root, refuses upload overwrites,
 writes completed history from executor results, and leaves verification as
 `not-run`. It does not execute deletes, call D-Bus, contact remotes, unlock
 credentials, or probe SSH host keys.
+Removable execution now copies through destination-directory temporary files
+and renames into place after copy completion. It preflights stale temporary-copy
+path collisions so a stale temp file does not cause partial execution.
 
 ## Current Position
 
@@ -381,6 +384,11 @@ including Rust formatting, focused publish-service/publish CLI tests, full Rust
 tests, CLI JSON contract smoke, clippy with warnings denied, and git diff
 whitespace checks.
 
+Result after removable file-copy execution hardening: checks passed on
+2026-07-21, including Rust formatting, focused publish-service tests, full
+Rust tests, CLI JSON contract smoke, clippy with warnings denied, and git diff
+whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -418,7 +426,8 @@ whitespace checks.
   completed history, calling D-Bus, or contacting remotes.
 - `publish --execute-removable` performs confirmed local/removable file-copy
   execution, refuses upload overwrites, writes completed history from executor
-  results, and does not execute deletes, call D-Bus, contact remotes, unlock
+  results, copies through destination-directory temporary files before renaming
+  into place, and does not execute deletes, call D-Bus, contact remotes, unlock
   credentials, probe SSH host keys, or verify remote results.
 - The Qt Publish pane displays `publish --validate` results for the selected project and target without mutating projects or remotes.
 - The Qt Publish pane displays `publish --transfer-intent` results for the
@@ -446,10 +455,10 @@ whitespace checks.
 
 Recommended next implementation step:
 
-1. Commit and push the removable file-copy execution slice.
+1. Commit and push the removable file-copy execution hardening slice.
 2. Decide whether the next 0.1 slice should be read-only Qt surfacing for
-   removable execution readiness/results or more CLI/service-side execution
-   hardening.
+   removable execution readiness/results or another small CLI/service hardening
+   slice.
 3. Keep real SSH transfer, remote deletion execution, credential unlock, and
    remote verification deferred until comparison/readiness boundaries are
    stable.
@@ -460,5 +469,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after removable file-copy execution on 2026-07-21. The
+Current after removable file-copy execution hardening on 2026-07-21. The
 latest handoff has been resumed and superseded by this checkpoint.

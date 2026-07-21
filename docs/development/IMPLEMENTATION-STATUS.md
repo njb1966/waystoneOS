@@ -194,7 +194,10 @@ Current behavior:
   existing transfer-intent blockers, and delete operations
 - Executes confirmed local/removable file-copy transfers from the removable
   preparation plan
+- Copies through a destination-directory temporary file and renames into place
+  after the copy completes
 - Refuses removable upload overwrites when the destination file already exists
+- Refuses stale temporary-copy path collisions before copying starts
 - Writes completed-history records from removable executor results
 - Does not execute remote deletions
 - Does not execute planned delete operations for removable targets yet
@@ -214,7 +217,8 @@ Current tests cover:
 - Ready removable executor preparation plans, unsupported-method blockers, and
   delete-operation blockers
 - Confirmed removable file-copy execution, completed-history writing, missing
-  confirmation rejection, and upload-overwrite rejection
+  confirmation rejection, upload-overwrite rejection, and temporary-copy
+  collision rejection
 
 ## Publish CLI
 
@@ -265,8 +269,9 @@ Current behavior:
   path, and completed-history TOML
 - `publish --execute-removable` requires `--confirm-transfer`, copies upload
   and update files into the configured removable destination root, refuses
-  upload overwrites, writes completed history from executor results, and leaves
-  verification as `not-run`
+  upload overwrites, uses temporary copy files before renaming into place,
+  writes completed history from executor results, and leaves verification as
+  `not-run`
 - Publish validation checks project validation, host and identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans, and required confirmations
 - Feed readiness in dry-run JSON and human output
 - Optional local remote-state comparison through `--remote-state PATH`
@@ -355,7 +360,8 @@ Current behavior:
 - Builds non-mutating removable executor preparation plans from transfer intent
   and dry-run state
 - Executes confirmed removable file-copy transfers from the preparation plan
-  and writes completed-history records from executor results
+  through destination-directory temporary files and writes completed-history
+  records from executor results
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, read-only transfer-intent
   reporting, planned-history generation, and completed-history result-record
@@ -367,8 +373,9 @@ Current tests cover:
 
 - SSH preview, publication readiness validation, transfer-intent reporting,
   removable executor preparation planning, removable file-copy execution,
-  planned-history generation, completed-history result generation, and
-  completed-history save/list/read through the service wrapper
+  temporary-copy collision handling, planned-history generation,
+  completed-history result generation, and completed-history save/list/read
+  through the service wrapper
 
 ## Host and Identity Crate
 

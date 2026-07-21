@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process;
 use waystone_publication_history::{
     list_completed_history_records, read_completed_history_record, write_completed_history_record,
     CompletedHistoryDetail, CompletedHistoryEntry, CompletedHistoryOptions, PublicationFile,
@@ -127,6 +128,11 @@ pub enum ExecuteRemovableError {
         destination_path: PathBuf,
         source: std::io::Error,
     },
+    Rename {
+        temporary_path: PathBuf,
+        destination_path: PathBuf,
+        source: std::io::Error,
+    },
     WriteHistory(std::io::Error),
 }
 
@@ -172,6 +178,16 @@ impl fmt::Display for ExecuteRemovableError {
                 formatter,
                 "file could not be copied: {} -> {}: {source}",
                 source_path.display(),
+                destination_path.display()
+            ),
+            Self::Rename {
+                temporary_path,
+                destination_path,
+                source,
+            } => write!(
+                formatter,
+                "temporary file could not be moved into place: {} -> {}: {source}",
+                temporary_path.display(),
                 destination_path.display()
             ),
             Self::WriteHistory(error) => {
@@ -449,6 +465,10 @@ fn preflight_removable_plan(plan: &RemovableExecutionPlan) -> Result<(), Execute
         if operation_is_upload(plan, operation) && destination_path.exists() {
             return Err(ExecuteRemovableError::DestinationExists(destination_path));
         }
+        let temporary_path = temporary_copy_path(&destination_path);
+        if temporary_path.exists() {
+            return Err(ExecuteRemovableError::DestinationExists(temporary_path));
+        }
     }
 
     for operation in plan.delete.iter().chain(plan.skip.iter()) {
@@ -493,9 +513,22 @@ fn copy_operations(
                 }
             })?;
         }
-        let bytes = fs::copy(&source_path, &destination_path).map_err(|source| {
+        let temporary_path = temporary_copy_path(&destination_path);
+        if temporary_path.exists() {
+            return Err(ExecuteRemovableError::DestinationExists(temporary_path));
+        }
+        let bytes = fs::copy(&source_path, &temporary_path).map_err(|source| {
+            let _ = fs::remove_file(&temporary_path);
             ExecuteRemovableError::Copy {
                 source_path: source_path.clone(),
+                destination_path: destination_path.clone(),
+                source,
+            }
+        })?;
+        fs::rename(&temporary_path, &destination_path).map_err(|source| {
+            let _ = fs::remove_file(&temporary_path);
+            ExecuteRemovableError::Rename {
+                temporary_path: temporary_path.clone(),
                 destination_path: destination_path.clone(),
                 source,
             }
@@ -504,6 +537,14 @@ fn copy_operations(
     }
 
     Ok(())
+}
+
+fn temporary_copy_path(destination_path: &Path) -> PathBuf {
+    let file_name = destination_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("copy");
+    destination_path.with_file_name(format!(".{file_name}.waystone-copy-{}.tmp", process::id()))
 }
 
 fn operation_is_upload(
@@ -799,6 +840,7 @@ mod tests {
         assert_eq!(executed.result.transfer_result, "completed");
         assert_eq!(executed.result.verification_result, "not-run");
         assert!(project.join("publish/export/content/index.gmi").is_file());
+        assert!(!temporary_copy_path(&project.join("publish/export/content/index.gmi")).exists());
         assert!(project
             .join("publish/export/audio/published/field-note.opus")
             .is_file());
@@ -813,6 +855,41 @@ mod tests {
         assert!(std::fs::read_to_string(&executed.history_path)
             .expect("completed history should be readable")
             .contains("copied-upload"));
+
+        let _ = std::fs::remove_dir_all(project.parent().expect("temp project has parent"));
+    }
+
+    #[test]
+    fn service_execute_removable_refuses_temporary_copy_collision() {
+        let project =
+            temp_project_root("execute-removable-temp-collision").join("audio-capsule.wayproject");
+        copy_directory(
+            &repo_path("examples/projects/audio-capsule.wayproject"),
+            &project,
+        );
+        let destination = project.join("publish/export/content/index.gmi");
+        let temporary = temporary_copy_path(&destination);
+        std::fs::create_dir_all(temporary.parent().expect("temporary path has parent"))
+            .expect("temporary destination parent");
+        std::fs::write(&temporary, "stale temp").expect("temporary copy placeholder");
+
+        let service = PublishService;
+        let error = service
+            .execute_removable(ExecuteRemovableRequest {
+                project_path: project.clone(),
+                target: "export".to_string(),
+                remote_state_path: None,
+                date: "2026-07-21T00:00:00Z".to_string(),
+                confirm_transfer: true,
+            })
+            .expect_err("execution should refuse temp file collision");
+
+        assert!(matches!(error, ExecuteRemovableError::DestinationExists(_)));
+        assert!(!destination.exists());
+        assert_eq!(
+            std::fs::read_to_string(&temporary).expect("temporary file should remain untouched"),
+            "stale temp"
+        );
 
         let _ = std::fs::remove_dir_all(project.parent().expect("temp project has parent"));
     }

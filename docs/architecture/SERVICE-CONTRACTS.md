@@ -112,7 +112,10 @@ Current behavior:
   transfer-intent blockers, and delete operations.
 - Executes confirmed local/removable file-copy transfers from the preparation
   plan.
+- Copies through destination-directory temporary files before renaming into
+  place.
 - Refuses upload overwrites when the destination file already exists.
+- Refuses stale temporary-copy path collisions before copying starts.
 - Writes completed-history records from removable executor results.
 - Resolves host and identity metadata when caller supplies roots.
 - Accepts caller-supplied local remote-state manifests for dry-run comparison.

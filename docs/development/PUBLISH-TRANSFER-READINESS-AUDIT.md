@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after removable file-copy execution
+Status: current after removable file-copy execution hardening
 Date: 2026-07-21
 
 This audit records the boundary between the current local/removable publishing
@@ -40,7 +40,9 @@ Implemented foundations:
   transfer-intent blockers, and delete operations.
 - `publish --execute-removable` copies upload/update files into the configured
   removable destination root after `--confirm-transfer`, refuses upload
-  overwrites, and writes completed history from executor results.
+  overwrites, copies through destination-directory temporary files before
+  renaming into place, refuses stale temporary-copy collisions, and writes
+  completed history from executor results.
 - Planned history previews and completed-history records are inspectable local
   records.
 - `waystone-publishd` exposes preview, validation, read-only transfer-intent,
@@ -142,7 +144,10 @@ Current behavior:
 - Recomputes the removable preparation plan immediately before execution.
 - Requires `--confirm-transfer`.
 - Copies upload/update files into the configured removable destination root.
+- Uses destination-directory temporary files and renames into place after copy
+  completion.
 - Refuses upload overwrites when the destination path already exists.
+- Refuses stale temporary-copy path collisions before copying starts.
 - Records skipped files as skipped executor results.
 - Writes completed history under the selected project `history/completed/`
   from executor results.
