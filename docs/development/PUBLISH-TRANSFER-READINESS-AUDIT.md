@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after Qt read-only transfer-intent display
+Status: current after removable executor preparation contract
 Date: 2026-07-20
 
 This audit records the boundary between the current non-mutating publishing
@@ -33,6 +33,11 @@ Implemented foundations:
   report execution readiness, blocking issues, required confirmations, change
   buckets, host/identity resolution summaries, comparison metadata, and the
   future completed-history directory without executing transfer.
+- `publish --prepare-removable-execution` reports a bounded, non-mutating
+  removable executor preparation plan with a local destination root and
+  per-file source/destination operation records.
+- Removable execution preparation blocks unsupported methods, existing
+  transfer-intent blockers, and delete operations.
 - Planned history previews and completed-history records are inspectable local
   records.
 - `waystone-publishd` exposes preview, validation, read-only transfer-intent,
@@ -56,18 +61,18 @@ Real transfer execution should remain blocked until these gates are satisfied.
 
 | Gate | Requirement | Current State |
 | --- | --- | --- |
-| Command boundary | A separate transfer command must be defined instead of overloading dry-run behavior. | Non-mutating `publish --transfer-intent` implemented |
-| Method scope | First executor must support only one method or one local-safe method class. | Not defined |
+| Command boundary | A separate transfer command must be defined instead of overloading dry-run behavior. | Non-mutating `publish --transfer-intent` and `publish --prepare-removable-execution` implemented |
+| Method scope | First executor must support only one method or one local-safe method class. | Preparation contract is bounded to `removable` |
 | Credential boundary | Identity records must resolve to an execution credential without exposing secret material in output, logs, history, JSON, or D-Bus errors. | Deferred |
 | Host trust | SSH host trust must be checked against host metadata before transfer. Unknown or mismatched trust must block. | Metadata exists; live probing deferred |
 | Remote path safety | Remote target path handling must reject empty, root, home, traversal-like, and shell-expanded destinations. | Partially modeled in manifest; executor checks absent |
-| Dry-run freshness | The transfer command must require a fresh validation/preview basis or recompute validation immediately before execution. | Not defined |
+| Dry-run freshness | The transfer command must require a fresh validation/preview basis or recompute validation immediately before execution. | Preparation recomputes transfer intent and dry-run state immediately |
 | Deletion confirmation | Planned deletes must require explicit delete confirmation separate from ordinary `--yes`. | Policy modeled; execution confirmation absent |
 | Failure semantics | Partial transfer, cancellation, network failure, and permission failure must have stable result states. | Deferred |
 | History source | Completed history must be generated from executor results, not manually supplied success claims. | Manual result fields exist |
 | Verification boundary | Transfer success and remote verification must remain separate result stages. | Documented; verifier absent |
 | D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | Read-only transfer intent exposed; mutating executor shape deferred |
-| Test harness | Real execution must be covered by a local fake transport or temporary destination harness before live SSH targets are used. | Deferred |
+| Test harness | Real execution must be covered by a local fake transport or temporary destination harness before live SSH targets are used. | Non-mutating CLI/service harness exists; file-copy harness still needed |
 
 ## Transfer Command Boundary
 
@@ -97,10 +102,32 @@ change buckets, comparison metadata, the future completed-history directory,
 and a clear `execution_ready` boolean. It does not access credentials, contact
 a remote, or write completed history.
 
+## Removable Executor Preparation Contract
+
+The first bounded executor-facing command is:
+
+```text
+publish --prepare-removable-execution --project PATH --target NAME \
+  [--remote-state PATH] [--json]
+```
+
+This command remains non-mutating. It recomputes transfer intent and dry-run
+state, verifies that the selected target uses `method = "removable"`, resolves
+the project-relative target path as a local destination root, and reports
+per-file source/destination operation records for upload, update, delete, and
+skip buckets. It does not copy files, delete files, create directories, write
+completed history, call D-Bus, or contact a remote.
+
+Current blockers:
+
+- Any non-`removable` target reports `unsupported_executor_method`.
+- Any transfer-intent blocker remains a preparation blocker.
+- Any planned delete reports `delete_execution_not_supported`.
+
 ## First Executor Recommendation
 
-After the intent contract is reviewed in use, the first real executor should
-be local and bounded before SSH transfer:
+After the preparation contract is reviewed in use, the first real executor
+should be local and bounded before SSH transfer:
 
 ```text
 publish --execute-removable --project PATH --target NAME --confirm-transfer
@@ -164,9 +191,12 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Define the bounded `removable` executor contract and test harness before
-   implementing file-copy behavior.
-2. Keep SSH-family executors behind the credential, host-trust, remote-path,
+1. Implement removable file-copy execution against
+   `publish --prepare-removable-execution` with a temporary-destination test
+   harness.
+2. Generate completed-history records from executor results rather than manual
+   success fields.
+3. Keep SSH-family executors behind the credential, host-trust, remote-path,
    delete-confirmation, executor-history, and verification gates.
 
 Still defer:

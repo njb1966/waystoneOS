@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after Qt read-only transfer-intent display
+Status: current after removable executor preparation contract
 Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
@@ -90,7 +90,7 @@ or approved scope changes.
 | Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
-| Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, and local-history scope | Dry-run plans, local remote-state export/inspection helpers, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, Qt transfer-intent display, Qt comparison display/input, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, transfer, and verification are not implemented. |
+| Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, and removable preparation scope | Dry-run plans, local remote-state export/inspection helpers, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, non-mutating removable executor preparation through CLI/service, Qt transfer-intent display, Qt comparison display/input, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, file-copy execution, remote transfer, and verification are not implemented. |
 | Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
@@ -137,6 +137,10 @@ service can now build a non-mutating transfer-intent report with
 summaries, comparison metadata, change buckets, and the future completed-history
 directory. `waystone-publishd` exposes the same read-only report through D-Bus,
 and the Qt Publish pane displays the local CLI transfer-intent report. It
+also has a non-mutating removable executor preparation contract through the CLI
+and service crate that reports a bounded local destination root plus per-file
+source/destination operation records while blocking unsupported methods,
+existing transfer-intent blockers, and delete operations. It
 should still avoid device enumeration, packaging, installed services, remote
 transfer, and compositor work.
 
@@ -217,6 +221,8 @@ Concrete deliverables should be small and inspectable:
   D-Bus method.
 - Display the transfer-intent report in the Qt Publish pane through the local
   CLI adapter.
+- Define the bounded removable executor preparation contract and CLI/service
+  test harness before file-copy behavior.
 
 ## Explicitly Still Deferred
 

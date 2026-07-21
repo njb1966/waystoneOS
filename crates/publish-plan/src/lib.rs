@@ -47,6 +47,29 @@ pub struct TransferIntent {
 }
 
 #[derive(Debug, Clone)]
+pub struct RemovableExecutionPlan {
+    pub project_id: String,
+    pub target: String,
+    pub method: String,
+    pub destination_root: String,
+    pub execution_ready: bool,
+    pub blocked_reasons: Vec<PublishValidationIssue>,
+    pub confirmations: Vec<String>,
+    pub upload: Vec<RemovableExecutionOperation>,
+    pub update: Vec<RemovableExecutionOperation>,
+    pub delete: Vec<RemovableExecutionOperation>,
+    pub skip: Vec<RemovableExecutionOperation>,
+    pub completed_history_dir: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct RemovableExecutionOperation {
+    pub project_path: String,
+    pub source_path: Option<String>,
+    pub destination_path: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct RemoteComparisonState {
     pub configured: bool,
     pub source: Option<String>,
@@ -362,6 +385,76 @@ pub fn transfer_intent_with_context(
             .join("completed")
             .display()
             .to_string(),
+    })
+}
+
+pub fn prepare_removable_execution(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+) -> Result<RemovableExecutionPlan, PublishPlanError> {
+    prepare_removable_execution_with_context(project_root, target_name, &PublishContext::default())
+}
+
+pub fn prepare_removable_execution_with_context(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+    context: &PublishContext,
+) -> Result<RemovableExecutionPlan, PublishPlanError> {
+    let project_root = project_root.as_ref();
+    let manifest = load_manifest(project_root)?;
+    let target = find_target(&manifest, target_name)?;
+    let intent = transfer_intent_with_context(project_root, target_name, context)?;
+    let destination_root = target.path.clone().unwrap_or_default();
+    let mut blocked_reasons = intent.blocked_reasons.clone();
+
+    if intent.method != "removable" {
+        blocked_reasons.push(error(
+            "unsupported_executor_method",
+            format!(
+                "removable executor only supports removable targets, not {}",
+                intent.method
+            ),
+            Some(format!("publish.targets.{}.method", intent.target)),
+        ));
+    }
+
+    if destination_root.is_empty() {
+        blocked_reasons.push(error(
+            "destination_missing",
+            "removable executor requires a target path".to_string(),
+            Some(format!("publish.targets.{}.path", intent.target)),
+        ));
+    }
+
+    if !intent.delete.is_empty() {
+        blocked_reasons.push(error(
+            "delete_execution_not_supported",
+            "removable executor contract does not execute deletions yet".to_string(),
+            Some(format!("publish.targets.{}", intent.target)),
+        ));
+    }
+
+    let destination_root_path = project_root.join(&destination_root);
+    let upload = removable_operations(project_root, &destination_root_path, &intent.upload, true);
+    let update = removable_operations(project_root, &destination_root_path, &intent.update, true);
+    let delete = removable_operations(project_root, &destination_root_path, &intent.delete, false);
+    let skip = removable_operations(project_root, &destination_root_path, &intent.skip, false);
+    let execution_ready =
+        intent.execution_ready && intent.method == "removable" && blocked_reasons.is_empty();
+
+    Ok(RemovableExecutionPlan {
+        project_id: intent.project_id,
+        target: intent.target,
+        method: intent.method,
+        destination_root: destination_root_path.display().to_string(),
+        execution_ready,
+        blocked_reasons,
+        confirmations: intent.confirmations,
+        upload,
+        update,
+        delete,
+        skip,
+        completed_history_dir: intent.completed_history_dir,
     })
 }
 
@@ -713,6 +806,22 @@ fn compare_remote_state(
     }
 
     (upload, update, delete, skip)
+}
+
+fn removable_operations(
+    project_root: &Path,
+    destination_root: &Path,
+    paths: &[String],
+    include_source: bool,
+) -> Vec<RemovableExecutionOperation> {
+    paths
+        .iter()
+        .map(|path| RemovableExecutionOperation {
+            project_path: path.clone(),
+            source_path: include_source.then(|| project_root.join(path).display().to_string()),
+            destination_path: destination_root.join(path).display().to_string(),
+        })
+        .collect()
 }
 
 fn feed_publication_state(
@@ -1151,6 +1260,110 @@ mime_type = "audio/ogg; codecs=opus"
         assert!(intent.confirmations.is_empty());
         assert!(intent.upload.iter().any(|path| path == "content/index.gmi"));
         assert!(intent.completed_history_dir.ends_with("history/completed"));
+    }
+
+    #[test]
+    fn prepares_ready_removable_execution_plan_without_copying_files() {
+        let plan = prepare_removable_execution(
+            repo_path("examples/projects/audio-capsule.wayproject"),
+            "export",
+        )
+        .expect("removable execution plan should build");
+
+        assert_eq!(plan.project_id, "audio-capsule");
+        assert_eq!(plan.target, "export");
+        assert_eq!(plan.method, "removable");
+        assert!(plan.execution_ready);
+        assert!(plan.blocked_reasons.is_empty());
+        assert!(plan.destination_root.ends_with("publish/export"));
+        assert!(plan
+            .upload
+            .iter()
+            .any(|operation| operation.project_path == "content/index.gmi"
+                && operation
+                    .source_path
+                    .as_deref()
+                    .is_some_and(|path| path.ends_with("content/index.gmi"))
+                && operation
+                    .destination_path
+                    .ends_with("publish/export/content/index.gmi")));
+        assert!(plan.delete.is_empty());
+        assert!(plan.completed_history_dir.ends_with("history/completed"));
+    }
+
+    #[test]
+    fn removable_execution_plan_blocks_unsupported_methods() {
+        let plan = prepare_removable_execution_with_context(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+            &PublishContext {
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
+            },
+        )
+        .expect("executor plan should report method blocker");
+
+        assert!(!plan.execution_ready);
+        assert!(plan
+            .blocked_reasons
+            .iter()
+            .any(|issue| issue.code == "unsupported_executor_method"));
+    }
+
+    #[test]
+    fn removable_execution_plan_blocks_delete_operations() {
+        let root = temp_project_root("removable-delete-block");
+        let project = root.join("delete-block.wayproject");
+        fs::create_dir_all(project.join("content")).expect("content directory");
+        fs::write(project.join("content/index.gmi"), "# Delete Block\n").expect("content");
+        fs::write(
+            project.join("project.toml"),
+            r#"[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "delete-block"
+name = "Delete Block"
+type = "capsule"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[[publish.targets]]
+name = "export"
+method = "removable"
+path = "publish/export"
+delete_policy = "confirm"
+"#,
+        )
+        .expect("manifest");
+        let remote_state = root.join("remote-state.txt");
+        fs::write(&remote_state, "content/index.gmi\nstale.gmi\n").expect("remote state");
+
+        let plan = prepare_removable_execution_with_context(
+            &project,
+            "export",
+            &PublishContext {
+                hosts_root: None,
+                identities_root: None,
+                remote_state_path: Some(remote_state.clone()),
+            },
+        )
+        .expect("executor plan should report delete blocker");
+
+        assert!(!plan.execution_ready);
+        assert!(plan
+            .blocked_reasons
+            .iter()
+            .any(|issue| issue.code == "delete_execution_not_supported"));
+        assert_eq!(plan.delete.len(), 1);
+        assert_eq!(plan.delete[0].project_path, "stale.gmi");
+        assert!(plan.delete[0].source_path.is_none());
+
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

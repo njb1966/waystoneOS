@@ -283,6 +283,62 @@ fn transfer_intent_json_reports_blocked_target_without_metadata_roots() {
 }
 
 #[test]
+fn prepare_removable_execution_json_reports_operation_contract() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--prepare-removable-execution",
+            "--project",
+            &repo_path("examples/projects/audio-capsule.wayproject"),
+            "--target",
+            "export",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"project\":\"audio-capsule\""));
+    assert!(stdout.contains("\"target\":\"export\""));
+    assert!(stdout.contains("\"method\":\"removable\""));
+    assert!(stdout.contains("\"destination_root\":\""));
+    assert!(stdout.contains("publish/export"));
+    assert!(stdout.contains("\"execution_ready\":true"));
+    assert!(stdout.contains("\"blocked_reasons\":[]"));
+    assert!(stdout.contains("\"operations\":{"));
+    assert!(stdout.contains("\"upload\":["));
+    assert!(stdout.contains("\"project_path\":\"content/index.gmi\""));
+    assert!(stdout.contains("\"source_path\":\""));
+    assert!(stdout.contains("\"destination_path\":\""));
+    assert!(stdout.contains("\"delete\":[]"));
+    assert!(stdout.contains("\"history\":{\"completed_directory\":\""));
+}
+
+#[test]
+fn prepare_removable_execution_json_blocks_unsupported_methods() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--prepare-removable-execution",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--hosts",
+            &repo_path("examples/connections/hosts"),
+            "--identities",
+            &repo_path("examples/connections/identities"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"execution_ready\":false"));
+    assert!(stdout.contains("\"code\":\"unsupported_executor_method\""));
+}
+
+#[test]
 fn dry_run_json_reports_feed_state() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

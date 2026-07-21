@@ -14,9 +14,11 @@ use waystone_publication_history::{
 };
 use waystone_publish_plan::{
     dry_run_publish_with_context, export_remote_state_manifest, inspect_remote_state_manifest,
-    remote_state_manifest_text, transfer_intent_with_context, validate_publication_with_context,
-    FeedEntryDiagnostic, FeedPublicationState, PublishContext, PublishValidationIssue,
-    RemoteComparisonState, RemoteStateManifest, Resolution, TransferIntent,
+    prepare_removable_execution_with_context, remote_state_manifest_text,
+    transfer_intent_with_context, validate_publication_with_context, FeedEntryDiagnostic,
+    FeedPublicationState, PublishContext, PublishValidationIssue, RemoteComparisonState,
+    RemoteStateManifest, RemovableExecutionOperation, RemovableExecutionPlan, Resolution,
+    TransferIntent,
 };
 
 fn main() {
@@ -42,6 +44,9 @@ fn run(args: &[String]) -> i32 {
         }
         _ if positional.contains(&"--inspect-remote-state") => {
             inspect_remote_state(&positional, json)
+        }
+        _ if positional.contains(&"--prepare-removable-execution") => {
+            prepare_removable_execution(&positional, json)
         }
         _ if positional.contains(&"--transfer-intent") => transfer_intent(&positional, json),
         _ if positional.contains(&"--validate") => validate_publication_command(&positional, json),
@@ -268,6 +273,64 @@ fn transfer_intent(args: &[&str], json: bool) -> i32 {
             0
         }
         Err(error) => print_command_error("publish", "transfer_intent", &error.to_string(), json),
+    }
+}
+
+fn prepare_removable_execution(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+
+    let context = publish_context(args);
+    match prepare_removable_execution_with_context(Path::new(project), target, &context) {
+        Ok(plan) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{}}}",
+                    json_removable_execution_plan(&plan)
+                );
+            } else {
+                println!("Removable execution plan");
+                println!("Project: {}", plan.project_id);
+                println!("Target: {}", plan.target);
+                println!("Method: {}", plan.method);
+                println!("Destination root: {}", plan.destination_root);
+                println!(
+                    "Execution ready: {}",
+                    if plan.execution_ready { "yes" } else { "no" }
+                );
+                println!(
+                    "Completed history directory: {}",
+                    plan.completed_history_dir
+                );
+                print_removable_operations("Upload", &plan.upload);
+                print_removable_operations("Update", &plan.update);
+                print_removable_operations("Delete", &plan.delete);
+                print_removable_operations("Skip", &plan.skip);
+                if !plan.confirmations.is_empty() {
+                    println!("Confirmations:");
+                    for confirmation in plan.confirmations {
+                        println!("  {confirmation}");
+                    }
+                }
+                if !plan.blocked_reasons.is_empty() {
+                    println!("Blocked reasons:");
+                    for reason in plan.blocked_reasons {
+                        println!("  {}: {}", reason.code, reason.message);
+                    }
+                }
+            }
+            0
+        }
+        Err(error) => print_command_error(
+            "publish",
+            "prepare_removable_execution",
+            &error.to_string(),
+            json,
+        ),
     }
 }
 
@@ -778,6 +841,55 @@ fn json_transfer_intent(intent: &TransferIntent) -> String {
     )
 }
 
+fn json_removable_execution_plan(plan: &RemovableExecutionPlan) -> String {
+    format!(
+        "{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination_root\":\"{}\",\"execution_ready\":{},\"blocked_reasons\":[{}],\"confirmations\":[{}],\"operations\":{{\"upload\":[{}],\"update\":[{}],\"delete\":[{}],\"skip\":[{}]}},\"history\":{{\"completed_directory\":\"{}\"}}}}",
+        escape_json(&plan.project_id),
+        escape_json(&plan.target),
+        escape_json(&plan.method),
+        escape_json(&plan.destination_root),
+        plan.execution_ready,
+        json_publish_validation_issues(&plan.blocked_reasons),
+        json_string_array(&plan.confirmations),
+        json_removable_operations(&plan.upload),
+        json_removable_operations(&plan.update),
+        json_removable_operations(&plan.delete),
+        json_removable_operations(&plan.skip),
+        escape_json(&plan.completed_history_dir)
+    )
+}
+
+fn json_removable_operations(operations: &[RemovableExecutionOperation]) -> String {
+    operations
+        .iter()
+        .map(|operation| {
+            format!(
+                "{{\"project_path\":\"{}\",\"source_path\":{},\"destination_path\":\"{}\"}}",
+                escape_json(&operation.project_path),
+                json_optional_string(operation.source_path.as_deref()),
+                escape_json(&operation.destination_path)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn print_removable_operations(label: &str, operations: &[RemovableExecutionOperation]) {
+    println!("{label}:");
+    for operation in operations {
+        match &operation.source_path {
+            Some(source) => println!(
+                "  {}: {} -> {}",
+                operation.project_path, source, operation.destination_path
+            ),
+            None => println!(
+                "  {}: {}",
+                operation.project_path, operation.destination_path
+            ),
+        }
+    }
+}
+
 fn completed_history_record_from_plan(
     plan: &waystone_publish_plan::PublishDryRun,
     inputs: &CompletedHistoryInputs,
@@ -841,6 +953,7 @@ fn print_help() {
         "  publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]"
     );
     println!("  publish --inspect-remote-state --remote-state PATH [--json]");
+    println!("  publish --prepare-removable-execution --project PATH --target NAME [--remote-state PATH] [--json]");
     println!("  publish --transfer-intent --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");

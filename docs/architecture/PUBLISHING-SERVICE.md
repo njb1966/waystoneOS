@@ -314,12 +314,18 @@ remote. It can also build a non-mutating transfer intent report that recomputes
 validation and dry-run state, reports whether execution would be ready, lists
 blocking issues and required confirmations, shows change buckets and
 host/identity resolution summaries, and identifies the future completed-history
-directory without executing transfer. Preview and completed-record saving are
-local project writes only.
+directory without executing transfer. The publish planning crate, publish
+service crate, and `publish` CLI can also build a non-mutating removable
+executor preparation plan with a bounded local destination root and per-file
+source/destination operation records. That preparation contract blocks
+unsupported methods, existing transfer-intent blockers, and delete operations;
+it does not copy files, delete files, create directories, write completed
+history, call D-Bus, or contact a remote. Preview and completed-record saving
+are local project writes only.
 Saved preview reads are constrained to the selected project's
 `history/previews/` directory, and completed-record reads are constrained to
 the selected project's `history/completed/` directory. These preview,
-validation, local comparison, helper, and local history operations are
+validation, local comparison, helper, preparation, and local history operations are
 available through the `publish` CLI; preview, validation, transfer-intent
 reporting, planned-history generation, completed-history result-record
 generation, and completed-history save/list/read are also available through the

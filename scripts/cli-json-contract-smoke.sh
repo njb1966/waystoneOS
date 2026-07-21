@@ -182,6 +182,28 @@ require({"upload", "update", "delete", "skip"} <= transfer_intent["data"]["chang
 require("completed_directory" in transfer_intent["data"]["history"],
         "publish transfer-intent history contract changed")
 
+removable_execution = run([
+    "target/debug/publish", "--prepare-removable-execution",
+    "--project", project_path,
+    "--target", "export", "--json"
+])
+require({"project", "target", "method", "destination_root", "execution_ready",
+         "blocked_reasons", "confirmations", "operations", "history"}
+        <= removable_execution["data"].keys(),
+        "publish prepare-removable-execution contract changed")
+require(removable_execution["data"]["execution_ready"] is True,
+        "publish prepare-removable-execution readiness changed")
+require({"upload", "update", "delete", "skip"} <= removable_execution["data"]["operations"].keys(),
+        "publish prepare-removable-execution operations contract changed")
+require(removable_execution["data"]["operations"]["upload"] and
+        {"project_path", "source_path", "destination_path"}
+        <= removable_execution["data"]["operations"]["upload"][0].keys(),
+        "publish prepare-removable-execution operation item contract changed")
+require(removable_execution["data"]["operations"]["delete"] == [],
+        "publish prepare-removable-execution delete set changed")
+require("completed_directory" in removable_execution["data"]["history"],
+        "publish prepare-removable-execution history contract changed")
+
 planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,
     "--target", "export", "--date", "2026-07-18T00:00:00Z", "--json"

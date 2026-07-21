@@ -22,7 +22,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Domain | Current crate | Service daemon | D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
 | Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
-| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, publication readiness validation, planned history, completed-history record construction/save/list/read; D-Bus adapter for preview, validation, planned history, and completed-history generation/save/list/read |
+| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, publication readiness validation, transfer-intent reporting, removable execution preparation, planned history, completed-history record construction/save/list/read; D-Bus adapter for preview, validation, transfer-intent reporting, planned history, and completed-history generation/save/list/read |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, update, WAV master capture, Opus publication-copy export, prepare/update feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for all listed operations |
@@ -80,6 +80,8 @@ Current contract:
 - `ValidatePublicationResponse`
 - `TransferIntentRequest`
 - `TransferIntentResponse`
+- `PrepareRemovableExecutionRequest`
+- `PrepareRemovableExecutionResponse`
 - `BuildPlannedHistoryRequest`
 - `BuildPlannedHistoryResponse`
 - `BuildCompletedHistoryRequest`
@@ -102,6 +104,10 @@ Current behavior:
 - Reports `execution_ready`, blocking issues, confirmations, host/identity
   resolution summaries, comparison metadata, change buckets, and the future
   completed-history directory without accessing credentials or transferring.
+- Builds non-mutating removable executor preparation plans with a bounded local
+  destination root and per-file source/destination operation records.
+- Blocks removable execution preparation for unsupported methods, existing
+  transfer-intent blockers, and delete operations.
 - Resolves host and identity metadata when caller supplies roots.
 - Accepts caller-supplied local remote-state manifests for dry-run comparison.
 - Builds planned and completed publication history records through `waystone-publication-history`.
@@ -110,6 +116,7 @@ Current behavior:
 - Exposes preview, publication readiness validation, read-only transfer-intent
   reporting, planned-history generation, and completed-history result-record
   generation/save/list/read through `waystone-publishd` D-Bus adapter.
+- Does not expose removable execution preparation through D-Bus yet.
 - Does not probe remote hosts, transfer files, execute deletions, verify remotes, or unlock credentials.
 
 ## Host Service

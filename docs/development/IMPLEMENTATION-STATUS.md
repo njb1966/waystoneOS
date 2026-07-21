@@ -188,6 +188,10 @@ Current behavior:
 - Reports execution readiness, blocking issues, required confirmations, change
   buckets, comparison metadata, host/identity resolution summaries, and the
   future completed-history directory without executing transfer
+- Builds a non-mutating removable executor preparation plan with a bounded
+  local destination root and per-file source/destination operation records
+- Blocks the removable executor preparation plan for unsupported methods,
+  existing transfer-intent blockers, and delete operations
 - Does not perform transfers
 - Does not execute remote deletions
 - Does not access credentials
@@ -202,6 +206,8 @@ Current tests cover:
 - Blocked dry-run when host metadata is not provided
 - Caller-supplied remote-state comparison and invalid remote-state path rejection
 - Ready and blocked transfer-intent reports
+- Ready removable executor preparation plans, unsupported-method blockers, and
+  delete-operation blockers
 
 ## Publish CLI
 
@@ -216,6 +222,7 @@ Current command:
 ```text
 publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]
 publish --inspect-remote-state --remote-state PATH [--json]
+publish --prepare-removable-execution --project PATH --target NAME [--remote-state PATH] [--json]
 publish --transfer-intent --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
@@ -234,10 +241,16 @@ Current behavior:
 - Human-readable dry-run transfer plan
 - Human-readable publication readiness validation report
 - Human-readable non-mutating transfer intent report
+- Human-readable non-mutating removable executor preparation plan
 - JSON publication readiness validation report with `valid`, `blocked`, `errors`, and `warnings`
 - JSON transfer intent report with `execution_ready`, `blocked_reasons`,
   `confirmations`, `host_resolution`, `identity_resolution`, `comparison`,
   `changes`, and `history.completed_directory`
+- JSON removable executor preparation report with `execution_ready`,
+  `blocked_reasons`, `destination_root`, per-file `operations`, and
+  `history.completed_directory`
+- Removable executor preparation reports local source/destination paths but
+  does not copy files, delete files, or write completed history
 - Publish validation checks project validation, host and identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans, and required confirmations
 - Feed readiness in dry-run JSON and human output
 - Optional local remote-state comparison through `--remote-state PATH`
@@ -299,6 +312,7 @@ Current tests cover:
 
 - Planned history generation from SSH dry-run
 - Completed history generation from SSH dry-run plus explicit result fields
+- Removable executor preparation JSON contract and unsupported-method blocker
 - TOML rendering shape
 - Planned preview write, list, read, and outside-directory rejection
 - Completed history write, list, read, and outside-directory rejection
@@ -320,6 +334,8 @@ Current behavior:
 - Saves, lists, and reads completed history records under project `history/completed/`
 - Passes optional caller-supplied remote-state manifests into dry-run preview and validation planning
 - Builds non-mutating transfer-intent reports from validation and dry-run state
+- Builds non-mutating removable executor preparation plans from transfer intent
+  and dry-run state
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, read-only transfer-intent
   reporting, planned-history generation, and completed-history result-record
@@ -330,8 +346,9 @@ Current behavior:
 Current tests cover:
 
 - SSH preview, publication readiness validation, transfer-intent reporting,
-  planned-history generation, completed-history result generation, and
-  completed-history save/list/read through the service wrapper
+  removable executor preparation planning, planned-history generation,
+  completed-history result generation, and completed-history save/list/read
+  through the service wrapper
 
 ## Host and Identity Crate
 

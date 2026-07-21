@@ -5,8 +5,9 @@ use waystone_publication_history::{
     PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
-    dry_run_publish_with_context, transfer_intent_with_context, validate_publication_with_context,
-    PublishContext, PublishDryRun, PublishPlanError, PublishValidationReport, TransferIntent,
+    dry_run_publish_with_context, prepare_removable_execution_with_context,
+    transfer_intent_with_context, validate_publication_with_context, PublishContext, PublishDryRun,
+    PublishPlanError, PublishValidationReport, RemovableExecutionPlan, TransferIntent,
 };
 
 #[derive(Debug, Default)]
@@ -52,6 +53,20 @@ pub struct TransferIntentRequest {
 #[derive(Debug, Clone)]
 pub struct TransferIntentResponse {
     pub intent: TransferIntent,
+}
+
+#[derive(Debug, Clone)]
+pub struct PrepareRemovableExecutionRequest {
+    pub project_path: PathBuf,
+    pub target: String,
+    pub hosts_root: Option<PathBuf>,
+    pub identities_root: Option<PathBuf>,
+    pub remote_state_path: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PrepareRemovableExecutionResponse {
+    pub plan: RemovableExecutionPlan,
 }
 
 #[derive(Debug, Clone)]
@@ -169,6 +184,23 @@ impl PublishService {
         )?;
 
         Ok(TransferIntentResponse { intent })
+    }
+
+    pub fn prepare_removable_execution(
+        &self,
+        request: PrepareRemovableExecutionRequest,
+    ) -> Result<PrepareRemovableExecutionResponse, PublishPlanError> {
+        let plan = prepare_removable_execution_with_context(
+            request.project_path,
+            &request.target,
+            &PublishContext {
+                hosts_root: request.hosts_root,
+                identities_root: request.identities_root,
+                remote_state_path: request.remote_state_path,
+            },
+        )?;
+
+        Ok(PrepareRemovableExecutionResponse { plan })
     }
 
     pub fn build_planned_history(
@@ -395,5 +427,27 @@ mod tests {
             .intent
             .completed_history_dir
             .ends_with("history/completed"));
+    }
+
+    #[test]
+    fn service_prepares_removable_execution_plan() {
+        let service = PublishService;
+        let plan = service
+            .prepare_removable_execution(PrepareRemovableExecutionRequest {
+                project_path: repo_path("examples/projects/audio-capsule.wayproject"),
+                target: "export".to_string(),
+                hosts_root: None,
+                identities_root: None,
+                remote_state_path: None,
+            })
+            .expect("removable execution plan should build");
+
+        assert!(plan.plan.execution_ready);
+        assert_eq!(plan.plan.method, "removable");
+        assert!(plan
+            .plan
+            .upload
+            .iter()
+            .any(|operation| operation.project_path == "content/index.gmi"));
     }
 }
