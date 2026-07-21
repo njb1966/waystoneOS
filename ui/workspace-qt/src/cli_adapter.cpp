@@ -86,6 +86,37 @@ QString resolutionText(const QJsonObject &object) {
     return QString("%1 (%2) - %3").arg(id, status, detail);
 }
 
+QStringList publishPlanArgs(const QString &mode, const QString &path,
+                            const QString &target, const WorkspaceConfig &config,
+                            const QString &remoteStatePath = {}) {
+    QStringList args{mode,
+                     "--project",
+                     path,
+                     "--target",
+                     target,
+                     "--hosts",
+                     config.hostsRoot,
+                     "--identities",
+                     config.identitiesRoot};
+    const QString trimmedRemoteState = remoteStatePath.trimmed();
+    if (!trimmedRemoteState.isEmpty()) {
+        args.append({"--remote-state", trimmedRemoteState});
+    }
+    args.append("--json");
+    return args;
+}
+
+QStringList publishPlanArgs(const QString &mode, const QString &path,
+                            const QString &target, const QString &date,
+                            const WorkspaceConfig &config,
+                            const QString &remoteStatePath = {}) {
+    QStringList args = publishPlanArgs(mode, path, target, config, remoteStatePath);
+    const int jsonIndex = args.indexOf("--json");
+    args.insert(jsonIndex, "--date");
+    args.insert(jsonIndex + 1, date);
+    return args;
+}
+
 bool rootMissing(const QString &path, const QString &label, QString *error) {
     if (QFileInfo::exists(path)) {
         return false;
@@ -356,20 +387,11 @@ bool CliAdapter::saveProjectDocument(const ProjectDocument &document,
     return true;
 }
 
-PublishPreview CliAdapter::previewPublication(const QString &path,
-                                              const QString &target) const {
-    const CommandResult result = runCommand(
-        "publish",
-        {"--dry-run",
-         "--project",
-         path,
-         "--target",
-         target,
-         "--hosts",
-         config_.hostsRoot,
-         "--identities",
-         config_.identitiesRoot,
-         "--json"});
+PublishPreview CliAdapter::previewPublication(const QString &path, const QString &target,
+                                              const QString &remoteStatePath) const {
+    const CommandResult result =
+        runCommand("publish", publishPlanArgs("--dry-run", path, target, config_,
+                                              remoteStatePath));
 
     PublishPreview preview;
     if (!result.error.isEmpty()) {
@@ -409,29 +431,27 @@ PublishPreview CliAdapter::previewPublication(const QString &path,
     preview.feedInvalidEntries = feed.value("invalid_entries").toInt();
     preview.feedDiagnostics =
         feedDiagnostics(feed.value("invalid_entry_diagnostics").toArray());
+    const QJsonObject comparison = data.value("comparison").toObject();
+    preview.comparisonConfigured = comparison.value("configured").toBool(false);
+    preview.comparisonSource = comparison.value("source").toString();
+    preview.comparisonRemotePaths = comparison.value("remote_paths").toInt();
 
     const QJsonObject changes = data.value("changes").toObject();
     preview.uploads = jsonStringArray(changes.value("upload").toArray());
+    preview.updates = jsonStringArray(changes.value("update").toArray());
+    preview.deletes = jsonStringArray(changes.value("delete").toArray());
+    preview.skips = jsonStringArray(changes.value("skip").toArray());
     preview.verificationChecks =
         jsonStringArray(data.value("verification").toObject().value("checks").toArray());
     preview.confirmations = jsonStringArray(data.value("confirmations").toArray());
     return preview;
 }
 
-PublishValidationReport CliAdapter::validatePublication(const QString &path,
-                                                        const QString &target) const {
-    const CommandResult result = runCommand(
-        "publish",
-        {"--validate",
-         "--project",
-         path,
-         "--target",
-         target,
-         "--hosts",
-         config_.hostsRoot,
-         "--identities",
-         config_.identitiesRoot,
-         "--json"});
+PublishValidationReport CliAdapter::validatePublication(
+    const QString &path, const QString &target, const QString &remoteStatePath) const {
+    const CommandResult result =
+        runCommand("publish", publishPlanArgs("--validate", path, target, config_,
+                                              remoteStatePath));
 
     PublishValidationReport report;
     if (!result.error.isEmpty()) {
@@ -464,21 +484,11 @@ PublishValidationReport CliAdapter::validatePublication(const QString &path,
 
 PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,
                                                             const QString &target,
-                                                            const QString &date) const {
-    const CommandResult result = runCommand(
-        "publish",
-        {"--planned-history",
-         "--project",
-         path,
-         "--target",
-         target,
-         "--date",
-         date,
-         "--hosts",
-         config_.hostsRoot,
-         "--identities",
-         config_.identitiesRoot,
-         "--json"});
+                                                            const QString &date,
+                                                            const QString &remoteStatePath) const {
+    const CommandResult result =
+        runCommand("publish", publishPlanArgs("--planned-history", path, target, date,
+                                              config_, remoteStatePath));
 
     PlannedHistoryPreview preview;
     if (!result.error.isEmpty()) {
@@ -519,21 +529,11 @@ PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,
 }
 
 PlannedHistorySaveResult CliAdapter::savePlannedPublicationHistoryPreview(
-    const QString &path, const QString &target, const QString &date) const {
-    const CommandResult result = runCommand(
-        "publish",
-        {"--save-planned-history-preview",
-         "--project",
-         path,
-         "--target",
-         target,
-         "--date",
-         date,
-         "--hosts",
-         config_.hostsRoot,
-         "--identities",
-         config_.identitiesRoot,
-         "--json"});
+    const QString &path, const QString &target, const QString &date,
+    const QString &remoteStatePath) const {
+    const CommandResult result =
+        runCommand("publish", publishPlanArgs("--save-planned-history-preview", path,
+                                              target, date, config_, remoteStatePath));
 
     PlannedHistorySaveResult saved;
     if (!result.error.isEmpty()) {

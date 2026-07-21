@@ -50,7 +50,9 @@ Implemented:
 - Publish-pane completed-history listing using `publish --list-completed-history --json`
 - Publish-pane selected completed-history detail loading using `publish --read-completed-history --json`
 - Publish-pane completed-history filename/path filter
-- Publish-pane per-target overview table using read-only dry-run status, method, upload count, verification count, and destination
+- Publish-pane optional local remote-state path passed to publish dry-run, validation, planned-history, and saved-preview commands
+- Publish-pane comparison metadata plus upload/update/delete/skip dry-run detail display
+- Publish-pane per-target overview table using read-only dry-run status, method, change count, verification count, and destination
 - Publish-pane target overview row selection updates the active target and refreshes the existing preview/history panes
 - Publish-pane project filter by name, ID, type, path, or target names
 - Publish-pane feed readiness reporting from `publish --dry-run --json`
@@ -223,6 +225,8 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `record validate-publication --json`
 - `record validate-feed-entry --json`
 - `publish --dry-run --json`
+- `publish --dry-run --remote-state PATH --json`
+- `publish --validate --remote-state PATH --json`
 - `publish --planned-history --json`
 - `publish --save-planned-history-preview --json`
 - `publish --list-planned-history-previews --json`

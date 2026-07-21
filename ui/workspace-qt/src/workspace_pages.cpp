@@ -510,6 +510,10 @@ QString publishOverviewStatus(const PublishPreview &preview) {
     return preview.blocked ? "blocked" : "ready";
 }
 
+int publishChangeCount(const PublishPreview &preview) {
+    return preview.uploads.size() + preview.updates.size() + preview.deletes.size();
+}
+
 QString plannedHistoryDate() {
     return QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
 }
@@ -527,6 +531,16 @@ QString renderPublishPreview(const PublishPreview &preview) {
     text += "Blocked: " + QString(preview.blocked ? "yes" : "no") + "\n";
     text += "Host: " + preview.hostResolution + "\n";
     text += "Identity: " + preview.identityResolution + "\n\n";
+    text += "Comparison:\n";
+    if (!preview.comparisonConfigured) {
+        text += "  not configured\n\n";
+    } else {
+        text += "  Source: " +
+                (preview.comparisonSource.isEmpty() ? QString("unknown")
+                                                    : preview.comparisonSource) +
+                "\n";
+        text += QString("  Remote paths: %1\n\n").arg(preview.comparisonRemotePaths);
+    }
     text += "Feed:\n";
     if (!preview.feedConfigured) {
         text += "  not configured\n\n";
@@ -552,14 +566,24 @@ QString renderPublishPreview(const PublishPreview &preview) {
         }
         text += "\n";
     }
-    text += "Uploads:\n";
-    if (preview.uploads.isEmpty()) {
-        text += "  none\n";
-    } else {
-        for (const auto &upload : preview.uploads) {
-            text += "  " + upload + "\n";
+    auto appendChangeList = [&text](const QString &label, const QStringList &paths) {
+        text += label + ":\n";
+        if (paths.isEmpty()) {
+            text += "  none\n";
+            return;
         }
-    }
+        for (const auto &path : paths) {
+            text += "  " + path + "\n";
+        }
+    };
+
+    appendChangeList("Upload", preview.uploads);
+    text += "\n";
+    appendChangeList("Update", preview.updates);
+    text += "\n";
+    appendChangeList("Delete", preview.deletes);
+    text += "\n";
+    appendChangeList("Skip", preview.skips);
 
     text += "\nVerification:\n";
     if (preview.verificationChecks.isEmpty()) {
@@ -755,7 +779,8 @@ QString renderPlannedHistoryComparison(const QString &generatedToml,
 void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
                           QPlainTextEdit *plan, QLabel *status,
                           const CliAdapter *adapter,
-                          const QString &filterText = QString{}) {
+                          const QString &filterText = QString{},
+                          const QString &remoteStatePath = QString{}) {
     QString error;
     const QList<ProjectSummary> projects = adapter->listProjects(&error);
 
@@ -823,7 +848,8 @@ void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
     const QString projectPath =
         first == nullptr ? QString{} : first->data(Qt::UserRole).toString();
     const PublishPreview preview =
-        adapter->previewPublication(projectPath, selectedPublishTarget(target));
+        adapter->previewPublication(projectPath, selectedPublishTarget(target),
+                                    remoteStatePath);
     status->setText(publishPreviewStatus(preview));
     plan->setPlainText(renderPublishPreview(preview));
 }
@@ -831,6 +857,7 @@ void populatePublishTable(QTableWidget *projectsTable, QComboBox *target,
 void populatePublishTargetOverview(QTableWidget *overview,
                                    const QString &projectPath,
                                    const QStringList &targets,
+                                   const QString &remoteStatePath,
                                    const CliAdapter *adapter) {
     overview->setRowCount(0);
     if (projectPath.isEmpty() || targets.isEmpty()) {
@@ -840,7 +867,8 @@ void populatePublishTargetOverview(QTableWidget *overview,
     overview->setRowCount(targets.size());
     for (int row = 0; row < targets.size(); ++row) {
         const QString targetName = targets.at(row);
-        const PublishPreview preview = adapter->previewPublication(projectPath, targetName);
+        const PublishPreview preview =
+            adapter->previewPublication(projectPath, targetName, remoteStatePath);
 
         overview->setItem(row, 0, new QTableWidgetItem(targetName));
         overview->setItem(row, 1,
@@ -849,7 +877,7 @@ void populatePublishTargetOverview(QTableWidget *overview,
                           new QTableWidgetItem(preview.ok ? preview.method : "unknown"));
         overview->setItem(
             row, 3,
-            new QTableWidgetItem(preview.ok ? QString::number(preview.uploads.size())
+            new QTableWidgetItem(preview.ok ? QString::number(publishChangeCount(preview))
                                             : "-"));
         overview->setItem(row, 4,
                           new QTableWidgetItem(
@@ -1828,7 +1856,11 @@ QWidget *publishPage(const CliAdapter *adapter,
     auto *target = new QComboBox;
     target->setObjectName("publishTargetSelector");
     target->setEnabled(false);
+    auto *remoteState = new QLineEdit(toolbar);
+    remoteState->setObjectName("publishRemoteStatePath");
+    remoteState->setPlaceholderText("Remote state file");
     auto *preview = new QPushButton("Preview");
+    preview->setObjectName("publishPreview");
     auto *savePreview = new QPushButton("Save Preview");
     savePreview->setObjectName("publishSavePreview");
     auto *refresh = new QPushButton("Refresh");
@@ -1840,6 +1872,8 @@ QWidget *publishPage(const CliAdapter *adapter,
     saveStatus->setWordWrap(true);
     toolbarLayout->addWidget(new QLabel("Target"));
     toolbarLayout->addWidget(target);
+    toolbarLayout->addWidget(new QLabel("Remote State"));
+    toolbarLayout->addWidget(remoteState, 1);
     toolbarLayout->addWidget(preview);
     toolbarLayout->addWidget(savePreview);
     toolbarLayout->addWidget(refresh);
@@ -1859,7 +1893,7 @@ QWidget *publishPage(const CliAdapter *adapter,
 
     layout->addWidget(new QLabel("Target Overview", page));
     auto *targetOverview =
-        table({"Target", "Status", "Method", "Uploads", "Checks", "Destination"}, {});
+        table({"Target", "Status", "Method", "Changes", "Checks", "Destination"}, {});
     targetOverview->setObjectName("publishTargetOverviewTable");
     targetOverview->setMaximumHeight(120);
     layout->addWidget(targetOverview);
@@ -2024,7 +2058,8 @@ QWidget *publishPage(const CliAdapter *adapter,
         }
         populatePublishTargetOverview(
             targetOverview, item->data(Qt::UserRole).toString(),
-            item->data(Qt::UserRole + 2).toStringList(), adapter);
+            item->data(Qt::UserRole + 2).toStringList(),
+            remoteState->text().trimmed(), adapter);
     };
 
     auto loadSavedPreviewDetail = [=](int row) {
@@ -2273,11 +2308,13 @@ QWidget *publishPage(const CliAdapter *adapter,
         }
         refreshSavedPreviews();
         refreshCompletedRecords();
-        const PublishPreview preview = adapter->previewPublication(path, targetName);
+        const QString remoteStatePath = remoteState->text().trimmed();
+        const PublishPreview preview =
+            adapter->previewPublication(path, targetName, remoteStatePath);
         previewStatus->setText(publishPreviewStatus(preview));
         plan->setPlainText(renderPublishPreview(preview));
         const PublishValidationReport validationReport =
-            adapter->validatePublication(path, targetName);
+            adapter->validatePublication(path, targetName, remoteStatePath);
         validation->setPlainText(renderPublishValidation(validationReport));
         setFeedDiagnostics(preview);
         if (!preview.ok) {
@@ -2288,7 +2325,8 @@ QWidget *publishPage(const CliAdapter *adapter,
         }
 
         const PlannedHistoryPreview plannedHistory =
-            adapter->plannedPublicationHistory(path, targetName, plannedHistoryDate());
+            adapter->plannedPublicationHistory(path, targetName, plannedHistoryDate(),
+                                               remoteStatePath);
         historySummary->setPlainText(renderPlannedHistorySummary(plannedHistory));
         if (!plannedHistory.ok) {
             history->setPlainText("No planned history");
@@ -2301,7 +2339,7 @@ QWidget *publishPage(const CliAdapter *adapter,
 
     auto refreshPublishProjects = [=]() {
         populatePublishTable(projectsTable, target, plan, previewStatus, adapter,
-                             projectFilter->text());
+                             projectFilter->text(), remoteState->text().trimmed());
         refreshTargetOverview();
         if (projectsTable->currentRow() < 0) {
             validation->setPlainText("No publication validation");
@@ -2319,6 +2357,11 @@ QWidget *publishPage(const CliAdapter *adapter,
                      [=](const QString &) {
                          refreshPublishProjects();
                      });
+
+    QObject::connect(remoteState, &QLineEdit::editingFinished, [=]() {
+        refreshTargetOverview();
+        runPreview();
+    });
 
     QObject::connect(preview, &QPushButton::clicked, runPreview);
 
@@ -2342,7 +2385,8 @@ QWidget *publishPage(const CliAdapter *adapter,
 
         const PlannedHistorySaveResult saved =
             adapter->savePlannedPublicationHistoryPreview(
-                item->data(Qt::UserRole).toString(), targetName, plannedHistoryDate());
+                item->data(Qt::UserRole).toString(), targetName, plannedHistoryDate(),
+                remoteState->text().trimmed());
         if (!saved.ok) {
             saveStatus->setText("Save failed: " + saved.error);
             return;
@@ -2503,7 +2547,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                      });
 
     populatePublishTable(projectsTable, target, plan, previewStatus, adapter,
-                         projectFilter->text());
+                         projectFilter->text(), remoteState->text().trimmed());
     refreshTargetOverview();
     return page;
 }

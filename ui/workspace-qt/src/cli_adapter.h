@@ -65,10 +65,16 @@ struct PublishPreview {
     QString destination;
     QString feedPath;
     QString feedType;
+    bool comparisonConfigured = false;
+    QString comparisonSource;
+    int comparisonRemotePaths = 0;
     QList<FeedEntryDiagnostic> feedDiagnostics;
     QString hostResolution;
     QString identityResolution;
     QStringList uploads;
+    QStringList updates;
+    QStringList deletes;
+    QStringList skips;
     QStringList verificationChecks;
     QStringList confirmations;
     QString error;
@@ -281,14 +287,18 @@ public:
     ProjectDocument loadProjectDocument(const QString &path) const;
     bool saveProjectDocument(const ProjectDocument &document, const QString &text,
                              QString *error) const;
-    PublishPreview previewPublication(const QString &path, const QString &target) const;
+    PublishPreview previewPublication(const QString &path, const QString &target,
+                                      const QString &remoteStatePath = {}) const;
     PublishValidationReport validatePublication(const QString &path,
-                                                const QString &target) const;
+                                                const QString &target,
+                                                const QString &remoteStatePath = {}) const;
     PlannedHistoryPreview plannedPublicationHistory(const QString &path,
                                                     const QString &target,
-                                                    const QString &date) const;
+                                                    const QString &date,
+                                                    const QString &remoteStatePath = {}) const;
     PlannedHistorySaveResult savePlannedPublicationHistoryPreview(
-        const QString &path, const QString &target, const QString &date) const;
+        const QString &path, const QString &target, const QString &date,
+        const QString &remoteStatePath = {}) const;
     PlannedHistorySavedPreviewList listPlannedPublicationHistoryPreviews(
         const QString &path) const;
     PlannedHistorySavedPreviewDetail readPlannedPublicationHistoryPreview(

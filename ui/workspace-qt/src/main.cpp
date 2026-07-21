@@ -754,6 +754,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
 
     auto *selector = page->findChild<QComboBox *>("publishTargetSelector");
     auto *status = page->findChild<QLabel *>("publishPreviewStatus");
+    auto *remoteState = page->findChild<QLineEdit *>("publishRemoteStatePath");
+    auto *previewButton = page->findChild<QPushButton *>("publishPreview");
     auto *savePreview = page->findChild<QPushButton *>("publishSavePreview");
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
@@ -775,9 +777,10 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *history = page->findChild<QPlainTextEdit *>("publishPlannedHistory");
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     auto *targetOverview = page->findChild<QTableWidget *>("publishTargetOverviewTable");
-    if (selector == nullptr || status == nullptr || savePreview == nullptr ||
-        saveStatus == nullptr || plan == nullptr || validation == nullptr ||
-        historySummary == nullptr || projectFilter == nullptr ||
+    if (selector == nullptr || status == nullptr || remoteState == nullptr ||
+        previewButton == nullptr || savePreview == nullptr || saveStatus == nullptr ||
+        plan == nullptr || validation == nullptr || historySummary == nullptr ||
+        projectFilter == nullptr ||
         savedPreviewFilter == nullptr || savedPreviews == nullptr ||
         savedPreviewDetail == nullptr || historyComparison == nullptr ||
         completedHistoryFilter == nullptr || completedRecords == nullptr ||
@@ -785,6 +788,16 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         targetOverview == nullptr) {
         err << "workspace publish smoke: publish widgets were not discoverable"
             << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    const QString remoteStatePath = QDir(created.projectPath).filePath("remote-state.txt");
+    QString remoteStateError;
+    if (!writeFile(remoteStatePath, "content/index.gmi\nstale.gmi\n",
+                   &remoteStateError)) {
+        err << "workspace publish smoke: remote-state setup failed: "
+            << remoteStateError << Qt::endl;
         delete page;
         return 1;
     }
@@ -919,6 +932,25 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !history->toPlainText().contains("verification_result = \"not-run\"")) {
         err << "workspace publish smoke: production preview was not blocked"
             << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    remoteState->setText(remoteStatePath);
+    selector->setCurrentText("production");
+    QApplication::processEvents();
+    previewButton->click();
+    QApplication::processEvents();
+    if (!plan->toPlainText().contains("Comparison:") ||
+        !plan->toPlainText().contains("Source: " + remoteStatePath) ||
+        !plan->toPlainText().contains("Remote paths: 2") ||
+        !plan->toPlainText().contains("Delete:") ||
+        !plan->toPlainText().contains("stale.gmi") ||
+        !plan->toPlainText().contains("Skip:") ||
+        !plan->toPlainText().contains("content/index.gmi")) {
+        err << "workspace publish smoke: remote-state comparison was not reflected"
+            << Qt::endl;
+        err << "publish plan: " << plan->toPlainText() << Qt::endl;
         delete page;
         return 1;
     }
