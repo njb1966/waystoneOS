@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after removable file-copy execution hardening
+Status: current after Qt removable execution readiness display
 Date: 2026-07-21
 
 This document records the deliberate alignment check between the Phase 0
@@ -90,7 +90,7 @@ or approved scope changes.
 | Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
-| Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service, Qt transfer-intent display, Qt comparison display/input, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
+| Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
 | Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
@@ -144,6 +144,8 @@ existing transfer-intent blockers, and delete operations. It can now execute
 confirmed local/removable file-copy transfers through the CLI and service crate,
 refuse upload overwrites, and write completed history from executor results
 while leaving verification as `not-run`. It
+also displays removable execution readiness in the Qt Publish pane through the
+local CLI adapter without exposing `publish --execute-removable` in the UI. It
 should still avoid device enumeration, packaging, installed services, remote
 transfer, and compositor work.
 
@@ -229,6 +231,8 @@ Concrete deliverables should be small and inspectable:
 - Implement confirmed local/removable file-copy execution with a
   temporary-project test harness and completed history written from executor
   results.
+- Display removable execution readiness in the Qt Publish pane through the
+  local CLI adapter without adding a mutating execution control.
 
 ## Explicitly Still Deferred
 

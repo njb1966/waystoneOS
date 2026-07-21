@@ -75,6 +75,20 @@ QList<PublishValidationIssue> publishValidationIssues(const QJsonArray &array) {
     return issues;
 }
 
+QList<RemovableExecutionOperation> removableExecutionOperations(
+    const QJsonArray &array) {
+    QList<RemovableExecutionOperation> operations;
+    for (const auto &item : array) {
+        const QJsonObject object = item.toObject();
+        RemovableExecutionOperation operation;
+        operation.projectPath = object.value("project_path").toString();
+        operation.sourcePath = object.value("source_path").toString();
+        operation.destinationPath = object.value("destination_path").toString();
+        operations.append(operation);
+    }
+    return operations;
+}
+
 QString resolutionText(const QJsonObject &object) {
     if (object.isEmpty()) {
         return "none";
@@ -529,6 +543,50 @@ PublishTransferIntent CliAdapter::transferIntent(const QString &path, const QStr
     intent.completedHistoryDirectory =
         data.value("history").toObject().value("completed_directory").toString();
     return intent;
+}
+
+RemovableExecutionPlan CliAdapter::prepareRemovableExecution(
+    const QString &path, const QString &target, const QString &remoteStatePath) const {
+    const CommandResult result =
+        runCommand("publish", publishPlanArgs("--prepare-removable-execution", path,
+                                              target, config_, remoteStatePath));
+
+    RemovableExecutionPlan plan;
+    if (!result.error.isEmpty()) {
+        plan.error = result.error;
+        return plan;
+    }
+
+    if (result.exitCode != 0) {
+        plan.error =
+            commandFailureDetail(result, "publish removable execution preparation failed");
+        return plan;
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        plan.error = "publish removable execution preparation returned unreadable JSON";
+        return plan;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    plan.ok = true;
+    plan.project = data.value("project").toString();
+    plan.target = data.value("target").toString();
+    plan.method = data.value("method").toString();
+    plan.destinationRoot = data.value("destination_root").toString();
+    plan.executionReady = data.value("execution_ready").toBool(false);
+    plan.blockedReasons = publishValidationIssues(data.value("blocked_reasons").toArray());
+    plan.confirmations = jsonStringArray(data.value("confirmations").toArray());
+    const QJsonObject operations = data.value("operations").toObject();
+    plan.uploads = removableExecutionOperations(operations.value("upload").toArray());
+    plan.updates = removableExecutionOperations(operations.value("update").toArray());
+    plan.deletes = removableExecutionOperations(operations.value("delete").toArray());
+    plan.skips = removableExecutionOperations(operations.value("skip").toArray());
+    plan.completedHistoryDirectory =
+        data.value("history").toObject().value("completed_directory").toString();
+    return plan;
 }
 
 PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,

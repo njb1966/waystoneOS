@@ -119,6 +119,29 @@ struct PublishTransferIntent {
     QString error;
 };
 
+struct RemovableExecutionOperation {
+    QString projectPath;
+    QString sourcePath;
+    QString destinationPath;
+};
+
+struct RemovableExecutionPlan {
+    bool ok = false;
+    bool executionReady = false;
+    QString project;
+    QString target;
+    QString method;
+    QString destinationRoot;
+    QString completedHistoryDirectory;
+    QList<PublishValidationIssue> blockedReasons;
+    QStringList confirmations;
+    QList<RemovableExecutionOperation> uploads;
+    QList<RemovableExecutionOperation> updates;
+    QList<RemovableExecutionOperation> deletes;
+    QList<RemovableExecutionOperation> skips;
+    QString error;
+};
+
 struct PlannedHistoryFile {
     QString path;
     QString action;
@@ -316,6 +339,9 @@ public:
                                                 const QString &remoteStatePath = {}) const;
     PublishTransferIntent transferIntent(const QString &path, const QString &target,
                                          const QString &remoteStatePath = {}) const;
+    RemovableExecutionPlan prepareRemovableExecution(
+        const QString &path, const QString &target,
+        const QString &remoteStatePath = {}) const;
     PlannedHistoryPreview plannedPublicationHistory(const QString &path,
                                                     const QString &target,
                                                     const QString &date,

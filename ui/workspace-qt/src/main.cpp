@@ -761,6 +761,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *plan = page->findChild<QPlainTextEdit *>("publishPlan");
     auto *validation = page->findChild<QPlainTextEdit *>("publishValidationReport");
     auto *transferIntent = page->findChild<QPlainTextEdit *>("publishTransferIntent");
+    auto *removableExecution =
+        page->findChild<QPlainTextEdit *>("publishRemovableExecutionPlan");
     auto *historySummary = page->findChild<QPlainTextEdit *>("publishHistorySummary");
     auto *projectFilter = page->findChild<QLineEdit *>("publishProjectFilter");
     auto *savedPreviewFilter = page->findChild<QLineEdit *>("publishSavedPreviewFilter");
@@ -781,7 +783,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     if (selector == nullptr || status == nullptr || remoteState == nullptr ||
         previewButton == nullptr || savePreview == nullptr || saveStatus == nullptr ||
         plan == nullptr || validation == nullptr || transferIntent == nullptr ||
-        historySummary == nullptr || projectFilter == nullptr ||
+        removableExecution == nullptr || historySummary == nullptr ||
+        projectFilter == nullptr ||
         savedPreviewFilter == nullptr || savedPreviews == nullptr ||
         savedPreviewDetail == nullptr || historyComparison == nullptr ||
         completedHistoryFilter == nullptr || completedRecords == nullptr ||
@@ -866,6 +869,11 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !transferIntent->toPlainText().contains("Execution ready: yes") ||
         !transferIntent->toPlainText().contains("Target: export") ||
         !transferIntent->toPlainText().contains("Completed history directory:") ||
+        !removableExecution->toPlainText().contains("Execution ready: yes") ||
+        !removableExecution->toPlainText().contains("Target: export") ||
+        !removableExecution->toPlainText().contains("Destination root:") ||
+        !removableExecution->toPlainText().contains("content/index.gmi") ||
+        !removableExecution->toPlainText().contains("destination:") ||
         !historySummary->toPlainText().contains("planned-upload: 1") ||
         !history->toPlainText().contains("transfer_result = \"planned\"") ||
         !history->toPlainText().contains("target = \"export\"")) {
@@ -904,6 +912,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !validation->toPlainText().contains("Valid: yes") ||
         !transferIntent->toPlainText().contains("Target: backup") ||
         !transferIntent->toPlainText().contains("Execution ready: yes") ||
+        !removableExecution->toPlainText().contains("Target: backup") ||
+        !removableExecution->toPlainText().contains("Execution ready: yes") ||
         !historySummary->toPlainText().contains("Target: backup") ||
         !history->toPlainText().contains("target = \"backup\"")) {
         err << "workspace publish smoke: target overview selection did not drive preview"
@@ -918,6 +928,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !plan->toPlainText().contains("Target: backup") ||
         !transferIntent->toPlainText().contains("Target: backup") ||
         !transferIntent->toPlainText().contains("Execution ready: yes") ||
+        !removableExecution->toPlainText().contains("Target: backup") ||
+        !removableExecution->toPlainText().contains("Execution ready: yes") ||
         !historySummary->toPlainText().contains("Target: backup") ||
         !history->toPlainText().contains("target = \"backup\"")) {
         err << "workspace publish smoke: backup preview was not ready" << Qt::endl;
@@ -937,6 +949,8 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !transferIntent->toPlainText().contains("Execution ready: no") ||
         !transferIntent->toPlainText().contains("host_missing") ||
         !transferIntent->toPlainText().contains("identity_missing") ||
+        !removableExecution->toPlainText().contains("Execution ready: no") ||
+        !removableExecution->toPlainText().contains("unsupported_executor_method") ||
         !historySummary->toPlainText().contains("Target: production") ||
         !historySummary->toPlainText().contains("Verification: not-run") ||
         !history->toPlainText().contains("target = \"production\"") ||
@@ -961,11 +975,15 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         !plan->toPlainText().contains("content/index.gmi") ||
         !transferIntent->toPlainText().contains("Source: " + remoteStatePath) ||
         !transferIntent->toPlainText().contains("Remote paths: 2") ||
-        !transferIntent->toPlainText().contains("stale.gmi")) {
+        !transferIntent->toPlainText().contains("stale.gmi") ||
+        !removableExecution->toPlainText().contains("delete_execution_not_supported") ||
+        !removableExecution->toPlainText().contains("stale.gmi")) {
         err << "workspace publish smoke: remote-state comparison was not reflected"
             << Qt::endl;
         err << "publish plan: " << plan->toPlainText() << Qt::endl;
         err << "transfer intent: " << transferIntent->toPlainText() << Qt::endl;
+        err << "removable execution: " << removableExecution->toPlainText()
+            << Qt::endl;
         delete page;
         return 1;
     }

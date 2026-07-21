@@ -696,6 +696,56 @@ QString renderPublishTransferIntent(const PublishTransferIntent &intent) {
     return text.trimmed();
 }
 
+QString renderRemovableExecutionOperations(
+    const QString &label, const QList<RemovableExecutionOperation> &operations) {
+    QString text = label + ":\n";
+    if (operations.isEmpty()) {
+        return text + "  none\n";
+    }
+
+    for (const auto &operation : operations) {
+        text += "  " + operation.projectPath + "\n";
+        if (!operation.sourcePath.isEmpty()) {
+            text += "    source: " + operation.sourcePath + "\n";
+        }
+        text += "    destination: " + operation.destinationPath + "\n";
+    }
+    return text;
+}
+
+QString renderRemovableExecutionPlan(const RemovableExecutionPlan &plan) {
+    if (!plan.ok) {
+        return "Removable execution preparation failed\n" + plan.error;
+    }
+
+    QString text;
+    text += "Project: " + plan.project + "\n";
+    text += "Target: " + plan.target + "\n";
+    text += "Method: " + plan.method + "\n";
+    text += "Destination root: " + plan.destinationRoot + "\n";
+    text += "Execution ready: " + QString(plan.executionReady ? "yes" : "no") +
+            "\n";
+    text += "Completed history directory: " + plan.completedHistoryDirectory + "\n\n";
+
+    text += renderRemovableExecutionOperations("Upload", plan.uploads);
+    text += "\n" + renderRemovableExecutionOperations("Update", plan.updates);
+    text += "\n" + renderRemovableExecutionOperations("Delete", plan.deletes);
+    text += "\n" + renderRemovableExecutionOperations("Skip", plan.skips);
+
+    text += "\nConfirmations:\n";
+    if (plan.confirmations.isEmpty()) {
+        text += "  none\n";
+    } else {
+        for (const auto &confirmation : plan.confirmations) {
+            text += "  " + confirmation + "\n";
+        }
+    }
+
+    text += "\nBlocked Reasons:\n";
+    text += renderPublishValidationIssues(plan.blockedReasons);
+    return text.trimmed();
+}
+
 QString renderFeedDiagnosticSummary(const FeedEntryDiagnostic &diagnostic) {
     QString text = "Feed-entry diagnostic\n";
     text += "Path: " + diagnostic.path + "\n";
@@ -1978,6 +2028,13 @@ QWidget *publishPage(const CliAdapter *adapter,
     transferIntent->setMaximumHeight(170);
     transferIntent->setPlainText("No transfer intent");
     planLayout->addWidget(transferIntent);
+    planLayout->addWidget(new QLabel("Removable Execution Readiness", planArea));
+    auto *removableExecution = new QPlainTextEdit(planArea);
+    removableExecution->setObjectName("publishRemovableExecutionPlan");
+    removableExecution->setReadOnly(true);
+    removableExecution->setMaximumHeight(180);
+    removableExecution->setPlainText("No removable execution readiness");
+    planLayout->addWidget(removableExecution);
     auto *feedDiagnosticActions = new QWidget(planArea);
     auto *feedDiagnosticActionsLayout = new QHBoxLayout(feedDiagnosticActions);
     feedDiagnosticActionsLayout->setContentsMargins(0, 0, 0, 0);
@@ -2330,6 +2387,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             plan->setPlainText("No project selected");
             validation->setPlainText("No publication validation");
             transferIntent->setPlainText("No transfer intent");
+            removableExecution->setPlainText("No removable execution readiness");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
@@ -2347,6 +2405,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             plan->setPlainText("No project selected");
             validation->setPlainText("No publication validation");
             transferIntent->setPlainText("No transfer intent");
+            removableExecution->setPlainText("No removable execution readiness");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
@@ -2365,6 +2424,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             plan->setPlainText("No publish target configured");
             validation->setPlainText("No publication validation");
             transferIntent->setPlainText("No transfer intent");
+            removableExecution->setPlainText("No removable execution readiness");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             refreshSavedPreviews();
@@ -2386,6 +2446,9 @@ QWidget *publishPage(const CliAdapter *adapter,
         const PublishTransferIntent intent =
             adapter->transferIntent(path, targetName, remoteStatePath);
         transferIntent->setPlainText(renderPublishTransferIntent(intent));
+        const RemovableExecutionPlan removablePlan =
+            adapter->prepareRemovableExecution(path, targetName, remoteStatePath);
+        removableExecution->setPlainText(renderRemovableExecutionPlan(removablePlan));
         setFeedDiagnostics(preview);
         if (!preview.ok) {
             historySummary->setPlainText("No planned history");
@@ -2414,6 +2477,7 @@ QWidget *publishPage(const CliAdapter *adapter,
         if (projectsTable->currentRow() < 0) {
             validation->setPlainText("No publication validation");
             transferIntent->setPlainText("No transfer intent");
+            removableExecution->setPlainText("No removable execution readiness");
             historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             updateHistoryComparison();
@@ -2570,6 +2634,8 @@ QWidget *publishPage(const CliAdapter *adapter,
                              previewStatus->setText("Preview: no project selected");
                              validation->setPlainText("No publication validation");
                              transferIntent->setPlainText("No transfer intent");
+                             removableExecution->setPlainText(
+                                 "No removable execution readiness");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
@@ -2587,6 +2653,8 @@ QWidget *publishPage(const CliAdapter *adapter,
                              previewStatus->setText("Preview: no project selected");
                              validation->setPlainText("No publication validation");
                              transferIntent->setPlainText("No transfer intent");
+                             removableExecution->setPlainText(
+                                 "No removable execution readiness");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
@@ -2609,6 +2677,8 @@ QWidget *publishPage(const CliAdapter *adapter,
                                                 targetError);
                              validation->setPlainText("No publication validation");
                              transferIntent->setPlainText("No transfer intent");
+                             removableExecution->setPlainText(
+                                 "No removable execution readiness");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              refreshSavedPreviews();
