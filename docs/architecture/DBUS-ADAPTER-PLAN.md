@@ -119,6 +119,7 @@ Implemented methods:
 PreviewPublication
 ValidatePublication
 TransferIntent
+ExecuteRemovable
 BuildPlannedHistory
 BuildCompletedHistory
 SaveCompletedHistory
@@ -126,20 +127,20 @@ ListCompletedHistory
 ReadCompletedHistory
 ```
 
-Reviewed but not implemented mutating method:
+Implemented mutating method:
 
 ```text
 ExecuteRemovable
 ```
 
-ADR-0014 defines the future `ExecuteRemovable` JSON request/response shape. It
-is limited to local/removable execution, requires explicit
+`ExecuteRemovable` implements the ADR-0014 JSON request/response shape. It is
+limited to local/removable execution, requires explicit
 `confirm_transfer = true`, returns executor-produced completed/failed/partial
-results, and keeps verification separate as `not-run`.
+results, writes completed history from executor results, and keeps
+verification separate as `not-run`.
 
 Still deferred for publish service:
 
-- Implementing `ExecuteRemovable` over D-Bus
 - Qt mutating publish controls
 - Remote probing for comparison
 - Remote transfer execution
@@ -314,7 +315,7 @@ Additional D-Bus verification should prove:
 - A duplicate daemon instance on the same session bus fails quickly instead of taking over the name.
 - D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
 - The checked-in systemd user unit verifies after substituting a temporary daemon path.
-- `waystone-publishd` can start, own `org.waystone.Publish1`, reject duplicate ownership, and serve preview, caller-supplied local remote-state comparison, validation, read-only transfer-intent reporting, planned-history, completed-history generation/save/list/read, and invalid-request responses.
+- `waystone-publishd` can start, own `org.waystone.Publish1`, reject duplicate ownership, and serve preview, caller-supplied local remote-state comparison, validation, read-only transfer-intent reporting, confirmed removable execution, planned-history, completed-history generation/save/list/read, and invalid-request responses.
 - Publish D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
 - The checked-in publish systemd user unit verifies after substituting a temporary daemon path.
 - `waystone-hostd` can start, own `org.waystone.Host1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.

@@ -2,7 +2,8 @@ use serde::Deserialize;
 use serde_json::json;
 use std::path::PathBuf;
 use waystone_publish_service::{
-    BuildCompletedHistoryRequest, BuildPlannedHistoryRequest, ListCompletedHistoryRequest,
+    BuildCompletedHistoryRequest, BuildPlannedHistoryRequest, ExecuteRemovableError,
+    ExecuteRemovableRequest, ExecuteRemovableResponse, ListCompletedHistoryRequest,
     PreviewPublicationRequest, PublishService, ReadCompletedHistoryRequest,
     SaveCompletedHistoryRequest, TransferIntentRequest, ValidatePublicationRequest,
 };
@@ -47,6 +48,17 @@ struct CompletedHistoryRequest {
     verification_result: String,
     rollback_available: bool,
     rollback_notes: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExecuteRemovableDbusRequest {
+    schema: u64,
+    project_path: PathBuf,
+    target: String,
+    remote_state_path: Option<PathBuf>,
+    date: String,
+    confirm_transfer: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,6 +124,24 @@ impl PublishDbus {
         }
     }
 
+    fn execute_removable(&self, request: &str) -> String {
+        let request = match parse_execute_removable_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+
+        match self.service.execute_removable(ExecuteRemovableRequest {
+            project_path: request.project_path,
+            target: request.target,
+            remote_state_path: request.remote_state_path,
+            date: request.date,
+            confirm_transfer: request.confirm_transfer,
+        }) {
+            Ok(executed) => success_response(execute_removable_response(executed)),
+            Err(error) => error_response(execute_removable_error_code(&error), &error.to_string()),
+        }
+    }
+
     fn build_planned_history(&self, request: &str) -> String {
         let request = match parse_planned_history_request(request) {
             Ok(request) => request,
@@ -148,7 +178,7 @@ impl PublishDbus {
         if !is_valid_transfer_result(&request.transfer_result) {
             return error_response(
                 "invalid_request",
-                "transfer_result must be completed, failed, or skipped",
+                "transfer_result must be completed, failed, partial, or skipped",
             );
         }
 
@@ -193,7 +223,7 @@ impl PublishDbus {
         if !is_valid_transfer_result(&request.transfer_result) {
             return error_response(
                 "invalid_request",
-                "transfer_result must be completed, failed, or skipped",
+                "transfer_result must be completed, failed, partial, or skipped",
             );
         }
 
@@ -318,6 +348,15 @@ fn parse_completed_history_request(request: &str) -> Result<CompletedHistoryRequ
     serde_json::from_str(request).map_err(|error| error.to_string())
 }
 
+fn parse_execute_removable_request(request: &str) -> Result<ExecuteRemovableDbusRequest, String> {
+    let request: ExecuteRemovableDbusRequest =
+        serde_json::from_str(request).map_err(|error| error.to_string())?;
+    if request.schema != 1 {
+        return Err(format!("unsupported schema: {}", request.schema));
+    }
+    Ok(request)
+}
+
 fn parse_project_history_request(request: &str) -> Result<ProjectHistoryRequest, String> {
     serde_json::from_str(request).map_err(|error| error.to_string())
 }
@@ -329,7 +368,7 @@ fn parse_completed_history_read_request(
 }
 
 fn is_valid_transfer_result(result: &str) -> bool {
-    matches!(result, "completed" | "failed" | "skipped")
+    matches!(result, "completed" | "failed" | "partial" | "skipped")
 }
 
 fn is_valid_verification_result(result: &str) -> bool {
@@ -441,6 +480,47 @@ fn transfer_intent_response(intent: waystone_publish_plan::TransferIntent) -> se
             "completed_directory": intent.completed_history_dir,
         },
     })
+}
+
+fn execute_removable_response(executed: ExecuteRemovableResponse) -> serde_json::Value {
+    json!({
+        "project": executed.plan.project_id,
+        "target": executed.plan.target,
+        "method": executed.plan.method,
+        "destination_root": executed.plan.destination_root,
+        "transfer_result": executed.result.transfer_result,
+        "verification_result": executed.result.verification_result,
+        "files": executed.result.files.into_iter().map(|file| {
+            json!({
+                "project_path": file.project_path,
+                "source_path": file.source_path,
+                "destination_path": file.destination_path,
+                "action": file.action,
+                "result": file.result,
+                "bytes": file.bytes,
+                "error": file.error,
+            })
+        }).collect::<Vec<_>>(),
+        "history": {
+            "completed_path": executed.history_path.display().to_string(),
+            "record": history_record_value(executed.record),
+        },
+    })
+}
+
+fn execute_removable_error_code(error: &ExecuteRemovableError) -> &'static str {
+    match error {
+        ExecuteRemovableError::Plan(_) => "removable_execution_plan_failed",
+        ExecuteRemovableError::ConfirmationRequired => "confirmation_required",
+        ExecuteRemovableError::PlanBlocked(_) => "removable_execution_blocked",
+        ExecuteRemovableError::DestinationExists(_)
+        | ExecuteRemovableError::UnsafeDestination { .. }
+        | ExecuteRemovableError::MissingSource(_) => "removable_execution_preflight_failed",
+        ExecuteRemovableError::CreateDirectory { .. }
+        | ExecuteRemovableError::Copy { .. }
+        | ExecuteRemovableError::Rename { .. } => "removable_execution_preflight_failed",
+        ExecuteRemovableError::WriteHistory(_) => "completed_history_write_failed",
+    }
 }
 
 fn completed_history_entry_response(

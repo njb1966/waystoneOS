@@ -77,8 +77,11 @@ esac
 
 smoke_root="$(mktemp -d /tmp/waystone-publishd-dbus-smoke-XXXXXX)"
 cp -R examples/projects/ssh-capsule.wayproject "$smoke_root/ssh-capsule.wayproject"
+cp -R examples/projects/audio-capsule.wayproject "$smoke_root/audio-capsule.wayproject"
 smoke_project="$smoke_root/ssh-capsule.wayproject"
+audio_smoke_project="$smoke_root/audio-capsule.wayproject"
 completed_record="$smoke_project/history/completed/2026-07-20T00-00-00Z-production-completed.toml"
+audio_completed_record="$audio_smoke_project/history/completed/2026-07-21T00-00-00Z-export-completed.toml"
 remote_state="$smoke_root/remote-state.txt"
 printf "content/index.gmi\nstale.gmi\n" > "$remote_state"
 
@@ -200,6 +203,72 @@ for expected in comparison remote_paths stale.gmi delete skip confirmation_requi
       ;;
   esac
 done
+
+bad_execute_shape_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ExecuteRemovable \
+  s "{\"schema\":1,\"project_path\":\"$audio_smoke_project\",\"target\":\"export\",\"hosts_root\":\"examples/connections/hosts\",\"date\":\"2026-07-21T00:00:00Z\",\"confirm_transfer\":true}")"
+for expected in invalid_request hosts_root; do
+  case "$bad_execute_shape_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ExecuteRemovable did not reject unsupported request fields"
+      echo "$bad_execute_shape_output"
+      exit 1
+      ;;
+  esac
+done
+
+unconfirmed_execute_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ExecuteRemovable \
+  s "{\"schema\":1,\"project_path\":\"$audio_smoke_project\",\"target\":\"export\",\"date\":\"2026-07-21T00:00:00Z\",\"confirm_transfer\":false}")"
+for expected in confirmation_required "--confirm-transfer"; do
+  case "$unconfirmed_execute_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ExecuteRemovable did not require explicit confirmation"
+      echo "$unconfirmed_execute_output"
+      exit 1
+      ;;
+  esac
+done
+
+execute_removable_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  ExecuteRemovable \
+  s "{\"schema\":1,\"project_path\":\"$audio_smoke_project\",\"target\":\"export\",\"date\":\"2026-07-21T00:00:00Z\",\"confirm_transfer\":true}")"
+for expected in audio-capsule export removable destination_root completed not-run copied upload content/index.gmi audio/published/field-note.opus completed_path transfer_result verification_result "$audio_completed_record"; do
+  case "$execute_removable_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: ExecuteRemovable did not report expected execution result"
+      echo "$execute_removable_output"
+      exit 1
+      ;;
+  esac
+done
+if [ ! -f "$audio_smoke_project/publish/export/content/index.gmi" ]; then
+  echo "publishd D-Bus smoke: ExecuteRemovable did not copy content file"
+  echo "$execute_removable_output"
+  exit 1
+fi
+if [ ! -f "$audio_smoke_project/publish/export/audio/published/field-note.opus" ]; then
+  echo "publishd D-Bus smoke: ExecuteRemovable did not copy audio publication file"
+  echo "$execute_removable_output"
+  exit 1
+fi
+if [ ! -f "$audio_completed_record" ]; then
+  echo "publishd D-Bus smoke: ExecuteRemovable did not write expected completed history"
+  echo "$execute_removable_output"
+  exit 1
+fi
 
 history_output="$(busctl --user call \
   org.waystone.Publish1 \

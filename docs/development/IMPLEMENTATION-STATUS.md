@@ -373,12 +373,11 @@ Current behavior:
   copy-time outcomes
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, read-only transfer-intent
-  reporting, planned-history generation, and completed-history result-record
-  generation/save/list/read through `waystone-publishd` D-Bus adapter
-- Has an accepted ADR-0014 request/response shape for a future
-  `ExecuteRemovable` D-Bus method
+  reporting, confirmed removable execution, planned-history generation, and
+  completed-history result-record generation/save/list/read through
+  `waystone-publishd` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
-- Does not perform remote mutation
+- Does not perform remote mutation or delete execution
 
 Current tests cover:
 
@@ -388,6 +387,10 @@ Current tests cover:
   planned-history generation, completed-history result generation, and
   completed-history save/list/read
   through the service wrapper
+- `waystone-publishd` private-session-bus smoke coverage for preview,
+  validation, transfer-intent reporting, confirmed removable execution,
+  planned-history, completed-history generation/save/list/read, duplicate owner
+  rejection, and invalid request handling
 
 ## Host and Identity Crate
 

@@ -5,7 +5,7 @@ Date: 2026-07-21
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
-The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes publication preview, publication readiness validation, read-only transfer-intent reporting, planned-history generation, and completed-history result-record generation/save/list/read over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` exposes recording list, inspect, validate, local sidecar attachment/update, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, publication/feed-entry handoff validation, and local Atom feed generation over D-Bus. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
+The current implementation uses Rust crates with request and response structs. `waystone-projectd` exposes project creation, listing, inspection, and validation over D-Bus. `waystone-publishd` exposes publication preview, publication readiness validation, read-only transfer-intent reporting, confirmed removable execution, planned-history generation, and completed-history result-record generation/save/list/read over D-Bus. `waystone-hostd` and `waystone-identityd` expose read-only list, inspect, and validate operations over D-Bus. `waystone-audiod` exposes recording list, inspect, validate, local sidecar attachment/update, WAV master capture from explicit `ffmpeg` input sources, Opus publication-copy export, feed-entry sidecar preparation/update, publication/feed-entry handoff validation, and local Atom feed generation over D-Bus. These five daemons have repo-local activation artifacts. No activation files are installed outside this repository.
 
 ## Contract Rules
 
@@ -22,7 +22,7 @@ The current implementation uses Rust crates with request and response structs. `
 | Domain | Current crate | Service daemon | D-Bus name | Current operations |
 | --- | --- | --- | --- | --- |
 | Projects | `crates/project-service` | `services/projectd` | `org.waystone.Project1` | create, list, inspect, validate; D-Bus adapter for create, list, inspect, validate |
-| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, publication readiness validation, transfer-intent reporting, removable execution preparation/execution, planned history, completed-history record construction/save/list/read; D-Bus adapter for preview, validation, transfer-intent reporting, planned history, and completed-history generation/save/list/read |
+| Publishing | `crates/publish-service` | `services/publishd` | `org.waystone.Publish1` | preview dry-run, publication readiness validation, transfer-intent reporting, removable execution preparation/execution, planned history, completed-history record construction/save/list/read; D-Bus adapter for preview, validation, transfer-intent reporting, confirmed removable execution, planned history, and completed-history generation/save/list/read |
 | Hosts | `crates/host-service` | `services/hostd` | `org.waystone.Host1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Identities | `crates/identity-service` | `services/identityd` | `org.waystone.Identity1` | list, inspect, validate; D-Bus adapter for list, inspect, validate |
 | Audio metadata | `crates/audio-service` | `services/audiod` | `org.waystone.Audio1` | attach, update, WAV master capture, Opus publication-copy export, prepare/update feed entry, validate publication, validate feed entry, generate feed, list, inspect, validate; D-Bus adapter for all listed operations |
@@ -123,27 +123,27 @@ Current behavior:
 - Saves, lists, and reads completed history records under project `history/completed/`.
 - Preserves blocked dry-run state.
 - Exposes preview, publication readiness validation, read-only transfer-intent
-  reporting, planned-history generation, and completed-history result-record
-  generation/save/list/read through `waystone-publishd` D-Bus adapter.
-- Does not expose removable execution preparation or execution through D-Bus
-  yet.
-- ADR-0014 defines the reviewed future `ExecuteRemovable` D-Bus request and
-  response shape before any mutating publish IPC method is implemented.
+  reporting, confirmed removable execution, planned-history generation, and
+  completed-history result-record generation/save/list/read through
+  `waystone-publishd` D-Bus adapter.
+- Does not expose removable execution preparation through D-Bus.
+- Implements the ADR-0014 `ExecuteRemovable` D-Bus request and response shape
+  for local/removable execution only.
 - Does not probe remote hosts, execute SSH-family transfers, execute
   deletions, verify remotes, or unlock credentials.
 
-Reviewed future D-Bus mutating method:
+Current D-Bus mutating method:
 
 ```text
 ExecuteRemovable
 ```
 
-This method is not implemented yet. When implemented, it must accept a
-schema-versioned JSON request with `project_path`, `target`, optional
-`remote_state_path`, `date`, and `confirm_transfer = true`. It must delegate to
-`PublishService::execute_removable`, return executor-produced `completed`,
-`failed`, or `partial` transfer results, include per-file error text where
-available, and keep `verification_result = "not-run"`.
+This method accepts a schema-versioned JSON request with `project_path`,
+`target`, optional `remote_state_path`, `date`, and
+`confirm_transfer = true`. It delegates to
+`PublishService::execute_removable`, returns executor-produced `completed`,
+`failed`, or `partial` transfer results, includes per-file error text where
+available, and keeps `verification_result = "not-run"`.
 
 Planning, preflight, confirmation, and completed-history write failures are
 D-Bus errors (`ok = false`). Copy-time failed or partial outcomes that are
@@ -270,6 +270,7 @@ org.waystone.Project1.ValidateProject
 org.waystone.Publish1.PreviewPublication
 org.waystone.Publish1.ValidatePublication
 org.waystone.Publish1.TransferIntent
+org.waystone.Publish1.ExecuteRemovable
 org.waystone.Publish1.BuildPlannedHistory
 org.waystone.Publish1.BuildCompletedHistory
 org.waystone.Publish1.SaveCompletedHistory

@@ -1,9 +1,9 @@
 # waystone-publishd
 
-`waystone-publishd` owns non-mutating publication preview, publication
-readiness validation, transfer-intent reporting, planned-history generation,
-and local completed-history result-record generation, save, list, and read
-operations.
+`waystone-publishd` owns publication preview, publication readiness validation,
+transfer-intent reporting, confirmed local/removable execution,
+planned-history generation, and local completed-history result-record
+generation, save, list, and read operations.
 
 Current D-Bus service:
 
@@ -18,6 +18,7 @@ Implemented methods:
 PreviewPublication
 ValidatePublication
 TransferIntent
+ExecuteRemovable
 BuildPlannedHistory
 BuildCompletedHistory
 SaveCompletedHistory
@@ -26,10 +27,13 @@ ReadCompletedHistory
 ```
 
 The current daemon can use caller-supplied local remote-state manifests for
-preview and transfer-intent comparison. It does not probe remote state,
-transfer files, delete files, verify remote results, or unlock credentials.
-`SaveCompletedHistory` writes only a caller-requested project-local record
-under `history/completed/`.
+preview, transfer-intent comparison, and confirmed removable execution.
+`ExecuteRemovable` is limited to local/removable file-copy execution, requires
+`confirm_transfer = true`, rejects unsupported request fields, writes completed
+history from executor results, and keeps verification as `not-run`. It does not
+probe remote state, execute SSH-family transfers, delete files, verify remote
+results, or unlock credentials. `SaveCompletedHistory` writes only a
+caller-requested project-local record under `history/completed/`.
 
 ## Activation Files
 

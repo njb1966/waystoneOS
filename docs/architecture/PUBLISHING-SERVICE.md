@@ -267,6 +267,7 @@ Implemented methods:
 PreviewPublication
 ValidatePublication
 TransferIntent
+ExecuteRemovable
 BuildPlannedHistory
 BuildCompletedHistory
 SaveCompletedHistory
@@ -274,19 +275,19 @@ ListCompletedHistory
 ReadCompletedHistory
 ```
 
-Reviewed but not yet implemented mutating method:
+Implemented mutating method:
 
 ```text
 ExecuteRemovable
 ```
 
-`ExecuteRemovable` is defined by
-[ADR-0014](../decisions/0014-dbus-removable-executor-shape.md). It may expose
-only the existing local/removable executor. The request must be
-schema-versioned JSON with `project_path`, `target`, optional
-`remote_state_path`, `date`, and explicit `confirm_transfer = true`. It must
-not accept SSH credentials, host roots, identity roots, delete confirmation,
-generic force flags, or remote verification fields.
+`ExecuteRemovable` implements
+[ADR-0014](../decisions/0014-dbus-removable-executor-shape.md). It exposes only
+the existing local/removable executor. The request is schema-versioned JSON
+with `project_path`, `target`, optional `remote_state_path`, `date`, and
+explicit `confirm_transfer = true`. It rejects unsupported fields such as SSH
+credentials, host roots, identity roots, delete confirmation, generic force
+flags, or remote verification fields.
 
 The response must return executor-produced `transfer_result` and
 `verification_result`, per-file results, and completed-history details. IPC
@@ -359,11 +360,12 @@ validation, local comparison, helper, preparation, and local history operations 
 available through the `publish` CLI; removable execution is also available
 through the `publish` CLI. Preview, validation, transfer-intent reporting,
 planned-history generation, completed-history result-record generation, and
-completed-history save/list/read are available through the `waystone-publishd`
-D-Bus adapter. D-Bus completed-history saving is a local project write only.
-The transfer-intent D-Bus method is read-only; it is not a mutating executor.
-The D-Bus adapter does not expose removable execution yet, but ADR-0014 records
-the accepted future `ExecuteRemovable` request and response shape. Publishing
+completed-history save/list/read, and confirmed removable execution are
+available through the `waystone-publishd` D-Bus adapter. D-Bus
+completed-history saving is a local project write only. The transfer-intent
+D-Bus method is read-only; it is not a mutating executor. The `ExecuteRemovable`
+D-Bus method is a mutating local/removable executor only; it requires explicit
+confirmation and is covered by private-session-bus smoke testing. Publishing
 does not generate feeds automatically, probe remote state, run SSH-family
 transfer, execute deletions, access credentials, probe SSH host keys, or verify
 a remote result.

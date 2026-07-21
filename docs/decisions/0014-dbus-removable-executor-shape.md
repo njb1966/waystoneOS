@@ -3,6 +3,9 @@
 Status: Accepted
 Date: 2026-07-21
 
+Implementation note: `waystone-publishd` implemented this D-Bus method on
+2026-07-21 with private-session-bus smoke coverage.
+
 ## Context
 
 WaystoneOS now has a bounded local/removable file-copy executor through the
@@ -19,9 +22,9 @@ response, error, and UI boundaries need to be explicit.
 
 ## Decision
 
-A future `org.waystone.Publish1.ExecuteRemovable` D-Bus method may expose only
-the existing removable executor behavior. It must use a schema-versioned JSON
-string request and response matching the existing adapter pattern.
+`org.waystone.Publish1.ExecuteRemovable` may expose only the existing
+removable executor behavior. It must use a schema-versioned JSON string request
+and response matching the existing adapter pattern.
 
 Request shape:
 
@@ -124,8 +127,8 @@ written from that result.
 ## Consequences
 
 - D-Bus mutation has a reviewed, narrow shape before implementation.
-- Future `publishd` implementation can add smoke coverage against a private
-  test session bus without changing the service crate contract.
+- `publishd` implementation can keep smoke coverage against a private test
+  session bus without changing the service crate contract.
 - Qt mutating publish controls remain deferred until the D-Bus method is
   implemented, smoke-tested, and explicitly approved for UI exposure.
 - SSH-family execution remains outside this contract.
@@ -156,8 +159,8 @@ Implement the D-Bus method immediately in the same slice:
 
 ## Follow-Up
 
-- Add `ExecuteRemovable` to `waystone-publishd` only after this contract is
-  used as the implementation checklist.
-- Add private-session-bus smoke coverage before any Qt mutating publish UI.
+- Keep `waystone-publishd` implementation aligned with this contract as the
+  method evolves.
+- Keep private-session-bus smoke coverage before any Qt mutating publish UI.
 - Keep real SSH-family executors, delete execution, credential unlock, host-key
   probing, and remote verification deferred.
