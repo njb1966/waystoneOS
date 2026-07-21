@@ -161,3 +161,37 @@ Still needs follow-up:
 
 - Project owner should relaunch the visible preview and confirm the Create and
   Publish panes are now understandable and readable.
+
+## 2026-07-21 Orientation Follow-Up
+
+Observed issue:
+
+- The visible preview exposed too many new feature surfaces at once.
+- The relationship between the four workspace selectors, the left navigation,
+  optional audio controls, publish preview reports, comparison state, planned
+  history, and completed history was not automatically intuitive.
+
+Resolution:
+
+- Added [WORKSPACE-PREVIEW-GUIDE.md](WORKSPACE-PREVIEW-GUIDE.md) with the
+  current project-owner golden path, navigation map, terms, optional areas to
+  ignore first, and successful basic-pass criteria.
+- Updated [MANUAL-PREVIEW-CHECKLIST.md](MANUAL-PREVIEW-CHECKLIST.md) so the
+  basic pass starts with Explore, Create > Write/Files, and Publish > Preview.
+- Added hover help to the workspace selectors, left activity navigation,
+  Create tabs, optional Create audio/feed controls, and Publish report tabs.
+- Changed confusing Publish labels from remote/publish-heavy wording toward
+  preview/comparison wording without enabling actual publication execution.
+
+Verification:
+
+- `cmake --build /tmp/waystone-workspace-qt-build`
+- `scripts/workspace-qt-project-smoke.sh`
+- `scripts/workspace-qt-smoke.sh`
+- `QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config`
+- `git diff --check`
+
+Still needs follow-up:
+
+- Project owner should relaunch the visible preview using the guide and confirm
+  whether the golden path is understandable before installed-session work.

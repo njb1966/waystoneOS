@@ -17,6 +17,7 @@ Implemented:
 
 - Top menu bar
 - Four workspace selector buttons
+- Hover help for the four workspace selectors and left activity navigation
 - Left activity navigation
 - Main stacked workspace panes
 - Bottom status bar
@@ -35,6 +36,8 @@ Implemented:
 - Recording adapter using `record` and `listen` CLI JSON output
 - Recording controls live in a separate scrollable Recordings view inside the
   Create pane
+- Create-pane tabs and optional audio controls include hover help to clarify
+  which parts are ordinary authoring and which parts are optional audio work
 - Create-pane WAV master capture controls using `record capture --json` with explicit `ffmpeg` input sources
 - Create-pane Opus publication-copy export controls using `record export-opus --json` for existing project-local master files
 - Create-pane recording attachment controls using `record attach --json` for existing project-local master and publication-copy files
@@ -47,6 +50,8 @@ Implemented:
 - Publish-pane report-heavy surfaces separated into `Preview`, `Feed`,
   `Planned History`, and `Completed History` tabs so readiness and history
   reports do not collapse in the manual-preview window
+- Publish-pane controls use clearer preview/comparison wording and hover help
+  to distinguish read-only preview work from actual publication
 - Publish-pane target selection derived from `project inspect --json` metadata
 - Publish-pane ready, blocked, failed, no-project, and no-target preview status display
 - Publish-pane planned history summary and raw record preview using `publish --planned-history --json`
@@ -208,6 +213,12 @@ Manual preview checklist:
 
 ```text
 docs/development/MANUAL-PREVIEW-CHECKLIST.md
+```
+
+Project-owner preview guide:
+
+```text
+docs/development/WORKSPACE-PREVIEW-GUIDE.md
 ```
 
 Focused project create/save, recording attachment/feed-entry, and Publish-pane target/status smoke test:

@@ -96,7 +96,7 @@ or approved scope changes.
 
 | Workstream | Alignment | Notes |
 | --- | --- | --- |
-| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, focused smoke coverage, repo-local Debian session/install-layout artifacts, wrapper-to-Workspace dev-session smoke coverage, temporary-root install-layout validation, repo-local dev-run launch command, manual preview checklist, agent-observable preview findings, and the first project-owner preview layout fixes for Create and Publish are real. Follow-up visible confirmation, actual installation, display-manager registration, installed activation, and terminal integration remain deferred. |
+| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, focused smoke coverage, repo-local Debian session/install-layout artifacts, wrapper-to-Workspace dev-session smoke coverage, temporary-root install-layout validation, repo-local dev-run launch command, manual preview checklist, Workspace preview guide, agent-observable preview findings, and the first project-owner preview layout/orientation fixes are real. Follow-up visible confirmation, actual installation, display-manager registration, installed activation, and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, removable destination-state export, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service/D-Bus, failed/partial copy-time executor history, D-Bus removable executor smoke coverage, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, Qt removable destination-state export helper, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
@@ -178,12 +178,16 @@ anything outside the repository. The current preview can now be launched from
 the repo through `scripts/run-dev-session.sh`, with manual preview steps
 documented for temporary-root testing. The first agent-observable preview pass
 is recorded, and the first project-owner visible layout issues in the Create
-and Publish panes have been fixed.
+and Publish panes have been fixed. The first orientation slice now adds a
+project-owner golden-path guide, simplifies the manual checklist around that
+path, and adds hover help plus clearer preview/comparison wording in the
+Workspace.
 
 Recommended next deliverables:
 
 - Rerun the manual preview checklist in a visible desktop session and confirm
-  the Create and Publish pane layout fixes before installed-session work.
+  the Create and Publish pane layout fixes plus the orientation guide before
+  installed-session work.
 - Keep actual installation into `/usr/share`, `/usr/bin`,
   `$XDG_DATA_HOME`, or system/user service directories behind explicit
   approval and a later installer/package slice.

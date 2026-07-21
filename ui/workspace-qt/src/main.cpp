@@ -1249,9 +1249,16 @@ int main(int argc, char *argv[]) {
     auto *buttonGroup = new QButtonGroup(selector);
     buttonGroup->setExclusive(true);
     const QStringList workspaces = {"Explore", "Create", "Publish", "Operate"};
+    const QStringList workspaceToolTips = {
+        "Check configured local roots and workspace settings.",
+        "Create projects and edit project content. Recordings are optional.",
+        "Preview publication readiness and local history. This does not publish.",
+        "Inspect local host and identity metadata."
+    };
     for (int index = 0; index < workspaces.size(); ++index) {
         auto *button = new QPushButton(workspaces.at(index));
         button->setCheckable(true);
+        button->setToolTip(workspaceToolTips.at(index));
         if (index == 0) {
             button->setChecked(true);
         }
@@ -1263,9 +1270,24 @@ int main(int argc, char *argv[]) {
 
     auto *splitter = new QSplitter(Qt::Horizontal);
     auto *navigation = new QListWidget;
-    navigation->addItems({"Explore", "Write", "Listen", "Record", "Publish", "Host",
-                          "Connect", "Learn", "Hosts", "Services", "Transfers",
-                          "Terminal"});
+    const QList<QPair<QString, QString>> navigationItems = {
+        {"Explore", "Check configured local roots and workspace settings."},
+        {"Write", "Open Create for project authoring."},
+        {"Listen", "Open Create. Listening features are not implemented yet."},
+        {"Record", "Open Create > Recordings for optional audio metadata work."},
+        {"Publish", "Open Publish for read-only publication preview and history."},
+        {"Host", "Open Explore. Host connections are still local metadata."},
+        {"Connect", "Open Explore. Network connection features are deferred."},
+        {"Learn", "Open Explore. Learning surfaces are deferred."},
+        {"Hosts", "Open Operate for local host metadata inspection."},
+        {"Services", "Open Operate for local service boundary status."},
+        {"Transfers", "Open Operate. Remote transfer execution is deferred."},
+        {"Terminal", "Open Operate. Embedded terminal is deferred."},
+    };
+    for (const auto &item : navigationItems) {
+        auto *entry = new QListWidgetItem(item.first, navigation);
+        entry->setToolTip(item.second);
+    }
     navigation->setCurrentRow(0);
     navigation->setMinimumWidth(150);
     navigation->setMaximumWidth(190);

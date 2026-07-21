@@ -1348,21 +1348,33 @@ QWidget *createPage(const CliAdapter *adapter) {
     attachActionsLayout->setContentsMargins(0, 0, 0, 0);
     auto *captureRecording = new QPushButton("Capture WAV", attachActions);
     captureRecording->setObjectName("createCaptureRecording");
+    captureRecording->setToolTip(
+        "Optional audio path: capture a short WAV master from an explicit ffmpeg input.");
     captureRecording->setEnabled(false);
     auto *exportOpus = new QPushButton("Export Opus", attachActions);
     exportOpus->setObjectName("createExportOpus");
+    exportOpus->setToolTip(
+        "Optional audio path: export a project-local Opus publication copy.");
     exportOpus->setEnabled(false);
     auto *attachRecording = new QPushButton("Attach Recording", attachActions);
     attachRecording->setObjectName("createAttachRecording");
+    attachRecording->setToolTip(
+        "Optional audio path: create metadata for existing project-local audio files.");
     attachRecording->setEnabled(false);
     auto *updateRecording = new QPushButton("Update Recording", attachActions);
     updateRecording->setObjectName("createUpdateRecording");
+    updateRecording->setToolTip(
+        "Optional audio path: update metadata for the selected recording ID.");
     updateRecording->setEnabled(false);
     auto *prepareFeedEntry = new QPushButton("Prepare Feed Entry", attachActions);
     prepareFeedEntry->setObjectName("createPrepareFeedEntry");
+    prepareFeedEntry->setToolTip(
+        "Optional audio path: prepare a local feed-entry sidecar from recording metadata.");
     prepareFeedEntry->setEnabled(false);
     auto *updateFeedEntry = new QPushButton("Update Feed Entry", attachActions);
     updateFeedEntry->setObjectName("createUpdateFeedEntry");
+    updateFeedEntry->setToolTip(
+        "Optional audio path: refresh an existing feed-entry sidecar.");
     updateFeedEntry->setEnabled(false);
     auto *attachStatus = new QLabel("Attachment: no project selected", attachActions);
     attachStatus->setObjectName("createRecordingAttachStatus");
@@ -1379,12 +1391,17 @@ QWidget *createPage(const CliAdapter *adapter) {
     feedActionsLayout->setContentsMargins(0, 0, 0, 0);
     auto *validatePublication = new QPushButton("Validate Publication", feedActions);
     validatePublication->setObjectName("createValidatePublication");
+    validatePublication->setToolTip(
+        "Check local publication-copy metadata for the selected recording.");
     validatePublication->setEnabled(false);
     auto *validateFeedEntry = new QPushButton("Validate Feed Entry", feedActions);
     validateFeedEntry->setObjectName("createValidateFeedEntry");
+    validateFeedEntry->setToolTip(
+        "Check the local feed-entry sidecar for the selected recording.");
     validateFeedEntry->setEnabled(false);
     auto *generateFeed = new QPushButton("Generate Feed", feedActions);
     generateFeed->setObjectName("createGenerateFeed");
+    generateFeed->setToolTip("Generate a local Atom feed XML file from prepared entries.");
     generateFeed->setEnabled(false);
     auto *feedStatus = new QLabel("Feed entry: no project selected", feedActions);
     feedStatus->setObjectName("createFeedEntryStatus");
@@ -1423,6 +1440,9 @@ QWidget *createPage(const CliAdapter *adapter) {
     recordingScroll->setWidgetResizable(true);
     recordingScroll->setWidget(recordingArea);
     workTabs->addTab(recordingScroll, "Recordings");
+    workTabs->setTabToolTip(0, "Edit and preview the selected project's Gemtext index.");
+    workTabs->setTabToolTip(1, "Inspect files under the selected project's content root.");
+    workTabs->setTabToolTip(2, "Optional audio metadata, capture, export, and feed work.");
 
     splitter->addWidget(workTabs);
     splitter->setStretchFactor(0, 1);
@@ -1996,17 +2016,25 @@ QWidget *publishPage(const CliAdapter *adapter,
     target->setEnabled(false);
     auto *remoteState = new QLineEdit(toolbar);
     remoteState->setObjectName("publishRemoteStatePath");
-    remoteState->setPlaceholderText("Remote state file");
-    auto *exportState = new QPushButton("Export State");
+    remoteState->setPlaceholderText("Optional comparison manifest");
+    remoteState->setToolTip(
+        "Optional local manifest used to compare expected published paths. It does not contact a remote.");
+    auto *exportState = new QPushButton("Export Compare State");
     exportState->setObjectName("publishExportRemovableState");
+    exportState->setToolTip(
+        "Create a local comparison manifest from the selected removable target destination.");
     auto *exportStateStatus = new QLabel("State export: idle");
     exportStateStatus->setObjectName("publishRemovableStateExportStatus");
     exportStateStatus->setWordWrap(true);
-    auto *preview = new QPushButton("Preview");
+    auto *preview = new QPushButton("Refresh Preview");
     preview->setObjectName("publishPreview");
-    auto *savePreview = new QPushButton("Save Preview");
+    preview->setToolTip("Recalculate read-only publication preview reports.");
+    auto *savePreview = new QPushButton("Save Plan");
     savePreview->setObjectName("publishSavePreview");
+    savePreview->setToolTip(
+        "Save the current planned-history preview under the selected project.");
     auto *refresh = new QPushButton("Refresh");
+    refresh->setToolTip("Reload projects and refresh the selected project preview.");
     auto *previewStatus = new QLabel("Preview: idle");
     previewStatus->setObjectName("publishPreviewStatus");
     previewStatus->setWordWrap(true);
@@ -2015,7 +2043,7 @@ QWidget *publishPage(const CliAdapter *adapter,
     saveStatus->setWordWrap(true);
     toolbarLayout->addWidget(new QLabel("Target"));
     toolbarLayout->addWidget(target);
-    toolbarLayout->addWidget(new QLabel("Remote State"));
+    toolbarLayout->addWidget(new QLabel("Compare State"));
     toolbarLayout->addWidget(remoteState, 1);
     toolbarLayout->addWidget(exportState);
     toolbarLayout->addWidget(preview);
@@ -2040,6 +2068,8 @@ QWidget *publishPage(const CliAdapter *adapter,
     auto *targetOverview =
         table({"Target", "Status", "Method", "Changes", "Checks", "Destination"}, {});
     targetOverview->setObjectName("publishTargetOverviewTable");
+    targetOverview->setToolTip(
+        "Read-only target status. Selecting a row changes the preview target.");
     targetOverview->setMaximumHeight(120);
     layout->addWidget(targetOverview);
 
@@ -2088,6 +2118,9 @@ QWidget *publishPage(const CliAdapter *adapter,
     }
     previewTabLayout->addWidget(previewSplitter, 1);
     publishTabs->addTab(previewTab, "Preview");
+    publishTabs->setTabToolTip(
+        publishTabs->count() - 1,
+        "Read-only dry-run, validation, transfer intent, and removable readiness.");
 
     auto *feedTab = new QWidget(publishTabs);
     auto *feedLayout = new QVBoxLayout(feedTab);
@@ -2119,6 +2152,9 @@ QWidget *publishPage(const CliAdapter *adapter,
     feedLayout->addWidget(makeReportSection("Feed Diagnostic Detail", feedDiagnosticDetail),
                           1);
     publishTabs->addTab(feedTab, "Feed");
+    publishTabs->setTabToolTip(
+        publishTabs->count() - 1,
+        "Read-only feed readiness and invalid feed-entry diagnostics.");
 
     auto *plannedHistoryTab = new QWidget(publishTabs);
     auto *plannedHistoryLayout = new QVBoxLayout(plannedHistoryTab);
@@ -2165,6 +2201,9 @@ QWidget *publishPage(const CliAdapter *adapter,
     }
     plannedHistoryLayout->addWidget(plannedHistorySplitter, 1);
     publishTabs->addTab(plannedHistoryTab, "Planned History");
+    publishTabs->setTabToolTip(
+        publishTabs->count() - 1,
+        "Local planned-history preview records. These are not completed publishes.");
 
     auto *completedHistoryTab = new QWidget(publishTabs);
     auto *completedHistoryLayout = new QVBoxLayout(completedHistoryTab);
@@ -2187,6 +2226,9 @@ QWidget *publishPage(const CliAdapter *adapter,
     completedHistoryLayout->addWidget(
         makeReportSection("Completed Record Detail", completedRecordDetail), 1);
     publishTabs->addTab(completedHistoryTab, "Completed History");
+    publishTabs->setTabToolTip(
+        publishTabs->count() - 1,
+        "Read-only local completed-history records saved by the publish tooling.");
 
     layout->addWidget(publishTabs, 1);
 

@@ -656,6 +656,8 @@ Current behavior:
 - Builds as a standalone Qt 6 C++ CMake project when Qt 6 development files are installed
 - Renders the first Waystone Workspace frame
 - Provides a top menu bar, workspace selectors, left activity navigation, stacked main panes, and status bar
+- Provides hover help for workspace selectors and left activity navigation so
+  future/deferred activity names map back to the current four panes
 - Uses the existing `project` CLI JSON output for Create-pane create, removable target setup, list, inspect, and validate
 - Creates projects under the configured projects root, adds a default removable `export` target, refreshes the project list, and opens the new project in the editor
 - Creates `audio-series` and `mixed-publication` projects with audio/feed scaffold defaults through the same `project create --json` path
@@ -663,6 +665,8 @@ Current behavior:
 - Loads, edits, saves, validates, previews, and locally link-checks the selected project's content index file in the Create pane
 - Separates Create-pane Write, Files, and Recordings views so Gemtext
   editing/preview stays usable while recording controls remain available
+- Adds hover help to Create-pane tabs and optional audio/feed controls so
+  ordinary Gemtext authoring is distinguishable from optional recording work
 - Lists files under the selected project's content root in the Create pane without changing the editable content index binding
 - Filters the Create pane content-root file list by relative path or full path
 - Shows read-only detail for the selected Create pane content-root file, including whether it is the editable content index
@@ -685,6 +689,8 @@ Current behavior:
 - Separates Publish-pane reports into Preview, Feed, Planned History, and
   Completed History tabs so dry-run, readiness, feed-diagnostic, and history
   details remain readable in the manual-preview window
+- Uses clearer Publish-pane preview/comparison labels and hover help while
+  preserving the underlying local CLI adapter behavior
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
 - Shows Publish-pane preview status as ready, blocked, failed, no project, no target, and feed readiness when feed metadata is configured
 - Shows invalid feed-entry diagnostic paths and validation issue text in Publish-pane dry-run detail
@@ -737,6 +743,7 @@ scripts/install-layout-temp-root-smoke.sh
 scripts/run-dev-session.sh
 docs/development/MANUAL-PREVIEW-CHECKLIST.md
 docs/development/MANUAL-PREVIEW-FINDINGS.md
+docs/development/WORKSPACE-PREVIEW-GUIDE.md
 ```
 
 Current behavior:
@@ -749,6 +756,8 @@ Current behavior:
   through `session/waystone-session`
 - Provides a manual preview checklist for exercising the current repo-local
   session path with temporary roots
+- Provides a project-owner preview guide with the current golden path,
+  navigation map, terms, and intentionally deferred areas
 - Records the first agent-observable manual preview findings, including
   terminal checks, offscreen startup, focused Qt smoke coverage, and the
   remaining need for human-visible inspection
@@ -1018,8 +1027,12 @@ The repo-local dev-run command built the Rust CLIs and Qt Workspace, launched
 through `session/waystone-session`, and verified default root diagnostics with
 `--check-roots --no-user-config` and Qt offscreen mode.
 The manual preview checklist documents the safe repo-local launch path, an
-isolated temporary-root config, the current Explore/Create/Publish/Operate
-checks, expected deferrals, and what findings to record.
+isolated temporary-root config, the current golden-path
+Explore/Create/Publish checks, optional deeper checks, expected deferrals, and
+what findings to record.
+The Workspace preview guide documents the current project-owner golden path,
+navigation map, terms, intentionally ignored/deferred areas, and successful
+basic-pass criteria.
 The manual preview findings record shows the dev-run default and explicit-root
 diagnostics passed, offscreen startup reached the Qt event loop, focused Qt
 workflow smoke passed, and the first project-owner visible layout issues in
