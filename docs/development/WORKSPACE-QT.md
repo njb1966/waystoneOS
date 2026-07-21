@@ -38,6 +38,7 @@ Implemented:
 - Create-pane feed-entry preparation, update, and validation controls using `record prepare-feed-entry --json`, `record update-feed-entry --json`, `record validate-publication --json`, and `record validate-feed-entry --json`
 - Read-only Publish-pane adapter using configured local projects and `publish --dry-run --json`
 - Publish-pane publication readiness report using `publish --validate --json`
+- Publish-pane transfer-intent report using `publish --transfer-intent --json`
 - Publish-pane target selection derived from `project inspect --json` metadata
 - Publish-pane ready, blocked, failed, no-project, and no-target preview status display
 - Publish-pane planned history summary and raw record preview using `publish --planned-history --json`
@@ -197,9 +198,11 @@ selection, planned-history summary, raw planned-history record preview, saved
 planned-history preview transitions, saved-preview listing, selected saved
 preview detail loading, saved-preview row selection preservation,
 generated-vs-saved comparison reporting, and saved-preview filtering without
-remote publication. It also seeds a local completed-history result record and
-verifies completed-record listing, selected-record detail loading, and
-completed-record filtering in the Publish pane.
+remote publication. It also verifies read-only transfer-intent reporting for
+ready, blocked, and caller-supplied remote-state comparison states. It also
+seeds a local completed-history result record and verifies completed-record
+listing, selected-record detail loading, and completed-record filtering in the
+Publish pane.
 
 CLI JSON contract smoke test:
 
@@ -227,6 +230,7 @@ The first adapter path is CLI JSON for project, recording, publish preview, host
 - `publish --dry-run --json`
 - `publish --dry-run --remote-state PATH --json`
 - `publish --validate --remote-state PATH --json`
+- `publish --transfer-intent --remote-state PATH --json`
 - `publish --planned-history --json`
 - `publish --save-planned-history-preview --json`
 - `publish --list-planned-history-previews --json`

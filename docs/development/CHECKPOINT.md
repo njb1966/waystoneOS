@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after read-only transfer-intent D-Bus exposure
+Status: current after Qt read-only transfer-intent display
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -28,7 +28,10 @@ are explicit. The publish planning crate, publish service crate, and publish
 CLI now expose a non-mutating transfer-intent report with execution readiness,
 blocking reasons, required confirmations, host/identity summaries, comparison
 metadata, change buckets, and the future completed-history directory.
-`waystone-publishd` exposes the same read-only report through D-Bus.
+`waystone-publishd` exposes the same read-only report through D-Bus. The Qt
+Publish pane now displays the local CLI transfer-intent report for the selected
+project and target, including caller-supplied local remote-state comparison
+when configured.
 
 ## Current Position
 
@@ -350,6 +353,11 @@ Result after read-only transfer-intent D-Bus exposure: checks passed on
 2026-07-20, including formatting, full Rust tests, clippy with warnings
 denied, publishd D-Bus smoke, and git diff whitespace checks.
 
+Result after Qt read-only transfer-intent display: checks passed on
+2026-07-20, including Rust formatting, full Rust tests, clippy with warnings
+denied, broad Qt smoke, focused Qt project smoke, and git diff whitespace
+checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -382,6 +390,8 @@ denied, publishd D-Bus smoke, and git diff whitespace checks.
   unlocking credentials, transferring files, deleting files, or writing
   completed history.
 - The Qt Publish pane displays `publish --validate` results for the selected project and target without mutating projects or remotes.
+- The Qt Publish pane displays `publish --transfer-intent` results for the
+  selected project and target without mutating projects or remotes.
 - The Qt Publish pane can supply a local remote-state manifest to publish preview and history commands and displays comparison buckets without contacting or mutating a remote.
 - `publish --completed-history` and `publish --save-completed-history` create local completed history result records from explicit result fields and do not execute remote transfer or verification.
 - The Qt Publish pane lists and reads saved completed history records without creating completed records or mutating remotes.
@@ -405,9 +415,9 @@ denied, publishd D-Bus smoke, and git diff whitespace checks.
 
 Recommended next implementation step:
 
-1. Commit and push the read-only transfer-intent D-Bus exposure slice.
-2. Choose between Qt read-only transfer-intent display or a bounded
-   removable-executor contract/test-harness slice.
+1. Commit and push the Qt read-only transfer-intent display slice.
+2. Define the bounded removable-executor contract/test-harness slice before
+   implementing file-copy behavior.
 3. Keep real SSH transfer, remote deletion execution, credential unlock, and
    remote verification deferred until comparison/readiness boundaries are
    stable.
@@ -418,5 +428,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after read-only transfer-intent D-Bus exposure on 2026-07-20. The
+Current after Qt read-only transfer-intent display on 2026-07-20. The
 latest handoff has been resumed and superseded by this checkpoint.

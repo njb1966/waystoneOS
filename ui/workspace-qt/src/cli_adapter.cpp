@@ -482,6 +482,55 @@ PublishValidationReport CliAdapter::validatePublication(
     return report;
 }
 
+PublishTransferIntent CliAdapter::transferIntent(const QString &path, const QString &target,
+                                                 const QString &remoteStatePath) const {
+    const CommandResult result =
+        runCommand("publish", publishPlanArgs("--transfer-intent", path, target,
+                                              config_, remoteStatePath));
+
+    PublishTransferIntent intent;
+    if (!result.error.isEmpty()) {
+        intent.error = result.error;
+        return intent;
+    }
+
+    if (result.exitCode != 0) {
+        intent.error = commandFailureDetail(result, "publish transfer-intent failed");
+        return intent;
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        intent.error = "publish transfer-intent returned unreadable JSON";
+        return intent;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    intent.ok = true;
+    intent.project = data.value("project").toString();
+    intent.target = data.value("target").toString();
+    intent.method = data.value("method").toString();
+    intent.destination = data.value("destination").toString();
+    intent.executionReady = data.value("execution_ready").toBool(false);
+    intent.blockedReasons = publishValidationIssues(data.value("blocked_reasons").toArray());
+    intent.confirmations = jsonStringArray(data.value("confirmations").toArray());
+    intent.hostResolution = resolutionText(data.value("host_resolution").toObject());
+    intent.identityResolution = resolutionText(data.value("identity_resolution").toObject());
+    const QJsonObject comparison = data.value("comparison").toObject();
+    intent.comparisonConfigured = comparison.value("configured").toBool(false);
+    intent.comparisonSource = comparison.value("source").toString();
+    intent.comparisonRemotePaths = comparison.value("remote_paths").toInt();
+    const QJsonObject changes = data.value("changes").toObject();
+    intent.uploads = jsonStringArray(changes.value("upload").toArray());
+    intent.updates = jsonStringArray(changes.value("update").toArray());
+    intent.deletes = jsonStringArray(changes.value("delete").toArray());
+    intent.skips = jsonStringArray(changes.value("skip").toArray());
+    intent.completedHistoryDirectory =
+        data.value("history").toObject().value("completed_directory").toString();
+    return intent;
+}
+
 PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,
                                                             const QString &target,
                                                             const QString &date,

@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after read-only transfer-intent D-Bus exposure
+Status: current after Qt read-only transfer-intent display
 Date: 2026-07-20
 
 This audit records the boundary between the current non-mutating publishing
@@ -164,11 +164,9 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Decide whether to surface transfer intent in the Qt Publish pane as a
-   read-only readiness view.
-2. Define the bounded `removable` executor contract and test harness before
+1. Define the bounded `removable` executor contract and test harness before
    implementing file-copy behavior.
-3. Keep SSH-family executors behind the credential, host-trust, remote-path,
+2. Keep SSH-family executors behind the credential, host-trust, remote-path,
    delete-confirmation, executor-history, and verification gates.
 
 Still defer:

@@ -97,6 +97,28 @@ struct PublishValidationReport {
     QString error;
 };
 
+struct PublishTransferIntent {
+    bool ok = false;
+    bool executionReady = false;
+    bool comparisonConfigured = false;
+    int comparisonRemotePaths = 0;
+    QString project;
+    QString target;
+    QString method;
+    QString destination;
+    QString hostResolution;
+    QString identityResolution;
+    QString comparisonSource;
+    QString completedHistoryDirectory;
+    QList<PublishValidationIssue> blockedReasons;
+    QStringList confirmations;
+    QStringList uploads;
+    QStringList updates;
+    QStringList deletes;
+    QStringList skips;
+    QString error;
+};
+
 struct PlannedHistoryFile {
     QString path;
     QString action;
@@ -292,6 +314,8 @@ public:
     PublishValidationReport validatePublication(const QString &path,
                                                 const QString &target,
                                                 const QString &remoteStatePath = {}) const;
+    PublishTransferIntent transferIntent(const QString &path, const QString &target,
+                                         const QString &remoteStatePath = {}) const;
     PlannedHistoryPreview plannedPublicationHistory(const QString &path,
                                                     const QString &target,
                                                     const QString &date,

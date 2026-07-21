@@ -639,6 +639,63 @@ QString renderPublishValidation(const PublishValidationReport &report) {
     return text.trimmed();
 }
 
+QString renderPublishTransferIntent(const PublishTransferIntent &intent) {
+    if (!intent.ok) {
+        return "Transfer intent failed\n" + intent.error;
+    }
+
+    QString text;
+    text += "Project: " + intent.project + "\n";
+    text += "Target: " + intent.target + "\n";
+    text += "Method: " + intent.method + "\n";
+    text += "Destination: " + intent.destination + "\n";
+    text += "Execution ready: " + QString(intent.executionReady ? "yes" : "no") +
+            "\n";
+    text += "Host: " + intent.hostResolution + "\n";
+    text += "Identity: " + intent.identityResolution + "\n";
+    text += "Completed history directory: " + intent.completedHistoryDirectory + "\n\n";
+
+    text += "Comparison:\n";
+    if (!intent.comparisonConfigured) {
+        text += "  not configured\n";
+    } else {
+        text += "  Source: " +
+                (intent.comparisonSource.isEmpty() ? QString("unknown")
+                                                   : intent.comparisonSource) +
+                "\n";
+        text += QString("  Remote paths: %1\n").arg(intent.comparisonRemotePaths);
+    }
+
+    auto appendChangeList = [&text](const QString &label, const QStringList &paths) {
+        text += "\n" + label + ":\n";
+        if (paths.isEmpty()) {
+            text += "  none\n";
+            return;
+        }
+        for (const auto &path : paths) {
+            text += "  " + path + "\n";
+        }
+    };
+
+    appendChangeList("Upload", intent.uploads);
+    appendChangeList("Update", intent.updates);
+    appendChangeList("Delete", intent.deletes);
+    appendChangeList("Skip", intent.skips);
+
+    text += "\nConfirmations:\n";
+    if (intent.confirmations.isEmpty()) {
+        text += "  none\n";
+    } else {
+        for (const auto &confirmation : intent.confirmations) {
+            text += "  " + confirmation + "\n";
+        }
+    }
+
+    text += "\nBlocked Reasons:\n";
+    text += renderPublishValidationIssues(intent.blockedReasons);
+    return text.trimmed();
+}
+
 QString renderFeedDiagnosticSummary(const FeedEntryDiagnostic &diagnostic) {
     QString text = "Feed-entry diagnostic\n";
     text += "Path: " + diagnostic.path + "\n";
@@ -1914,6 +1971,13 @@ QWidget *publishPage(const CliAdapter *adapter,
     validation->setMaximumHeight(150);
     validation->setPlainText("No publication validation");
     planLayout->addWidget(validation);
+    planLayout->addWidget(new QLabel("Transfer Intent", planArea));
+    auto *transferIntent = new QPlainTextEdit(planArea);
+    transferIntent->setObjectName("publishTransferIntent");
+    transferIntent->setReadOnly(true);
+    transferIntent->setMaximumHeight(170);
+    transferIntent->setPlainText("No transfer intent");
+    planLayout->addWidget(transferIntent);
     auto *feedDiagnosticActions = new QWidget(planArea);
     auto *feedDiagnosticActionsLayout = new QHBoxLayout(feedDiagnosticActions);
     feedDiagnosticActionsLayout->setContentsMargins(0, 0, 0, 0);
@@ -2265,6 +2329,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
             validation->setPlainText("No publication validation");
+            transferIntent->setPlainText("No transfer intent");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
@@ -2281,6 +2346,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             previewStatus->setText("Preview: no project selected");
             plan->setPlainText("No project selected");
             validation->setPlainText("No publication validation");
+            transferIntent->setPlainText("No transfer intent");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             savedPreviews->setRowCount(0);
@@ -2298,6 +2364,7 @@ QWidget *publishPage(const CliAdapter *adapter,
             previewStatus->setText("Preview: no target configured");
             plan->setPlainText("No publish target configured");
             validation->setPlainText("No publication validation");
+            transferIntent->setPlainText("No transfer intent");
             setFeedDiagnostics(PublishPreview{});
             historySummary->setPlainText("No planned history");
             refreshSavedPreviews();
@@ -2316,6 +2383,9 @@ QWidget *publishPage(const CliAdapter *adapter,
         const PublishValidationReport validationReport =
             adapter->validatePublication(path, targetName, remoteStatePath);
         validation->setPlainText(renderPublishValidation(validationReport));
+        const PublishTransferIntent intent =
+            adapter->transferIntent(path, targetName, remoteStatePath);
+        transferIntent->setPlainText(renderPublishTransferIntent(intent));
         setFeedDiagnostics(preview);
         if (!preview.ok) {
             historySummary->setPlainText("No planned history");
@@ -2343,6 +2413,7 @@ QWidget *publishPage(const CliAdapter *adapter,
         refreshTargetOverview();
         if (projectsTable->currentRow() < 0) {
             validation->setPlainText("No publication validation");
+            transferIntent->setPlainText("No transfer intent");
             historySummary->setPlainText("No planned history");
             history->setPlainText("No planned history");
             updateHistoryComparison();
@@ -2498,6 +2569,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
                              validation->setPlainText("No publication validation");
+                             transferIntent->setPlainText("No transfer intent");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
@@ -2514,6 +2586,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                              setPublishTargetChoices(target, {});
                              previewStatus->setText("Preview: no project selected");
                              validation->setPlainText("No publication validation");
+                             transferIntent->setPlainText("No transfer intent");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              savedPreviews->setRowCount(0);
@@ -2535,6 +2608,7 @@ QWidget *publishPage(const CliAdapter *adapter,
                              plan->setPlainText("Publish target inspection failed\n" +
                                                 targetError);
                              validation->setPlainText("No publication validation");
+                             transferIntent->setPlainText("No transfer intent");
                              setFeedDiagnostics(PublishPreview{});
                              historySummary->setPlainText("No planned history");
                              refreshSavedPreviews();
