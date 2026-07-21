@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after removable execution partial-result history
+Status: current after D-Bus removable executor shape ADR
 Date: 2026-07-21
 
 This audit records the boundary between the current local/removable publishing
@@ -55,6 +55,8 @@ Implemented foundations:
   records.
 - `waystone-publishd` exposes preview, validation, read-only transfer-intent,
   planned-history, and completed-history record operations over D-Bus.
+- ADR-0014 defines the future `ExecuteRemovable` D-Bus mutating request and
+  response shape, but the method is not implemented yet.
 
 Important current limits:
 
@@ -85,7 +87,7 @@ Real transfer execution should remain blocked until these gates are satisfied.
 | Failure semantics | Partial transfer, cancellation, network failure, and permission failure must have stable result states. | Local removable copy-time failures now write failed/partial result history; cancellation and network failure remain deferred |
 | History source | Completed history must be generated from executor results, not manually supplied success claims. | Implemented for removable execution; manual result helpers still exist |
 | Verification boundary | Transfer success and remote verification must remain separate result stages. | Documented; verifier absent |
-| D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | Read-only transfer intent exposed; mutating executor shape deferred |
+| D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | ADR-0014 defines future `ExecuteRemovable`; mutating method implementation remains deferred |
 | Test harness | Real execution must be covered by a local fake transport or temporary destination harness before live SSH targets are used. | Temporary-project removable copy and removable-state export harnesses exist |
 
 ## Transfer Command Boundary
@@ -216,8 +218,8 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Review a D-Bus mutating executor request/response shape before exposing any
-   publish execution through services or Qt.
+1. Implement `ExecuteRemovable` in `waystone-publishd` only by following
+   ADR-0014 and adding private-session-bus smoke coverage.
 2. Consider Qt read-only ergonomics for removable state export only if it helps
    the local 0.1 demonstrable flow.
 3. Keep SSH-family executors behind the credential, host-trust, remote-path,

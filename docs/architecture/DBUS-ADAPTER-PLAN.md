@@ -1,7 +1,7 @@
 # WaystoneOS D-Bus Adapter Plan
 
 Status: Project, publish, host, identity, and audio adapters active
-Date: 2026-07-18
+Date: 2026-07-21
 
 This document defines the first D-Bus adapter work. It intentionally does not add new domain behavior, new persistent formats, remote mutation, credential unlock, or GUI integration.
 
@@ -118,6 +118,7 @@ Implemented methods:
 ```text
 PreviewPublication
 ValidatePublication
+TransferIntent
 BuildPlannedHistory
 BuildCompletedHistory
 SaveCompletedHistory
@@ -125,8 +126,21 @@ ListCompletedHistory
 ReadCompletedHistory
 ```
 
+Reviewed but not implemented mutating method:
+
+```text
+ExecuteRemovable
+```
+
+ADR-0014 defines the future `ExecuteRemovable` JSON request/response shape. It
+is limited to local/removable execution, requires explicit
+`confirm_transfer = true`, returns executor-produced completed/failed/partial
+results, and keeps verification separate as `not-run`.
+
 Still deferred for publish service:
 
+- Implementing `ExecuteRemovable` over D-Bus
+- Qt mutating publish controls
 - Remote probing for comparison
 - Remote transfer execution
 - Remote deletion

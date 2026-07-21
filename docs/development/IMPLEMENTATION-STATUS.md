@@ -375,6 +375,8 @@ Current behavior:
 - Exposes preview, publication readiness validation, read-only transfer-intent
   reporting, planned-history generation, and completed-history result-record
   generation/save/list/read through `waystone-publishd` D-Bus adapter
+- Has an accepted ADR-0014 request/response shape for a future
+  `ExecuteRemovable` D-Bus method
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Does not perform remote mutation
 

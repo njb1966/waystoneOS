@@ -41,6 +41,7 @@ Do not use ADRs for routine implementation details, small bug fixes, or temporar
 | [0011](0011-project-format-v0.md) | Accepted | Project format v0 |
 | [0012](0012-workspace-ui-prototype-route.md) | Accepted | Workspace UI prototype route |
 | [0013](0013-first-dbus-adapter-slice.md) | Accepted | First D-Bus adapter slice |
+| [0014](0014-dbus-removable-executor-shape.md) | Accepted | D-Bus removable executor shape |
 
 ## Creating a New ADR
 

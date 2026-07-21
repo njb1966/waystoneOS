@@ -1,7 +1,7 @@
 # WaystoneOS Publishing Service
 
-Status: Current non-mutating contract
-Date: 2026-07-18
+Status: Current local/removable contract
+Date: 2026-07-21
 
 `waystone-publishd` owns publication preparation, validation orchestration, transfer planning, transfer execution, remote verification, and publication history.
 
@@ -274,9 +274,28 @@ ListCompletedHistory
 ReadCompletedHistory
 ```
 
+Reviewed but not yet implemented mutating method:
+
+```text
+ExecuteRemovable
+```
+
+`ExecuteRemovable` is defined by
+[ADR-0014](../decisions/0014-dbus-removable-executor-shape.md). It may expose
+only the existing local/removable executor. The request must be
+schema-versioned JSON with `project_path`, `target`, optional
+`remote_state_path`, `date`, and explicit `confirm_transfer = true`. It must
+not accept SSH credentials, host roots, identity roots, delete confirmation,
+generic force flags, or remote verification fields.
+
+The response must return executor-produced `transfer_result` and
+`verification_result`, per-file results, and completed-history details. IPC
+success does not mean transfer success; callers must inspect `transfer_result`.
+
 Future methods may include `PreparePublication`, `ComparePublication`,
-`PreviewTransfer`, `Publish`, `VerifyRemote`, `RecordPublication`, and
-`ListPublicationHistory`.
+`PreviewTransfer`, `VerifyRemote`, `RecordPublication`, and
+`ListPublicationHistory`. A generic `Publish` method is intentionally avoided
+until method-specific executor boundaries are mature.
 
 ## Error Codes
 
@@ -343,10 +362,11 @@ planned-history generation, completed-history result-record generation, and
 completed-history save/list/read are available through the `waystone-publishd`
 D-Bus adapter. D-Bus completed-history saving is a local project write only.
 The transfer-intent D-Bus method is read-only; it is not a mutating executor.
-The D-Bus adapter does not expose removable execution yet. Publishing does not
-generate feeds automatically, probe remote state, run SSH-family transfer,
-execute deletions, access credentials, probe SSH host keys, or verify a remote
-result.
+The D-Bus adapter does not expose removable execution yet, but ADR-0014 records
+the accepted future `ExecuteRemovable` request and response shape. Publishing
+does not generate feeds automatically, probe remote state, run SSH-family
+transfer, execute deletions, access credentials, probe SSH host keys, or verify
+a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

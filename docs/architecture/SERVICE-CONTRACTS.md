@@ -1,7 +1,7 @@
 # WaystoneOS Service Contracts
 
 Status: Current implementation contract
-Date: 2026-07-20
+Date: 2026-07-21
 
 This document records the service contracts that exist now and the D-Bus names they map to or are expected to map to later.
 
@@ -127,8 +127,28 @@ Current behavior:
   generation/save/list/read through `waystone-publishd` D-Bus adapter.
 - Does not expose removable execution preparation or execution through D-Bus
   yet.
+- ADR-0014 defines the reviewed future `ExecuteRemovable` D-Bus request and
+  response shape before any mutating publish IPC method is implemented.
 - Does not probe remote hosts, execute SSH-family transfers, execute
   deletions, verify remotes, or unlock credentials.
+
+Reviewed future D-Bus mutating method:
+
+```text
+ExecuteRemovable
+```
+
+This method is not implemented yet. When implemented, it must accept a
+schema-versioned JSON request with `project_path`, `target`, optional
+`remote_state_path`, `date`, and `confirm_transfer = true`. It must delegate to
+`PublishService::execute_removable`, return executor-produced `completed`,
+`failed`, or `partial` transfer results, include per-file error text where
+available, and keep `verification_result = "not-run"`.
+
+Planning, preflight, confirmation, and completed-history write failures are
+D-Bus errors (`ok = false`). Copy-time failed or partial outcomes that are
+written to completed history are successful IPC responses (`ok = true`) with
+non-completed `transfer_result` values.
 
 ## Host Service
 
