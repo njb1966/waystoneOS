@@ -5,8 +5,8 @@ use waystone_publication_history::{
     PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
-    dry_run_publish_with_context, validate_publication_with_context, PublishContext, PublishDryRun,
-    PublishPlanError, PublishValidationReport,
+    dry_run_publish_with_context, transfer_intent_with_context, validate_publication_with_context,
+    PublishContext, PublishDryRun, PublishPlanError, PublishValidationReport, TransferIntent,
 };
 
 #[derive(Debug, Default)]
@@ -38,6 +38,20 @@ pub struct ValidatePublicationRequest {
 #[derive(Debug, Clone)]
 pub struct ValidatePublicationResponse {
     pub report: PublishValidationReport,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransferIntentRequest {
+    pub project_path: PathBuf,
+    pub target: String,
+    pub hosts_root: Option<PathBuf>,
+    pub identities_root: Option<PathBuf>,
+    pub remote_state_path: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransferIntentResponse {
+    pub intent: TransferIntent,
 }
 
 #[derive(Debug, Clone)]
@@ -138,6 +152,23 @@ impl PublishService {
         )?;
 
         Ok(ValidatePublicationResponse { report })
+    }
+
+    pub fn transfer_intent(
+        &self,
+        request: TransferIntentRequest,
+    ) -> Result<TransferIntentResponse, PublishPlanError> {
+        let intent = transfer_intent_with_context(
+            request.project_path,
+            &request.target,
+            &PublishContext {
+                hosts_root: request.hosts_root,
+                identities_root: request.identities_root,
+                remote_state_path: request.remote_state_path,
+            },
+        )?;
+
+        Ok(TransferIntentResponse { intent })
     }
 
     pub fn build_planned_history(
@@ -343,5 +374,26 @@ mod tests {
         assert!(validation.report.valid);
         assert!(!validation.report.blocked);
         assert!(validation.report.errors.is_empty());
+    }
+
+    #[test]
+    fn service_builds_transfer_intent() {
+        let service = PublishService;
+        let intent = service
+            .transfer_intent(TransferIntentRequest {
+                project_path: repo_path("examples/projects/audio-capsule.wayproject"),
+                target: "export".to_string(),
+                hosts_root: None,
+                identities_root: None,
+                remote_state_path: None,
+            })
+            .expect("transfer intent should build");
+
+        assert!(intent.intent.execution_ready);
+        assert_eq!(intent.intent.method, "removable");
+        assert!(intent
+            .intent
+            .completed_history_dir
+            .ends_with("history/completed"));
     }
 }

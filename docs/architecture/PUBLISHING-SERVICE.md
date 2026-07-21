@@ -309,7 +309,12 @@ caller-supplied result fields, save those completed records under project
 TOML through the `publish` CLI. It can export the local publishable path set as
 a remote-state manifest, inspect existing local remote-state manifests, and
 compare a dry-run against a caller-supplied local manifest without contacting a
-remote. Preview and completed-record saving are local project writes only.
+remote. It can also build a non-mutating transfer intent report that recomputes
+validation and dry-run state, reports whether execution would be ready, lists
+blocking issues and required confirmations, shows change buckets and
+host/identity resolution summaries, and identifies the future completed-history
+directory without executing transfer. Preview and completed-record saving are
+local project writes only.
 Saved preview reads are constrained to the selected project's
 `history/previews/` directory, and completed-record reads are constrained to
 the selected project's `history/completed/` directory. These preview,
@@ -317,9 +322,11 @@ validation, local comparison, helper, and local history operations are
 available through the `publish` CLI; preview, validation, planned-history generation,
 completed-history result-record generation, and completed-history save/list/read
 are also available through the `waystone-publishd` D-Bus adapter.
-D-Bus completed-history saving is a local project write only. It does not
-generate feeds automatically, probe remote state, perform transfer, execute
-deletions, access credentials, probe SSH host keys, or verify a remote result.
+D-Bus completed-history saving is a local project write only. The transfer
+intent report is currently available through the publish planning/service/CLI
+path, not as a mutating D-Bus executor. It does not generate feeds
+automatically, probe remote state, perform transfer, execute deletions, access
+credentials, probe SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

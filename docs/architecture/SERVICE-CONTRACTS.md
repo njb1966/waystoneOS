@@ -78,6 +78,8 @@ Current contract:
 - `PreviewPublicationResponse`
 - `ValidatePublicationRequest`
 - `ValidatePublicationResponse`
+- `TransferIntentRequest`
+- `TransferIntentResponse`
 - `BuildPlannedHistoryRequest`
 - `BuildPlannedHistoryResponse`
 - `BuildCompletedHistoryRequest`
@@ -95,6 +97,11 @@ Current behavior:
 - Builds non-mutating dry-run publication plans through `waystone-publish-plan`.
 - Reports feed readiness in dry-run previews, including configured path, file existence, prepared entry count, invalid entry count, and per-invalid-sidecar diagnostics.
 - Builds non-mutating publication readiness reports with stable issue codes for project validation, host/identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file plans, and required confirmations.
+- Builds non-mutating transfer-intent reports from immediate validation plus
+  dry-run state.
+- Reports `execution_ready`, blocking issues, confirmations, host/identity
+  resolution summaries, comparison metadata, change buckets, and the future
+  completed-history directory without accessing credentials or transferring.
 - Resolves host and identity metadata when caller supplies roots.
 - Accepts caller-supplied local remote-state manifests for dry-run comparison.
 - Builds planned and completed publication history records through `waystone-publication-history`.

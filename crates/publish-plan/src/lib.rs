@@ -28,6 +28,25 @@ pub struct PublishDryRun {
 }
 
 #[derive(Debug, Clone)]
+pub struct TransferIntent {
+    pub project_id: String,
+    pub target: String,
+    pub method: String,
+    pub destination: Option<String>,
+    pub execution_ready: bool,
+    pub blocked_reasons: Vec<PublishValidationIssue>,
+    pub confirmations: Vec<String>,
+    pub upload: Vec<String>,
+    pub update: Vec<String>,
+    pub delete: Vec<String>,
+    pub skip: Vec<String>,
+    pub host_resolution: Option<Resolution>,
+    pub identity_resolution: Option<Resolution>,
+    pub comparison: RemoteComparisonState,
+    pub completed_history_dir: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct RemoteComparisonState {
     pub configured: bool,
     pub source: Option<String>,
@@ -295,6 +314,54 @@ pub fn validate_publication_with_context(
         blocked: plan.blocked || !errors.is_empty(),
         errors,
         warnings,
+    })
+}
+
+pub fn transfer_intent(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+) -> Result<TransferIntent, PublishPlanError> {
+    transfer_intent_with_context(project_root, target_name, &PublishContext::default())
+}
+
+pub fn transfer_intent_with_context(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+    context: &PublishContext,
+) -> Result<TransferIntent, PublishPlanError> {
+    let project_root = project_root.as_ref();
+    let validation = validate_publication_with_context(project_root, target_name, context)?;
+    let plan = dry_run_publish_with_context(project_root, target_name, context)?;
+    let mut blocked_reasons = validation.errors.clone();
+    blocked_reasons.extend(
+        validation
+            .warnings
+            .iter()
+            .filter(|issue| issue.code == "confirmation_required")
+            .cloned(),
+    );
+    let execution_ready = validation.valid && !validation.blocked && blocked_reasons.is_empty();
+
+    Ok(TransferIntent {
+        project_id: plan.project_id,
+        target: plan.target,
+        method: plan.method,
+        destination: plan.destination,
+        execution_ready,
+        blocked_reasons,
+        confirmations: plan.confirmations,
+        upload: plan.upload,
+        update: plan.update,
+        delete: plan.delete,
+        skip: plan.skip,
+        host_resolution: plan.host_resolution,
+        identity_resolution: plan.identity_resolution,
+        comparison: plan.comparison,
+        completed_history_dir: project_root
+            .join("history")
+            .join("completed")
+            .display()
+            .to_string(),
     })
 }
 
@@ -1066,6 +1133,64 @@ mime_type = "audio/ogg; codecs=opus"
         assert_eq!(report.project_id, "ssh-capsule");
         assert_eq!(report.target, "production");
         assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn builds_ready_transfer_intent_for_removable_target() {
+        let intent = transfer_intent(
+            repo_path("examples/projects/audio-capsule.wayproject"),
+            "export",
+        )
+        .expect("transfer intent should build");
+
+        assert_eq!(intent.project_id, "audio-capsule");
+        assert_eq!(intent.target, "export");
+        assert_eq!(intent.method, "removable");
+        assert!(intent.execution_ready);
+        assert!(intent.blocked_reasons.is_empty());
+        assert!(intent.confirmations.is_empty());
+        assert!(intent.upload.iter().any(|path| path == "content/index.gmi"));
+        assert!(intent.completed_history_dir.ends_with("history/completed"));
+    }
+
+    #[test]
+    fn transfer_intent_reports_missing_metadata_blockers() {
+        let intent = transfer_intent(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+        )
+        .expect("transfer intent should report blockers");
+
+        assert!(!intent.execution_ready);
+        assert!(intent
+            .blocked_reasons
+            .iter()
+            .any(|issue| issue.code == "host_missing"));
+        assert!(intent
+            .blocked_reasons
+            .iter()
+            .any(|issue| issue.code == "identity_missing"));
+    }
+
+    #[test]
+    fn transfer_intent_requires_explicit_confirmation() {
+        let intent = transfer_intent_with_context(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+            &PublishContext {
+                hosts_root: Some(repo_path("examples/connections/hosts")),
+                identities_root: Some(repo_path("examples/connections/identities")),
+                remote_state_path: None,
+            },
+        )
+        .expect("transfer intent should build");
+
+        assert!(!intent.execution_ready);
+        assert!(!intent.confirmations.is_empty());
+        assert!(intent
+            .blocked_reasons
+            .iter()
+            .any(|issue| issue.code == "confirmation_required"));
     }
 
     #[test]

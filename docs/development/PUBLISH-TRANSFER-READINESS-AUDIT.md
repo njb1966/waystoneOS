@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current
+Status: current after non-mutating transfer-intent contract
 Date: 2026-07-20
 
 This audit records the boundary between the current non-mutating publishing
@@ -29,6 +29,10 @@ Implemented foundations:
 - Host and identity metadata can be resolved from local metadata roots.
 - Publication readiness validation reports `valid`, `blocked`, `errors`, and
   `warnings`.
+- `publish --transfer-intent` reports execution readiness, blocking issues,
+  required confirmations, change buckets, host/identity resolution summaries,
+  comparison metadata, and the future completed-history directory without
+  executing transfer.
 - Planned history previews and completed-history records are inspectable local
   records.
 - `waystone-publishd` exposes preview, validation, planned-history, and
@@ -52,7 +56,7 @@ Real transfer execution should remain blocked until these gates are satisfied.
 
 | Gate | Requirement | Current State |
 | --- | --- | --- |
-| Command boundary | A separate transfer command must be defined instead of overloading dry-run behavior. | Not defined |
+| Command boundary | A separate transfer command must be defined instead of overloading dry-run behavior. | Non-mutating `publish --transfer-intent` implemented |
 | Method scope | First executor must support only one method or one local-safe method class. | Not defined |
 | Credential boundary | Identity records must resolve to an execution credential without exposing secret material in output, logs, history, JSON, or D-Bus errors. | Deferred |
 | Host trust | SSH host trust must be checked against host metadata before transfer. Unknown or mismatched trust must block. | Metadata exists; live probing deferred |
@@ -67,10 +71,9 @@ Real transfer execution should remain blocked until these gates are satisfied.
 
 ## Transfer Command Boundary
 
-The next implementation should not add live SSH mutation immediately.
+Live SSH mutation remains deferred.
 
-The next safe slice is to define and test a non-executing transfer intent
-contract. That contract should answer:
+The first non-executing transfer intent contract now answers:
 
 - Which dry-run plan is being executed?
 - Which target and method are allowed?
@@ -81,22 +84,23 @@ contract. That contract should answer:
 - Which files would be uploaded, skipped, updated, or deleted?
 - Where would executor-produced history be written after a real run?
 
-Recommended first command shape:
+Implemented command shape:
 
 ```text
 publish --transfer-intent --project PATH --target NAME \
   [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 ```
 
-This command should remain non-mutating. It should fail when publication
-validation is blocked, report the resolved host and identity, report required
-confirmations, and include a clear `execution_ready` boolean. It should not
-access credentials, contact a remote, or write completed history.
+This command remains non-mutating. It reports blocked validation state,
+resolved host and identity summaries where available, required confirmations,
+change buckets, comparison metadata, the future completed-history directory,
+and a clear `execution_ready` boolean. It does not access credentials, contact
+a remote, or write completed history.
 
 ## First Executor Recommendation
 
-After the intent contract is implemented and reviewed, the first real executor
-should be local and bounded before SSH transfer:
+After the intent contract is reviewed in use, the first real executor should
+be local and bounded before SSH transfer:
 
 ```text
 publish --execute-removable --project PATH --target NAME --confirm-transfer
@@ -156,18 +160,16 @@ finish successfully while verification fails or remains not run.
 
 ## Recommended Next Slice
 
-Implement the non-mutating transfer-intent contract first.
+Choose the next boundary deliberately before any remote mutation.
 
-Concrete scope:
+Recommended implementation order:
 
-- Add `TransferIntent` data structures in the publish planning/service layer.
-- Add `publish --transfer-intent` with human and JSON output.
-- Require the same validation context as `publish --validate`.
-- Include `execution_ready`, `blocked_reasons`, `confirmations`, and change
-  buckets.
-- Include resolved host and identity summaries, but no credentials.
-- Add focused CLI and service tests.
-- Update smoke coverage and docs.
+1. Add `waystone-publishd` D-Bus exposure for the read-only transfer-intent
+   report if the UI or service boundary needs it before execution work.
+2. Otherwise, define the bounded `removable` executor contract and test harness
+   before implementing file-copy behavior.
+3. Keep SSH-family executors behind the credential, host-trust, remote-path,
+   delete-confirmation, executor-history, and verification gates.
 
 Still defer:
 

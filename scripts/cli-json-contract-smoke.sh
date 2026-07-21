@@ -166,6 +166,22 @@ require(isinstance(publish_validation["data"]["errors"], list),
 require(isinstance(publish_validation["data"]["warnings"], list),
         "publish validate warnings contract changed")
 
+transfer_intent = run([
+    "target/debug/publish", "--transfer-intent", "--project", project_path,
+    "--target", "export", "--json"
+])
+require({"project", "target", "method", "destination", "execution_ready",
+         "blocked_reasons", "confirmations", "host_resolution",
+         "identity_resolution", "comparison", "changes", "history"}
+        <= transfer_intent["data"].keys(),
+        "publish transfer-intent contract changed")
+require(transfer_intent["data"]["execution_ready"] is True,
+        "publish transfer-intent readiness changed")
+require({"upload", "update", "delete", "skip"} <= transfer_intent["data"]["changes"].keys(),
+        "publish transfer-intent changes contract changed")
+require("completed_directory" in transfer_intent["data"]["history"],
+        "publish transfer-intent history contract changed")
+
 planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,
     "--target", "export", "--date", "2026-07-18T00:00:00Z", "--json"

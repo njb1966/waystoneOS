@@ -183,6 +183,11 @@ Current behavior:
 - Compares local publishable files against a caller-supplied remote-state manifest when provided
 - Classifies dry-run changes as upload, delete, and skip; update remains reserved until remote metadata includes hashes
 - Reports comparison metadata in the dry-run plan
+- Builds a non-mutating transfer intent from immediate validation plus dry-run
+  state
+- Reports execution readiness, blocking issues, required confirmations, change
+  buckets, comparison metadata, host/identity resolution summaries, and the
+  future completed-history directory without executing transfer
 - Does not perform transfers
 - Does not execute remote deletions
 - Does not access credentials
@@ -196,6 +201,7 @@ Current tests cover:
 - SSH target host and identity resolution
 - Blocked dry-run when host metadata is not provided
 - Caller-supplied remote-state comparison and invalid remote-state path rejection
+- Ready and blocked transfer-intent reports
 
 ## Publish CLI
 
@@ -210,6 +216,7 @@ Current command:
 ```text
 publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]
 publish --inspect-remote-state --remote-state PATH [--json]
+publish --transfer-intent --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
@@ -226,7 +233,11 @@ Current behavior:
 
 - Human-readable dry-run transfer plan
 - Human-readable publication readiness validation report
+- Human-readable non-mutating transfer intent report
 - JSON publication readiness validation report with `valid`, `blocked`, `errors`, and `warnings`
+- JSON transfer intent report with `execution_ready`, `blocked_reasons`,
+  `confirmations`, `host_resolution`, `identity_resolution`, `comparison`,
+  `changes`, and `history.completed_directory`
 - Publish validation checks project validation, host and identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans, and required confirmations
 - Feed readiness in dry-run JSON and human output
 - Optional local remote-state comparison through `--remote-state PATH`
@@ -308,6 +319,7 @@ Current behavior:
 - Builds completed publication history result records from explicit result fields
 - Saves, lists, and reads completed history records under project `history/completed/`
 - Passes optional caller-supplied remote-state manifests into dry-run preview and validation planning
+- Builds non-mutating transfer-intent reports from validation and dry-run state
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, planned-history generation, and completed-history result-record generation/save/list/read through `waystone-publishd` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
@@ -315,7 +327,9 @@ Current behavior:
 
 Current tests cover:
 
-- SSH preview, publication readiness validation, planned-history generation, completed-history result generation, and completed-history save/list/read through the service wrapper
+- SSH preview, publication readiness validation, transfer-intent reporting,
+  planned-history generation, completed-history result generation, and
+  completed-history save/list/read through the service wrapper
 
 ## Host and Identity Crate
 

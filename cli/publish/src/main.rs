@@ -14,9 +14,9 @@ use waystone_publication_history::{
 };
 use waystone_publish_plan::{
     dry_run_publish_with_context, export_remote_state_manifest, inspect_remote_state_manifest,
-    remote_state_manifest_text, validate_publication_with_context, FeedEntryDiagnostic,
-    FeedPublicationState, PublishContext, PublishValidationIssue, RemoteComparisonState,
-    RemoteStateManifest, Resolution,
+    remote_state_manifest_text, transfer_intent_with_context, validate_publication_with_context,
+    FeedEntryDiagnostic, FeedPublicationState, PublishContext, PublishValidationIssue,
+    RemoteComparisonState, RemoteStateManifest, Resolution, TransferIntent,
 };
 
 fn main() {
@@ -43,6 +43,7 @@ fn run(args: &[String]) -> i32 {
         _ if positional.contains(&"--inspect-remote-state") => {
             inspect_remote_state(&positional, json)
         }
+        _ if positional.contains(&"--transfer-intent") => transfer_intent(&positional, json),
         _ if positional.contains(&"--validate") => validate_publication_command(&positional, json),
         _ if positional.contains(&"--list-completed-history") => {
             list_completed_history_files(&positional, json)
@@ -187,6 +188,86 @@ fn validate_publication_command(args: &[&str], json: bool) -> i32 {
         Err(error) => {
             print_command_error("publish", "validate_publication", &error.to_string(), json)
         }
+    }
+}
+
+fn transfer_intent(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+
+    let context = publish_context(args);
+    match transfer_intent_with_context(Path::new(project), target, &context) {
+        Ok(intent) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{}}}",
+                    json_transfer_intent(&intent)
+                );
+            } else {
+                println!("Publication transfer intent");
+                println!("Project: {}", intent.project_id);
+                println!("Target: {}", intent.target);
+                println!("Method: {}", intent.method);
+                if let Some(destination) = intent.destination {
+                    println!("Destination: {destination}");
+                }
+                println!(
+                    "Execution ready: {}",
+                    if intent.execution_ready { "yes" } else { "no" }
+                );
+                if let Some(host) = intent.host_resolution {
+                    println!("Host: {} ({:?}) - {}", host.id, host.status, host.detail);
+                }
+                if let Some(identity) = intent.identity_resolution {
+                    println!(
+                        "Identity: {} ({:?}) - {}",
+                        identity.id, identity.status, identity.detail
+                    );
+                }
+                println!(
+                    "Comparison: {}",
+                    human_remote_comparison(&intent.comparison)
+                );
+                println!(
+                    "Completed history directory: {}",
+                    intent.completed_history_dir
+                );
+                println!("Upload:");
+                for path in intent.upload {
+                    println!("  {path}");
+                }
+                println!("Update:");
+                for path in intent.update {
+                    println!("  {path}");
+                }
+                println!("Delete:");
+                for path in intent.delete {
+                    println!("  {path}");
+                }
+                println!("Skip:");
+                for path in intent.skip {
+                    println!("  {path}");
+                }
+                if !intent.confirmations.is_empty() {
+                    println!("Confirmations:");
+                    for confirmation in intent.confirmations {
+                        println!("  {confirmation}");
+                    }
+                }
+                if !intent.blocked_reasons.is_empty() {
+                    println!("Blocked reasons:");
+                    for reason in intent.blocked_reasons {
+                        println!("  {}: {}", reason.code, reason.message);
+                    }
+                }
+            }
+            0
+        }
+        Err(error) => print_command_error("publish", "transfer_intent", &error.to_string(), json),
     }
 }
 
@@ -676,6 +757,27 @@ fn json_publish_validation_issues(issues: &[PublishValidationIssue]) -> String {
         .join(",")
 }
 
+fn json_transfer_intent(intent: &TransferIntent) -> String {
+    format!(
+        "{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination\":{},\"execution_ready\":{},\"blocked_reasons\":[{}],\"confirmations\":[{}],\"host_resolution\":{},\"identity_resolution\":{},\"comparison\":{},\"changes\":{{\"upload\":[{}],\"update\":[{}],\"delete\":[{}],\"skip\":[{}]}},\"history\":{{\"completed_directory\":\"{}\"}}}}",
+        escape_json(&intent.project_id),
+        escape_json(&intent.target),
+        escape_json(&intent.method),
+        json_optional_string(intent.destination.as_deref()),
+        intent.execution_ready,
+        json_publish_validation_issues(&intent.blocked_reasons),
+        json_string_array(&intent.confirmations),
+        json_resolution(intent.host_resolution.as_ref()),
+        json_resolution(intent.identity_resolution.as_ref()),
+        json_remote_comparison(&intent.comparison),
+        json_string_array(&intent.upload),
+        json_string_array(&intent.update),
+        json_string_array(&intent.delete),
+        json_string_array(&intent.skip),
+        escape_json(&intent.completed_history_dir)
+    )
+}
+
 fn completed_history_record_from_plan(
     plan: &waystone_publish_plan::PublishDryRun,
     inputs: &CompletedHistoryInputs,
@@ -739,6 +841,7 @@ fn print_help() {
         "  publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]"
     );
     println!("  publish --inspect-remote-state --remote-state PATH [--json]");
+    println!("  publish --transfer-intent --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");

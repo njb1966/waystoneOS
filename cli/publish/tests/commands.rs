@@ -232,6 +232,57 @@ fn validate_json_reports_blocked_target_without_metadata_roots() {
 }
 
 #[test]
+fn transfer_intent_json_reports_ready_removable_target() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--transfer-intent",
+            "--project",
+            &repo_path("examples/projects/audio-capsule.wayproject"),
+            "--target",
+            "export",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"project\":\"audio-capsule\""));
+    assert!(stdout.contains("\"target\":\"export\""));
+    assert!(stdout.contains("\"method\":\"removable\""));
+    assert!(stdout.contains("\"execution_ready\":true"));
+    assert!(stdout.contains("\"blocked_reasons\":[]"));
+    assert!(stdout.contains("\"confirmations\":[]"));
+    assert!(stdout.contains("\"changes\":{"));
+    assert!(stdout.contains("\"upload\":["));
+    assert!(stdout.contains("\"history\":{\"completed_directory\":\""));
+}
+
+#[test]
+fn transfer_intent_json_reports_blocked_target_without_metadata_roots() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--transfer-intent",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"execution_ready\":false"));
+    assert!(stdout.contains("\"blocked_reasons\":["));
+    assert!(stdout.contains("\"code\":\"host_missing\""));
+    assert!(stdout.contains("\"code\":\"identity_missing\""));
+    assert!(stdout.contains("\"host_resolution\":{\"id\":\"offgridholdout\""));
+    assert!(stdout.contains("\"identity_resolution\":{\"id\":\"nick-pub\""));
+}
+
+#[test]
 fn dry_run_json_reports_feed_state() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([
