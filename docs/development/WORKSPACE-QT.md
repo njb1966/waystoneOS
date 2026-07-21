@@ -26,11 +26,15 @@ Implemented:
 - Default removable `export` target setup for newly created Qt projects
 - Create-pane removable target setup for the selected project
 - Create-pane editor for the selected project's content index file
+- Create-pane authoring area separates Write, Files, and Recordings views so
+  Gemtext editing is not crowded by recording controls
 - Create-pane read-only content-root file list for the selected project
 - Create-pane content-root file filter by relative path or full path
 - Create-pane selected content-file detail, including editable-index status
 - Local Gemtext preview, link validation, and save validation status for the selected project's content index file
 - Recording adapter using `record` and `listen` CLI JSON output
+- Recording controls live in a separate scrollable Recordings view inside the
+  Create pane
 - Create-pane WAV master capture controls using `record capture --json` with explicit `ffmpeg` input sources
 - Create-pane Opus publication-copy export controls using `record export-opus --json` for existing project-local master files
 - Create-pane recording attachment controls using `record attach --json` for existing project-local master and publication-copy files

@@ -104,3 +104,36 @@ record:
 The repo-local session path is ready for a visible manual preview pass. It is
 not ready to be treated as an installed OS session, display-manager entry,
 bootable image, or installed D-Bus activation path.
+
+## 2026-07-21 Project-Owner Visible Pass
+
+Observed issue:
+
+- The Create pane stacked project controls, Gemtext authoring, file detail,
+  target setup, and recording controls in one crowded vertical surface.
+- The Gemtext editor and preview collapsed to a very small height and were not
+  practically usable.
+- The audio section appeared without a clear workflow and visually collided
+  with the authoring surface.
+
+Resolution:
+
+- The Create pane now separates work into `Write`, `Files`, and `Recordings`
+  tabs.
+- The Write tab gives the Gemtext editor and preview stable vertical space.
+- The Files tab holds content-file filtering, file list, and file detail.
+- The Recordings tab is scrollable and contains the audio capture/export,
+  metadata, feed-entry, and recording list controls.
+
+Verification:
+
+- `cmake --build /tmp/waystone-workspace-qt-build`
+- `scripts/workspace-qt-project-smoke.sh`
+- `scripts/workspace-qt-smoke.sh`
+- `QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config`
+- `git diff --check`
+
+Still needs follow-up:
+
+- Project owner should relaunch the visible preview and confirm the Create pane
+  is now understandable and that Gemtext editing is usable.

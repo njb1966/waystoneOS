@@ -20,9 +20,11 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QScrollArea>
 #include <QSignalBlocker>
 #include <QSplitter>
 #include <QSpinBox>
+#include <QTabWidget>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextBrowser>
@@ -1203,11 +1205,15 @@ QWidget *createPage(const CliAdapter *adapter) {
     projectLayout->addWidget(new QLabel("Projects"));
     auto *projectsTable = table({"Project", "Type", "Validation", "Path"}, {});
     projectsTable->setObjectName("createProjectsTable");
+    projectsTable->setMinimumHeight(92);
     projectLayout->addWidget(projectsTable);
     auto *projectDetails = new QPlainTextEdit;
     projectDetails->setReadOnly(true);
+    projectDetails->setMaximumHeight(96);
     projectLayout->addWidget(projectDetails);
     splitter->addWidget(projectArea);
+
+    auto *workTabs = new QTabWidget;
 
     auto *authorArea = new QWidget;
     auto *authorLayout = new QVBoxLayout(authorArea);
@@ -1231,32 +1237,16 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *contentSplitter = new QSplitter(Qt::Horizontal, authorArea);
     auto *editor = new QPlainTextEdit(contentSplitter);
     editor->setPlaceholderText("Select a project with a content index");
+    editor->setMinimumHeight(260);
     auto *preview = new QTextBrowser(contentSplitter);
     preview->setOpenExternalLinks(false);
     preview->setHtml(renderGemtextPreview(""));
+    preview->setMinimumHeight(260);
     contentSplitter->addWidget(editor);
     contentSplitter->addWidget(preview);
     contentSplitter->setStretchFactor(0, 1);
     contentSplitter->setStretchFactor(1, 1);
     authorLayout->addWidget(contentSplitter, 1);
-
-    auto *contentFileFilter = new QLineEdit(authorArea);
-    contentFileFilter->setObjectName("createContentFileFilter");
-    contentFileFilter->setPlaceholderText("Filter content files");
-    authorLayout->addWidget(contentFileFilter);
-
-    auto *contentFiles =
-        table({"File", "Size", "Path"}, {});
-    contentFiles->setObjectName("createContentFilesTable");
-    contentFiles->setMaximumHeight(120);
-    authorLayout->addWidget(contentFiles);
-
-    auto *contentFileDetail = new QPlainTextEdit(authorArea);
-    contentFileDetail->setObjectName("createContentFileDetail");
-    contentFileDetail->setReadOnly(true);
-    contentFileDetail->setMaximumHeight(88);
-    contentFileDetail->setPlainText("No content file selected");
-    authorLayout->addWidget(contentFileDetail);
 
     auto *contentStatus = new QLabel("Content: idle", authorArea);
     contentStatus->setWordWrap(true);
@@ -1284,7 +1274,29 @@ QWidget *createPage(const CliAdapter *adapter) {
     linkDetails->setMaximumHeight(96);
     linkDetails->setPlainText("Links: no project content loaded");
     authorLayout->addWidget(linkDetails);
-    splitter->addWidget(authorArea);
+    workTabs->addTab(authorArea, "Write");
+
+    auto *filesArea = new QWidget;
+    auto *filesLayout = new QVBoxLayout(filesArea);
+    filesLayout->setContentsMargins(0, 0, 0, 0);
+    auto *contentFileFilter = new QLineEdit(filesArea);
+    contentFileFilter->setObjectName("createContentFileFilter");
+    contentFileFilter->setPlaceholderText("Filter content files");
+    filesLayout->addWidget(contentFileFilter);
+
+    auto *contentFiles =
+        table({"File", "Size", "Path"}, {});
+    contentFiles->setObjectName("createContentFilesTable");
+    contentFiles->setMinimumHeight(220);
+    filesLayout->addWidget(contentFiles, 1);
+
+    auto *contentFileDetail = new QPlainTextEdit(filesArea);
+    contentFileDetail->setObjectName("createContentFileDetail");
+    contentFileDetail->setReadOnly(true);
+    contentFileDetail->setMinimumHeight(96);
+    contentFileDetail->setPlainText("No content file selected");
+    filesLayout->addWidget(contentFileDetail);
+    workTabs->addTab(filesArea, "Files");
 
     auto *recordingArea = new QWidget;
     auto *recordingLayout = new QVBoxLayout(recordingArea);
@@ -1405,11 +1417,17 @@ QWidget *createPage(const CliAdapter *adapter) {
     auto *recordingDetails = new QPlainTextEdit;
     recordingDetails->setObjectName("createRecordingDetails");
     recordingDetails->setReadOnly(true);
+    recordingDetails->setMinimumHeight(160);
     recordingLayout->addWidget(recordingDetails);
-    splitter->addWidget(recordingArea);
+    auto *recordingScroll = new QScrollArea;
+    recordingScroll->setWidgetResizable(true);
+    recordingScroll->setWidget(recordingArea);
+    workTabs->addTab(recordingScroll, "Recordings");
+
+    splitter->addWidget(workTabs);
     splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 2);
-    splitter->setStretchFactor(2, 1);
+    splitter->setStretchFactor(1, 4);
+    splitter->setSizes({180, 620});
     layout->addWidget(splitter, 1);
 
     auto loadContentFileDetail = [=](int row) {

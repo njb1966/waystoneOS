@@ -462,6 +462,12 @@ focused Qt project smoke, and git diff whitespace checks passed on 2026-07-21.
 No files were installed outside the repository. Human-visible UI inspection is
 still pending.
 
+Result after Create-pane manual-preview layout fix: Qt build, focused Qt
+project smoke, broad Qt smoke, dev-run root diagnostics, and git diff
+whitespace checks passed on 2026-07-21. The fix separates Write, Files, and
+Recordings views so Gemtext authoring no longer competes directly with audio
+controls.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -557,6 +563,8 @@ still pending.
 - `docs/development/MANUAL-PREVIEW-FINDINGS.md` records the first
   agent-observable preview pass and the remaining need for project-owner visual
   inspection.
+- The Create pane separates Write, Files, and Recordings views to keep Gemtext
+  editing usable and audio controls understandable.
 - The session artifacts have not been installed into `/usr/share`,
   `/usr/bin`, `$XDG_DATA_HOME`, or display-manager-visible directories.
 - SSH-family remote publication execution is not implemented.
@@ -566,8 +574,8 @@ still pending.
 
 Recommended next implementation step:
 
-1. Project owner runs the visible manual preview checklist and records
-   findings.
+1. Project owner reruns the visible manual preview checklist and confirms the
+   Create pane layout fix.
 2. After the visible pass, choose whether to fix preview issues, improve the
    dev-run/manual path, or plan the first explicitly approved installed-session
    slice.
@@ -581,6 +589,6 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after agent-observable manual preview findings on 2026-07-21.
+Current after Create-pane manual-preview layout fix on 2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.

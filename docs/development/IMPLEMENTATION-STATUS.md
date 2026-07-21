@@ -661,10 +661,14 @@ Current behavior:
 - Creates `audio-series` and `mixed-publication` projects with audio/feed scaffold defaults through the same `project create --json` path
 - Lets the Create pane add removable publish targets to the selected project
 - Loads, edits, saves, validates, previews, and locally link-checks the selected project's content index file in the Create pane
+- Separates Create-pane Write, Files, and Recordings views so Gemtext
+  editing/preview stays usable while recording controls remain available
 - Lists files under the selected project's content root in the Create pane without changing the editable content index binding
 - Filters the Create pane content-root file list by relative path or full path
 - Shows read-only detail for the selected Create pane content-root file, including whether it is the editable content index
 - Uses the existing `record` and `listen` CLI JSON output for Create-pane recording list, inspect, validate, playable state, and local metadata sidecar attachment
+- Places recording capture/export/metadata/feed controls in a dedicated
+  scrollable Recordings view inside the Create pane
 - Uses `record capture --json` in the Create pane to create WAV masters from explicit `ffmpeg` input sources
 - Uses `record export-opus --json` in the Create pane to create encoded Opus publication copies from existing project-local master files
 - Uses `record attach --json` in the Create pane to create audio metadata sidecars for existing project-local master and publication-copy files when the selected project has audio metadata configured
