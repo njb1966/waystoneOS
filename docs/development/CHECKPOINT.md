@@ -467,7 +467,8 @@ checks.
 
 Recommended next implementation step:
 
-1. Commit and push the Qt removable execution readiness display slice.
+1. Re-read `.planning/.continue-here.md`, this checkpoint, and
+   [PHASE-0-0.1-ALIGNMENT.md](PHASE-0-0.1-ALIGNMENT.md).
 2. Decide whether the next 0.1 slice should be another small Qt publish
    ergonomics slice or a CLI/service-side execution hardening slice.
 3. Keep real SSH transfer, remote deletion execution, credential unlock, and
@@ -480,5 +481,8 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after Qt removable execution readiness display on 2026-07-21. The
-latest handoff has been resumed and superseded by this checkpoint.
+Paused after Qt removable execution readiness display on 2026-07-21. The
+current completed implementation commit is `68284db` (`Show removable execution
+readiness in Qt`). No background servers, watchers, async jobs, manual human
+actions, OS image, installer, installed service activation, or boot/loading
+path are pending.

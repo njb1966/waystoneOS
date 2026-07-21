@@ -1,33 +1,34 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-20T02:05:13Z",
+  "timestamp": "2026-07-21T02:39:58Z",
   "context": "default",
-  "status": "consumed",
-  "current_commit": "874facc",
+  "status": "paused",
+  "current_commit": "68284db",
   "current_marker": "docs/development/CHECKPOINT.md",
   "alignment_marker": "docs/development/PHASE-0-0.1-ALIGNMENT.md",
   "completed_tasks": [
     {
-      "name": "Expose feed-entry update in Qt",
+      "name": "Show removable execution readiness in Qt",
       "status": "done",
-      "commit": "874facc"
+      "commit": "68284db"
     },
     {
-      "name": "Add a Publish-to-Create feed diagnostic handoff",
-      "status": "done"
+      "name": "Harden removable publish copy writes",
+      "status": "done",
+      "commit": "9be0b3b"
     }
   ],
   "remaining_tasks": [
     {
-      "name": "Review the remaining 0.1 audio/feed gaps and choose the next CLI/service-first contract deliberately",
+      "name": "Choose the next narrow 0.1 slice: Qt publish ergonomics or CLI/service-side execution hardening",
       "status": "recommended_next"
     },
     {
-      "name": "Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments",
+      "name": "Keep real SSH transfer, remote deletion execution, credential unlock, remote verification, audio device enumeration, playback, and installed activation deferred",
       "status": "boundary"
     },
     {
-      "name": "Keep packaging/install automation deferred until the repo has a broader install layout",
+      "name": "Do not test OS loading yet; no bootable image, installer, compositor session, or installed service activation path is ready",
       "status": "deferred"
     }
   ],
@@ -37,15 +38,15 @@
   "background_processes": [],
   "decisions": [
     {
-      "decision": "Continue with small local Qt/CLI slices before installed services, packaging, remote publication, or real audio capture.",
+      "decision": "Continue with small local Qt/CLI/service slices before installed services, packaging, SSH publication, remote verification, or audio device enumeration.",
       "rationale": "This keeps the version 0.1 local-first workflow inspectable and aligned with the Phase 0 architecture baseline."
     },
     {
-      "decision": "Next recommended slice is a Publish-to-Create diagnostic handoff.",
-      "rationale": "Completed by the current resumed session; use docs/development/CHECKPOINT.md as the current marker."
+      "decision": "The Qt Publish pane may show removable execution readiness, but still must not execute transfers from the UI.",
+      "rationale": "The current UI slice is read-only and preserves the explicit confirmation boundary around publish destination mutation."
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Read docs/development/CHECKPOINT.md and docs/development/PHASE-0-0.1-ALIGNMENT.md, then review the remaining 0.1 audio/feed gaps before choosing the next CLI/service-first contract.",
-  "context_notes": "This handoff was consumed on 2026-07-20. The current checkpoint supersedes it."
+  "next_action": "Read .planning/.continue-here.md, docs/development/CHECKPOINT.md, and docs/development/PHASE-0-0.1-ALIGNMENT.md, then propose the next narrow 0.1 slice: Qt publish ergonomics or CLI/service-side execution hardening.",
+  "context_notes": "Paused after commit 68284db. No blockers, human actions, background processes, async jobs, OS image, installer, installed activation, or boot/loading path are pending."
 }
