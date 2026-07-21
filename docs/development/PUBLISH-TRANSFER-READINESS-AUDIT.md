@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after Qt removable-state export helper
+Status: current after OS/session pivot audit
 Date: 2026-07-21
 
 This audit records the boundary between the current local/removable publishing
@@ -223,8 +223,8 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Run a brief Phase 0/0.1 alignment audit before choosing the next
-   implementation slice.
+1. Park additional publishing refinements while the next implementation slice
+   moves to the repo-local Debian session/install-layout contract.
 2. Keep Qt mutating publish controls deferred until the D-Bus removable
    execution path has an explicitly approved UI flow.
 3. Keep SSH-family executors behind the credential, host-trust, remote-path,

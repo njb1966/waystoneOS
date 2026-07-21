@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after Qt removable-state export helper
+Status: current after OS/session pivot audit
 Date: 2026-07-21
 
 This document records the deliberate alignment check between the Phase 0
@@ -41,6 +41,15 @@ foundational areas:
 - Host, identity, and audio metadata inspection boundaries
 - D-Bus adapter binaries and repo-local activation artifacts
 - Qt Workspace prototype with Explore, Create, Publish, and Operate panes
+
+The main alignment decision after the Qt removable-state export helper is that
+the local app/service foundation is now strong enough for version 0.1 planning
+purposes. Additional publishing-pane refinements would be useful but are no
+longer the best next step. The next required project movement should pivot
+toward the OS/session layer: define the Debian-hosted session entry, install
+layout, binary/service placement, and verification path needed to run the
+current Workspace as WaystoneOS rather than as an ordinary manually launched Qt
+application.
 
 The most recent slices filled the first local part of the audio/feed gap: the
 repo can now create audio-capable project scaffolds for `audio-series` and
@@ -87,7 +96,7 @@ or approved scope changes.
 
 | Workstream | Alignment | Notes |
 | --- | --- | --- |
-| Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
+| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session, session entry files, installed binary layout, and terminal integration remain deferred. This is now the recommended next workstream. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, removable destination-state export, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service/D-Bus, failed/partial copy-time executor history, D-Bus removable executor smoke coverage, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, Qt removable destination-state export helper, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
@@ -158,6 +167,26 @@ should still avoid device enumeration, packaging, installed services, remote
 transfer, and compositor work.
 
 ## Deliberate Next Slice
+
+Audit result:
+
+The next implementation slice should leave the publishing refinement lane and
+start the Debian-hosted OS/session lane. The smallest useful slice is a
+repo-local session/install-layout contract before installing anything outside
+the repository.
+
+Recommended next deliverables:
+
+- Add an ADR for the version 0.1 Debian session/install-layout boundary.
+- Define repo-local session artifacts such as a `.desktop` session file,
+  launcher/wrapper script, and install manifest target paths.
+- Add smoke verification that the session artifact points at the built
+  Workspace binary and fails clearly when prerequisites are missing.
+- Keep actual installation into `/usr/share`, `/usr/bin`,
+  `$XDG_DATA_HOME`, or system/user service directories behind explicit
+  approval and a later installer/package slice.
+- Keep Qt mutating publish controls, SSH transfer, remote deletion, credential
+  unlock, remote verification, audio device enumeration, and playback deferred.
 
 Completed implementation slices:
 
@@ -260,6 +289,7 @@ The following remain intentionally out of scope for the next slice:
 - Internal-drive installer
 - Custom compositor
 - Encrypted persistence implementation
+- Installing files outside the repository
 - Installed D-Bus activation
 - Remote probing for comparison
 - Real SSH transfer execution
@@ -271,9 +301,10 @@ The following remain intentionally out of scope for the next slice:
 
 ## Current Risk Posture
 
-The main risk is not that the project is off track. The main risk is spending
-too many slices on pane polish while the 0.1 vertical workflow still has a
-clear audio/feed gap.
+The main risk is not that the project is off track. The main risk is continuing
+to deepen already-functional app/service lanes while the 0.1 milestone still
+requires a dedicated Debian Wayland session entry before it can feel like an
+operating environment.
 
 The project should continue to prefer:
 
