@@ -112,6 +112,24 @@ The scaffold has been verified locally with Qt 6.8.2 after installing `qt6-base-
 
 ## Run
 
+Preferred repo-local development launch path:
+
+```bash
+scripts/run-dev-session.sh
+```
+
+The dev-run command builds the required Rust CLIs, builds the Qt Workspace
+under `/tmp`, and launches through `session/waystone-session` without
+installing session files.
+
+To validate the same path without opening the window:
+
+```bash
+QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config
+```
+
+Direct binary invocation remains useful for focused debugging:
+
 ```bash
 /tmp/waystone-workspace-qt-build/waystone-workspace
 ```

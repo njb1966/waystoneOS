@@ -268,6 +268,7 @@ scripts/audiod-systemd-unit-smoke.sh
 scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
 scripts/install-layout-temp-root-smoke.sh
+QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config
 ```
 
 Result after Qt feed-entry preparation controls: all relevant checks passed on
@@ -445,6 +446,11 @@ Result after temporary-root install layout validation: temp-root install layout
 smoke, session dev smoke, session layout smoke, and git diff whitespace checks
 passed on 2026-07-21. No files were installed outside the repository.
 
+Result after repo-local dev-run command: dev-run check-root launch through
+`session/waystone-session`, session dev smoke, session layout smoke,
+temp-root install layout smoke, and git diff whitespace checks passed on
+2026-07-21. No files were installed outside the repository.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -531,6 +537,9 @@ passed on 2026-07-21. No files were installed outside the repository.
 - `scripts/install-layout-temp-root-smoke.sh` stages the future session,
   service, D-Bus, and systemd user-unit install tree under `/tmp` and verifies
   path alignment without installing those files.
+- `scripts/run-dev-session.sh` builds the current Rust CLIs and Qt Workspace,
+  then launches the preview through `session/waystone-session` without
+  installing files.
 - The session artifacts have not been installed into `/usr/share`,
   `/usr/bin`, `$XDG_DATA_HOME`, or display-manager-visible directories.
 - SSH-family remote publication execution is not implemented.
@@ -540,9 +549,8 @@ passed on 2026-07-21. No files were installed outside the repository.
 
 Recommended next implementation step:
 
-1. Add a narrow repo-local dev-run command that documents and executes the
-   current preview launch path through `session/waystone-session` without
-   installing files.
+1. Add a concise manual preview checklist for what the project owner can test
+   through `scripts/run-dev-session.sh` before any installed session work.
 2. Keep actual installation outside the repository, Qt mutating publish
    controls, real SSH transfer, remote deletion execution, credential unlock,
    remote verification, audio device enumeration, and playback deferred.
@@ -553,6 +561,6 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after temporary-root install layout validation on 2026-07-21.
+Current after repo-local dev-run command on 2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.

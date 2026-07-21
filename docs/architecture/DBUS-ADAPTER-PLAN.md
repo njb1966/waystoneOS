@@ -337,5 +337,5 @@ Additional D-Bus verification should prove:
 
 1. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 2. Use the repo-local session/install-layout contract and temporary-root validation as the boundary before any install/package automation.
-3. Add a narrow repo-local dev-run command for launching the current preview through `session/waystone-session`.
+3. Add a concise manual preview checklist for exercising the current repo-local session path before installed-session work.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

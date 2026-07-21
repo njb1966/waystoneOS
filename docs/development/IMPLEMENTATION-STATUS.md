@@ -727,6 +727,7 @@ session/
 scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
 scripts/install-layout-temp-root-smoke.sh
+scripts/run-dev-session.sh
 ```
 
 Current behavior:
@@ -735,6 +736,8 @@ Current behavior:
 - Provides a repo-local launcher wrapper source file at `session/waystone-session`
 - Provides a repo-local install-layout manifest at `session/install-layout.toml`
 - Provides a temporary-root validator for the future installed tree
+- Provides a repo-local dev-run command for launching the current preview
+  through `session/waystone-session`
 - Defines future Debian preview target paths for the session entry, wrapper,
   Workspace binary, service binaries, D-Bus service files, and systemd user
   units
@@ -744,6 +747,8 @@ Current behavior:
   to the Workspace as `--repo-root` and `--config`
 - Fails with exit code `127` and a clear diagnostic when the selected Workspace
   binary is not executable
+- Builds the current Rust CLIs and Qt Workspace for dev-run use without
+  installing files
 - Does not install files outside the repository, register with a display
   manager, start services, call D-Bus, create a bootable image, or launch
   sibling applications
@@ -912,6 +917,9 @@ scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 scripts/session-layout-smoke.sh
+scripts/session-dev-smoke.sh
+scripts/install-layout-temp-root-smoke.sh
+QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config
 ```
 
 Local results through 2026-07-21: Qt 6 was discoverable after installing
@@ -991,6 +999,9 @@ The install-layout temp-root smoke staged the future installed tree under
 `/tmp`, verified session, D-Bus service, service binary, and systemd user-unit
 path alignment against `session/install-layout.toml`, and verified systemd user
 unit syntax against temporary binary placeholders.
+The repo-local dev-run command built the Rust CLIs and Qt Workspace, launched
+through `session/waystone-session`, and verified default root diagnostics with
+`--check-roots --no-user-config` and Qt offscreen mode.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract

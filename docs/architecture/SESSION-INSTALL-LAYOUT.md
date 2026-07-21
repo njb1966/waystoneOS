@@ -19,6 +19,7 @@ session/
 scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
 scripts/install-layout-temp-root-smoke.sh
+scripts/run-dev-session.sh
 ```
 
 `session/waystone.desktop` is the source XDG session entry. In a later
@@ -125,6 +126,29 @@ the contracted binaries and systemd unit names, and that systemd user unit
 syntax remains valid when pointed at the temporary binary placeholders.
 
 All session smoke scripts write only to temporary directories under `/tmp`.
+
+## Repo-Local Development Run
+
+Run:
+
+```bash
+scripts/run-dev-session.sh
+```
+
+The dev-run command builds the current Rust CLIs and Qt Workspace, places the
+Qt build under `/tmp/waystone-workspace-qt-build` by default, and launches the
+Workspace through `session/waystone-session`.
+
+Useful checks:
+
+```bash
+scripts/run-dev-session.sh --check-roots --no-user-config
+scripts/run-dev-session.sh --config ui/workspace-qt/workspace.example.ini --check-roots
+```
+
+This command is not an installer. It does not copy files into `/usr`, register
+the session with a display manager, install D-Bus activation files, or install
+systemd user units.
 
 ## Deferrals
 
