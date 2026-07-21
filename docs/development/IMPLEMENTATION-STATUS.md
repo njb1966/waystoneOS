@@ -1,6 +1,6 @@
 # WaystoneOS Implementation Status
 
-Status: Current as of 2026-07-20
+Status: Current as of 2026-07-21
 
 This file records what exists in the repository now. It should be updated whenever a planning contract becomes implementation.
 
@@ -198,7 +198,8 @@ Current behavior:
   after the copy completes
 - Refuses removable upload overwrites when the destination file already exists
 - Refuses stale temporary-copy path collisions before copying starts
-- Writes completed-history records from removable executor results
+- Writes completed-history records from removable executor results, including
+  completed, failed, and partial copy-time outcomes
 - Does not execute remote deletions
 - Does not execute planned delete operations for removable targets yet
 - Does not perform SSH-family transfers
@@ -216,9 +217,9 @@ Current tests cover:
 - Ready and blocked transfer-intent reports
 - Ready removable executor preparation plans, unsupported-method blockers, and
   delete-operation blockers
-- Confirmed removable file-copy execution, completed-history writing, missing
-  confirmation rejection, upload-overwrite rejection, and temporary-copy
-  collision rejection
+- Confirmed removable file-copy execution, completed-history writing, partial
+  copy-time failure history, missing confirmation rejection, upload-overwrite
+  rejection, and temporary-copy collision rejection
 
 ## Publish CLI
 
@@ -242,8 +243,8 @@ publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT
 publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --list-planned-history-previews --project PATH [--json]
 publish --read-planned-history-preview --project PATH --preview PATH [--json]
-publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
-publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
+publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|partial|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
+publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|partial|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --list-completed-history --project PATH [--json]
 publish --read-completed-history --project PATH --record PATH [--json]
 ```
@@ -265,13 +266,14 @@ Current behavior:
 - Removable executor preparation reports local source/destination paths but
   does not copy files, delete files, or write completed history
 - JSON removable execution result with `transfer_result`,
-  `verification_result`, per-file copy results, bytes copied, completed-history
-  path, and completed-history TOML
+  `verification_result`, per-file copy results, optional per-file error text,
+  bytes copied, completed-history path, and completed-history TOML
 - `publish --execute-removable` requires `--confirm-transfer`, copies upload
   and update files into the configured removable destination root, refuses
   upload overwrites, uses temporary copy files before renaming into place,
-  writes completed history from executor results, and leaves verification as
-  `not-run`
+  writes completed history from executor results, records failed/partial
+  copy-time outcomes, exits nonzero when transfer result is not `completed`,
+  and leaves verification as `not-run`
 - Publish validation checks project validation, host and identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans, and required confirmations
 - Feed readiness in dry-run JSON and human output
 - Optional local remote-state comparison through `--remote-state PATH`
@@ -361,7 +363,8 @@ Current behavior:
   and dry-run state
 - Executes confirmed removable file-copy transfers from the preparation plan
   through destination-directory temporary files and writes completed-history
-  records from executor results
+  records from executor results, including completed, failed, and partial
+  copy-time outcomes
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, read-only transfer-intent
   reporting, planned-history generation, and completed-history result-record
@@ -373,8 +376,9 @@ Current tests cover:
 
 - SSH preview, publication readiness validation, transfer-intent reporting,
   removable executor preparation planning, removable file-copy execution,
-  temporary-copy collision handling, planned-history generation,
-  completed-history result generation, and completed-history save/list/read
+  partial copy-time failure history, temporary-copy collision handling,
+  planned-history generation, completed-history result generation, and
+  completed-history save/list/read
   through the service wrapper
 
 ## Host and Identity Crate

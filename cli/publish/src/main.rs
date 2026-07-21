@@ -364,7 +364,7 @@ fn execute_removable(args: &[&str], json: bool) -> i32 {
                     json_execute_removable_response(&executed)
                 );
             } else {
-                println!("Removable execution completed");
+                println!("Removable execution result");
                 println!("Project: {}", executed.plan.project_id);
                 println!("Target: {}", executed.plan.target);
                 println!("Method: {}", executed.plan.method);
@@ -377,10 +377,21 @@ fn execute_removable(args: &[&str], json: bool) -> i32 {
                 println!("Completed history: {}", executed.history_path.display());
                 println!("Files:");
                 for file in executed.result.files {
-                    println!("  {} {}: {}", file.result, file.action, file.project_path);
+                    let error = file
+                        .error
+                        .map(|message| format!(" ({message})"))
+                        .unwrap_or_default();
+                    println!(
+                        "  {} {}: {}{}",
+                        file.result, file.action, file.project_path, error
+                    );
                 }
             }
-            0
+            if executed.result.transfer_result == "completed" {
+                0
+            } else {
+                4
+            }
         }
         Err(error) => print_command_error("publish", "execute_removable", &error.to_string(), json),
     }
@@ -947,7 +958,7 @@ fn json_removable_file_results(files: &[RemovableExecutionFileResult]) -> String
         .iter()
         .map(|file| {
             format!(
-                "{{\"project_path\":\"{}\",\"source_path\":{},\"destination_path\":\"{}\",\"action\":\"{}\",\"result\":\"{}\",\"bytes\":{}}}",
+                "{{\"project_path\":\"{}\",\"source_path\":{},\"destination_path\":\"{}\",\"action\":\"{}\",\"result\":\"{}\",\"bytes\":{},\"error\":{}}}",
                 escape_json(&file.project_path),
                 json_optional_string(file.source_path.as_deref()),
                 escape_json(&file.destination_path),
@@ -955,7 +966,8 @@ fn json_removable_file_results(files: &[RemovableExecutionFileResult]) -> String
                 escape_json(&file.result),
                 file.bytes
                     .map(|bytes| bytes.to_string())
-                    .unwrap_or_else(|| "null".to_string())
+                    .unwrap_or_else(|| "null".to_string()),
+                json_optional_string(file.error.as_deref())
             )
         })
         .collect::<Vec<_>>()
@@ -1006,7 +1018,7 @@ fn completed_history_inputs<'a>(args: &'a [&str]) -> Result<CompletedHistoryInpu
     validate_option_value(
         "--transfer-result",
         transfer_result,
-        &["completed", "failed", "skipped"],
+        &["completed", "failed", "partial", "skipped"],
     )?;
     validate_option_value(
         "--verification-result",

@@ -106,6 +106,7 @@ pub struct RemovableExecutionFileResult {
     pub action: String,
     pub result: String,
     pub bytes: Option<u64>,
+    pub error: Option<String>,
 }
 
 #[derive(Debug)]
@@ -360,12 +361,7 @@ impl PublishService {
         }
 
         preflight_removable_plan(&plan)?;
-        let files = copy_removable_files(&plan)?;
-        let result = RemovableExecutionResult {
-            transfer_result: "completed".to_string(),
-            verification_result: "not-run".to_string(),
-            files,
-        };
+        let result = execute_removable_file_operations(&plan);
         let record = completed_history_from_removable_result(&plan, &result, request.date);
         let history_path = write_completed_history_record(&project_path, &record)
             .map_err(ExecuteRemovableError::WriteHistory)?;
@@ -479,24 +475,37 @@ fn preflight_removable_plan(plan: &RemovableExecutionPlan) -> Result<(), Execute
     Ok(())
 }
 
-fn copy_removable_files(
-    plan: &RemovableExecutionPlan,
-) -> Result<Vec<RemovableExecutionFileResult>, ExecuteRemovableError> {
+fn execute_removable_file_operations(plan: &RemovableExecutionPlan) -> RemovableExecutionResult {
     let mut results = Vec::new();
-    copy_operations(&plan.upload, "upload", "copied", &mut results)?;
-    copy_operations(&plan.update, "update", "copied", &mut results)?;
-    for operation in &plan.skip {
-        results.push(file_result(operation, "skip", "skipped", None));
+    let mut failed = false;
+
+    if let Some(failure) = copy_operations(&plan.upload, "upload", &mut results) {
+        results.push(failure);
+        failed = true;
     }
-    Ok(results)
+
+    if !failed {
+        if let Some(failure) = copy_operations(&plan.update, "update", &mut results) {
+            results.push(failure);
+        }
+    }
+
+    for operation in &plan.skip {
+        results.push(file_result(operation, "skip", "skipped", None, None));
+    }
+
+    RemovableExecutionResult {
+        transfer_result: transfer_result_for_files(&results),
+        verification_result: "not-run".to_string(),
+        files: results,
+    }
 }
 
 fn copy_operations(
     operations: &[RemovableExecutionOperation],
     action: &str,
-    result: &str,
     results: &mut Vec<RemovableExecutionFileResult>,
-) -> Result<(), ExecuteRemovableError> {
+) -> Option<RemovableExecutionFileResult> {
     for operation in operations {
         let source_path = PathBuf::from(
             operation
@@ -506,37 +515,56 @@ fn copy_operations(
         );
         let destination_path = PathBuf::from(&operation.destination_path);
         if let Some(parent) = destination_path.parent() {
-            fs::create_dir_all(parent).map_err(|source| {
-                ExecuteRemovableError::CreateDirectory {
-                    path: parent.to_path_buf(),
-                    source,
-                }
-            })?;
+            if let Err(source) = fs::create_dir_all(parent) {
+                return Some(file_failure(
+                    operation,
+                    action,
+                    ExecuteRemovableError::CreateDirectory {
+                        path: parent.to_path_buf(),
+                        source,
+                    },
+                ));
+            }
         }
         let temporary_path = temporary_copy_path(&destination_path);
         if temporary_path.exists() {
-            return Err(ExecuteRemovableError::DestinationExists(temporary_path));
+            return Some(file_failure(
+                operation,
+                action,
+                ExecuteRemovableError::DestinationExists(temporary_path),
+            ));
         }
-        let bytes = fs::copy(&source_path, &temporary_path).map_err(|source| {
-            let _ = fs::remove_file(&temporary_path);
-            ExecuteRemovableError::Copy {
-                source_path: source_path.clone(),
-                destination_path: destination_path.clone(),
-                source,
+        let bytes = match fs::copy(&source_path, &temporary_path) {
+            Ok(bytes) => bytes,
+            Err(source) => {
+                let _ = fs::remove_file(&temporary_path);
+                return Some(file_failure(
+                    operation,
+                    action,
+                    ExecuteRemovableError::Copy {
+                        source_path: source_path.clone(),
+                        destination_path: destination_path.clone(),
+                        source,
+                    },
+                ));
             }
-        })?;
-        fs::rename(&temporary_path, &destination_path).map_err(|source| {
+        };
+        if let Err(source) = fs::rename(&temporary_path, &destination_path) {
             let _ = fs::remove_file(&temporary_path);
-            ExecuteRemovableError::Rename {
-                temporary_path: temporary_path.clone(),
-                destination_path: destination_path.clone(),
-                source,
-            }
-        })?;
-        results.push(file_result(operation, action, result, Some(bytes)));
+            return Some(file_failure(
+                operation,
+                action,
+                ExecuteRemovableError::Rename {
+                    temporary_path: temporary_path.clone(),
+                    destination_path: destination_path.clone(),
+                    source,
+                },
+            ));
+        }
+        results.push(file_result(operation, action, "copied", Some(bytes), None));
     }
 
-    Ok(())
+    None
 }
 
 fn temporary_copy_path(destination_path: &Path) -> PathBuf {
@@ -572,6 +600,7 @@ fn file_result(
     action: &str,
     result: &str,
     bytes: Option<u64>,
+    error: Option<String>,
 ) -> RemovableExecutionFileResult {
     RemovableExecutionFileResult {
         project_path: operation.project_path.clone(),
@@ -580,6 +609,27 @@ fn file_result(
         action: action.to_string(),
         result: result.to_string(),
         bytes,
+        error,
+    }
+}
+
+fn file_failure(
+    operation: &RemovableExecutionOperation,
+    action: &str,
+    error: ExecuteRemovableError,
+) -> RemovableExecutionFileResult {
+    file_result(operation, action, "failed", None, Some(error.to_string()))
+}
+
+fn transfer_result_for_files(files: &[RemovableExecutionFileResult]) -> String {
+    if files.iter().any(|file| file.result == "failed") {
+        if files.iter().any(|file| file.result == "copied") {
+            "partial".to_string()
+        } else {
+            "failed".to_string()
+        }
+    } else {
+        "completed".to_string()
     }
 }
 
@@ -608,8 +658,19 @@ fn completed_history_from_removable_result(
             .collect(),
         rollback: RollbackInfo {
             available: false,
-            notes: "Removable transfer completed; no rollback snapshot recorded".to_string(),
+            notes: rollback_notes_for_transfer_result(&result.transfer_result).to_string(),
         },
+    }
+}
+
+fn rollback_notes_for_transfer_result(transfer_result: &str) -> &'static str {
+    match transfer_result {
+        "completed" => "Removable transfer completed; no rollback snapshot recorded",
+        "partial" => {
+            "Removable transfer partially completed; inspect per-file results before retry"
+        }
+        "failed" => "Removable transfer failed; inspect per-file results before retry",
+        _ => "Removable transfer result recorded; inspect per-file results before retry",
     }
 }
 
@@ -855,6 +916,61 @@ mod tests {
         assert!(std::fs::read_to_string(&executed.history_path)
             .expect("completed history should be readable")
             .contains("copied-upload"));
+
+        let _ = std::fs::remove_dir_all(project.parent().expect("temp project has parent"));
+    }
+
+    #[test]
+    fn service_execute_removable_records_partial_history_after_copy_failure() {
+        let project =
+            temp_project_root("execute-removable-partial").join("audio-capsule.wayproject");
+        copy_directory(
+            &repo_path("examples/projects/audio-capsule.wayproject"),
+            &project,
+        );
+        let content_path_collision = project.join("publish/export/content");
+        std::fs::create_dir_all(
+            content_path_collision
+                .parent()
+                .expect("collision path has parent"),
+        )
+        .expect("collision parent should be created");
+        std::fs::write(&content_path_collision, "not a directory")
+            .expect("collision file should be written");
+
+        let service = PublishService;
+        let executed = service
+            .execute_removable(ExecuteRemovableRequest {
+                project_path: project.clone(),
+                target: "export".to_string(),
+                remote_state_path: None,
+                date: "2026-07-21T00:00:00Z".to_string(),
+                confirm_transfer: true,
+            })
+            .expect("partial removable execution should be recorded");
+
+        assert_eq!(executed.result.transfer_result, "partial");
+        assert_eq!(executed.result.verification_result, "not-run");
+        assert!(project
+            .join("publish/export/audio/published/field-note.opus")
+            .is_file());
+        assert!(!project.join("publish/export/content/index.gmi").exists());
+        assert!(executed.result.files.iter().any(|file| file.project_path
+            == "audio/published/field-note.opus"
+            && file.action == "upload"
+            && file.result == "copied"));
+        assert!(executed
+            .result
+            .files
+            .iter()
+            .any(|file| file.project_path == "content/index.gmi"
+                && file.action == "upload"
+                && file.result == "failed"
+                && file.error.is_some()));
+        assert_eq!(executed.record.transfer_result, "partial");
+        assert!(std::fs::read_to_string(&executed.history_path)
+            .expect("completed history should be readable")
+            .contains("failed-upload"));
 
         let _ = std::fs::remove_dir_all(project.parent().expect("temp project has parent"));
     }

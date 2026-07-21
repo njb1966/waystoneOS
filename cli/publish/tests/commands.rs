@@ -385,6 +385,59 @@ fn execute_removable_json_copies_files_and_writes_history() {
 }
 
 #[test]
+fn execute_removable_json_reports_partial_result_and_writes_history() {
+    let project_root = unique_temp_project_root("execute-removable-partial");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/audio-capsule.wayproject")),
+        &project_root,
+    );
+    let content_path_collision = project_root.join("publish/export/content");
+    std::fs::create_dir_all(
+        content_path_collision
+            .parent()
+            .expect("collision path has parent"),
+    )
+    .expect("collision parent should be created");
+    std::fs::write(&content_path_collision, "not a directory")
+        .expect("collision file should be written");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--execute-removable",
+            "--project",
+            project_root
+                .to_str()
+                .expect("temp project path should be utf-8"),
+            "--target",
+            "export",
+            "--date",
+            "2026-07-21T00:00:00Z",
+            "--confirm-transfer",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(!output.status.success());
+    assert!(project_root
+        .join("publish/export/audio/published/field-note.opus")
+        .is_file());
+    assert!(!project_root
+        .join("publish/export/content/index.gmi")
+        .exists());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"status\":\"ok\""));
+    assert!(stdout.contains("\"transfer_result\":\"partial\""));
+    assert!(stdout.contains("\"project_path\":\"content/index.gmi\""));
+    assert!(stdout.contains("\"result\":\"failed\""));
+    assert!(stdout.contains("\"error\":\""));
+    assert!(stdout.contains("\"history\":{\"completed_path\":\""));
+    assert!(stdout.contains("failed-upload"));
+
+    let _ = std::fs::remove_dir_all(project_root);
+}
+
+#[test]
 fn execute_removable_json_requires_confirm_transfer() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

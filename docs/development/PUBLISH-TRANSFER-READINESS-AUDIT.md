@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after removable file-copy execution hardening
+Status: current after removable execution partial-result history
 Date: 2026-07-21
 
 This audit records the boundary between the current local/removable publishing
@@ -43,6 +43,9 @@ Implemented foundations:
   overwrites, copies through destination-directory temporary files before
   renaming into place, refuses stale temporary-copy collisions, and writes
   completed history from executor results.
+- Copy-time removable execution failures are reported as structured failed or
+  partial executor results with per-file error text. Completed-history TOML is
+  written from those executor results when execution reaches the copy phase.
 - Planned history previews and completed-history records are inspectable local
   records.
 - `waystone-publishd` exposes preview, validation, read-only transfer-intent,
@@ -74,7 +77,7 @@ Real transfer execution should remain blocked until these gates are satisfied.
 | Remote path safety | Remote target path handling must reject empty, root, home, traversal-like, and shell-expanded destinations. | Partially modeled in manifest; executor checks absent |
 | Dry-run freshness | The transfer command must require a fresh validation/preview basis or recompute validation immediately before execution. | Preparation recomputes transfer intent and dry-run state immediately |
 | Deletion confirmation | Planned deletes must require explicit delete confirmation separate from ordinary `--yes`. | Delete execution remains blocked |
-| Failure semantics | Partial transfer, cancellation, network failure, and permission failure must have stable result states. | Local removable preflight and copy errors exist; partial-result history still deferred |
+| Failure semantics | Partial transfer, cancellation, network failure, and permission failure must have stable result states. | Local removable copy-time failures now write failed/partial result history; cancellation and network failure remain deferred |
 | History source | Completed history must be generated from executor results, not manually supplied success claims. | Implemented for removable execution; manual result helpers still exist |
 | Verification boundary | Transfer success and remote verification must remain separate result stages. | Documented; verifier absent |
 | D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | Read-only transfer intent exposed; mutating executor shape deferred |
@@ -151,6 +154,10 @@ Current behavior:
 - Records skipped files as skipped executor results.
 - Writes completed history under the selected project `history/completed/`
   from executor results.
+- Writes failed or partial completed-history records when copy-time execution
+  fails after the copy phase begins.
+- Prints structured JSON with per-file failure detail and exits nonzero unless
+  the transfer result is `completed`.
 - Leaves verification as `not-run`.
 - Does not execute deletes, call D-Bus, contact remotes, unlock credentials, or
   probe SSH host keys.
@@ -204,10 +211,10 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Add a read-only Qt display for removable execution readiness/result only if
-   it helps the 0.1 demonstrable flow.
-2. Add removable update/skip ergonomics only after deciding how local
+1. Add removable update/skip ergonomics only after deciding how local
    destination state should be captured without hashes.
+2. Review a D-Bus mutating executor request/response shape before exposing any
+   publish execution through services or Qt.
 3. Keep SSH-family executors behind the credential, host-trust, remote-path,
    delete-confirmation, executor-history, and verification gates.
 
