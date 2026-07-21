@@ -17,6 +17,7 @@ session/
   waystone.desktop
   waystone-session
 scripts/session-layout-smoke.sh
+scripts/session-dev-smoke.sh
 ```
 
 `session/waystone.desktop` is the source XDG session entry. In a later
@@ -98,9 +99,10 @@ Run:
 
 ```bash
 scripts/session-layout-smoke.sh
+scripts/session-dev-smoke.sh
 ```
 
-The smoke script verifies:
+The layout smoke verifies:
 
 - the session desktop entry names the WaystoneOS session
 - the session entry points to `/usr/bin/waystone-session`
@@ -109,7 +111,11 @@ The smoke script verifies:
 - the wrapper passes repo-development settings to a fake Workspace binary
 - the wrapper fails clearly when the selected Workspace binary is missing
 
-The smoke script writes only to a temporary directory under `/tmp`.
+The dev-session smoke builds the Qt Workspace under `/tmp`, runs it through
+`session/waystone-session`, and verifies default-root, explicit-config, and
+missing-root diagnostics through `--check-roots`.
+
+Both smoke scripts write only to temporary directories under `/tmp`.
 
 ## Deferrals
 

@@ -266,6 +266,7 @@ scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
 scripts/session-layout-smoke.sh
+scripts/session-dev-smoke.sh
 ```
 
 Result after Qt feed-entry preparation controls: all relevant checks passed on
@@ -435,6 +436,10 @@ Result after repo-local Debian session/install-layout contract: session layout
 smoke and git diff whitespace checks passed on 2026-07-21. No files were
 installed outside the repository.
 
+Result after repo-local dev-session launch smoke: session dev smoke, session
+layout smoke, and git diff whitespace checks passed on 2026-07-21. No files
+were installed outside the repository.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -515,6 +520,9 @@ installed outside the repository.
 - `session/waystone-session` launches the selected Workspace binary, passes
   optional repo-development settings, and fails clearly when the Workspace
   binary is missing.
+- `scripts/session-dev-smoke.sh` builds the Qt Workspace under `/tmp`, launches
+  it through `session/waystone-session`, and verifies root diagnostics through
+  the session wrapper.
 - The session artifacts have not been installed into `/usr/share`,
   `/usr/bin`, `$XDG_DATA_HOME`, or display-manager-visible directories.
 - SSH-family remote publication execution is not implemented.
@@ -524,10 +532,10 @@ installed outside the repository.
 
 Recommended next implementation step:
 
-1. Add a repo-local dev-session launch smoke that builds or locates
-   `waystone-workspace`, runs the `waystone-session` wrapper with
-   `--check-roots`, and verifies the session can reach the existing Workspace
-   root diagnostics without installing files.
+1. Define the next non-installing OS/session boundary: either a temporary-root
+   install manifest validator for the session, D-Bus service files, and systemd
+   user units, or a narrow dev-run command that documents how to launch the
+   current preview from the repo.
 2. Keep actual installation outside the repository, Qt mutating publish
    controls, real SSH transfer, remote deletion execution, credential unlock,
    remote verification, audio device enumeration, and playback deferred.
@@ -538,6 +546,6 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after repo-local session/install-layout contract on 2026-07-21.
+Current after repo-local dev-session launch smoke on 2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.

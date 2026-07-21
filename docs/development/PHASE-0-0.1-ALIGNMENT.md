@@ -96,7 +96,7 @@ or approved scope changes.
 
 | Workstream | Alignment | Notes |
 | --- | --- | --- |
-| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, focused smoke coverage, and repo-local Debian session/install-layout artifacts are real. Actual installation, display-manager registration, installed activation, and terminal integration remain deferred. |
+| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, focused smoke coverage, repo-local Debian session/install-layout artifacts, and wrapper-to-Workspace dev-session smoke coverage are real. Actual installation, display-manager registration, installed activation, and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, removable destination-state export, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service/D-Bus, failed/partial copy-time executor history, D-Bus removable executor smoke coverage, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, Qt removable destination-state export helper, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
@@ -170,16 +170,16 @@ transfer, and compositor work.
 
 Audit result:
 
-The previous implementation slice left the publishing refinement lane and
+The previous implementation slices left the publishing refinement lane and
 started the Debian-hosted OS/session lane with a repo-local
-session/install-layout contract before installing anything outside the
-repository.
+session/install-layout contract plus wrapper-to-Workspace dev-session smoke
+coverage before installing anything outside the repository.
 
 Recommended next deliverables:
 
-- Add a repo-local dev-session launch smoke that runs the `waystone-session`
-  wrapper against the current Qt Workspace diagnostics.
-- Keep the smoke non-installing and temporary-root based.
+- Define the next non-installing OS/session boundary, either temporary-root
+  install-manifest validation or a narrow dev-run command for launching the
+  current preview from the repo.
 - Keep actual installation into `/usr/share`, `/usr/bin`,
   `$XDG_DATA_HOME`, or system/user service directories behind explicit
   approval and a later installer/package slice.

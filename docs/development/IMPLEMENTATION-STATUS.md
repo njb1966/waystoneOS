@@ -725,6 +725,7 @@ Implemented in:
 ```text
 session/
 scripts/session-layout-smoke.sh
+scripts/session-dev-smoke.sh
 ```
 
 Current behavior:
@@ -981,6 +982,9 @@ through temporary paths.
 The session layout smoke verified the repo-local session entry, install
 manifest, wrapper argument passing through a fake Workspace binary, and clear
 failure when the selected Workspace binary is missing.
+The dev-session smoke built the Qt Workspace under `/tmp`, launched it through
+`session/waystone-session`, and verified default-root, explicit-config, and
+missing-root diagnostics through `--check-roots` without installing files.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract

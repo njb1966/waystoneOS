@@ -168,6 +168,17 @@ scripts/workspace-qt-smoke.sh
 
 The smoke test uses Qt's `offscreen` platform and verifies default-root, explicit-config, user-config, missing-config fallback, and missing-root diagnostics.
 
+Repo-local dev-session launch smoke:
+
+```bash
+scripts/session-dev-smoke.sh
+```
+
+The dev-session smoke builds the Qt Workspace under `/tmp`, launches it through
+`session/waystone-session`, and verifies that `--check-roots` reaches default,
+explicit-config, and missing-root diagnostics without installing the session
+entry or wrapper.
+
 Focused project create/save, recording attachment/feed-entry, and Publish-pane target/status smoke test:
 
 ```bash
