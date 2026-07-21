@@ -148,6 +148,18 @@ Current classification:
 - `update` is reserved until remote-state metadata includes hashes or other
   content comparison data
 
+Current helper commands:
+
+- `publish --export-remote-state --project PATH --target NAME [--output PATH]`
+  emits the selected project's local publishable path set in the same plain
+  text manifest format.
+- `publish --inspect-remote-state --remote-state PATH` validates and lists an
+  existing local manifest using the same parser as dry-run comparison.
+
+`--export-remote-state --output PATH` uses create-new file semantics and refuses
+to overwrite an existing file. These helpers are local inspection/export tools;
+they do not contact or mutate remote systems.
+
 ## Destructive Deletion
 
 Remote deletion is allowed only after preview.
@@ -294,17 +306,20 @@ writing them as completed history, save planned preview records under project
 preview TOML, build completed history result records from explicit
 caller-supplied result fields, save those completed records under project
 `history/completed/`, list saved completed records, and read selected completed
-TOML through the `publish` CLI. Preview and completed-record saving are local
-project writes only. Saved preview reads are constrained to the selected
-project's `history/previews/` directory, and completed-record reads are
-constrained to the selected project's `history/completed/` directory. These
-preview, validation, and local history operations are available through the
-`publish` CLI; preview, validation, planned-history generation,
+TOML through the `publish` CLI. It can export the local publishable path set as
+a remote-state manifest, inspect existing local remote-state manifests, and
+compare a dry-run against a caller-supplied local manifest without contacting a
+remote. Preview and completed-record saving are local project writes only.
+Saved preview reads are constrained to the selected project's
+`history/previews/` directory, and completed-record reads are constrained to
+the selected project's `history/completed/` directory. These preview,
+validation, local comparison, helper, and local history operations are
+available through the `publish` CLI; preview, validation, planned-history generation,
 completed-history result-record generation, and completed-history save/list/read
 are also available through the `waystone-publishd` D-Bus adapter.
 D-Bus completed-history saving is a local project write only. It does not
-generate feeds automatically, compare remote state, perform transfer, delete
-files, access credentials, probe SSH host keys, or verify a remote result.
+generate feeds automatically, probe remote state, perform transfer, execute
+deletions, access credentials, probe SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

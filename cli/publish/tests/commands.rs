@@ -97,6 +97,93 @@ fn dry_run_json_reports_remote_state_comparison() {
 }
 
 #[test]
+fn export_remote_state_json_reports_publishable_paths() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--export-remote-state",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"project\":\"ssh-capsule\""));
+    assert!(stdout.contains("\"target\":\"production\""));
+    assert!(stdout.contains("\"path_count\":1"));
+    assert!(stdout.contains("\"paths\":[\"content/index.gmi\"]"));
+    assert!(stdout.contains("\"manifest\":\"content/index.gmi\\n\""));
+}
+
+#[test]
+fn export_and_inspect_remote_state_file() {
+    let temp_root = unique_temp_project_root("remote-state-export");
+    std::fs::create_dir_all(&temp_root).expect("temp root should be created");
+    let remote_state = temp_root.join("remote-state.txt");
+
+    let export = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--export-remote-state",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--output",
+            remote_state.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(export.status.success());
+    assert_eq!(
+        std::fs::read_to_string(&remote_state).expect("remote state should be readable"),
+        "content/index.gmi\n"
+    );
+
+    let inspect = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--inspect-remote-state",
+            "--remote-state",
+            remote_state.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(inspect.status.success());
+    let stdout = String::from_utf8_lossy(&inspect.stdout);
+    assert!(stdout.contains("\"source\":"));
+    assert!(stdout.contains("\"path_count\":1"));
+    assert!(stdout.contains("\"paths\":[\"content/index.gmi\"]"));
+
+    let overwrite = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--export-remote-state",
+            "--project",
+            &repo_path("examples/projects/ssh-capsule.wayproject"),
+            "--target",
+            "production",
+            "--output",
+            remote_state.to_str().expect("temp path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(!overwrite.status.success());
+    let stdout = String::from_utf8_lossy(&overwrite.stdout);
+    assert!(stdout.contains("\"status\":\"error\""));
+    assert!(stdout.contains("File exists") || stdout.contains("exists"));
+
+    let _ = std::fs::remove_dir_all(temp_root);
+}
+
+#[test]
 fn validate_json_reports_ready_target() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

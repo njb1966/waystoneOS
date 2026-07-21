@@ -208,6 +208,8 @@ cli/publish/
 Current command:
 
 ```text
+publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]
+publish --inspect-remote-state --remote-state PATH [--json]
 publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
@@ -229,6 +231,9 @@ Current behavior:
 - Feed readiness in dry-run JSON and human output
 - Optional local remote-state comparison through `--remote-state PATH`
 - Dry-run JSON includes `comparison` metadata and populated `upload`, `update`, `delete`, and `skip` arrays
+- Local remote-state manifest export from a selected project's publishable path set
+- Local remote-state manifest inspection using the same path parser as dry-run comparison
+- Remote-state export refuses to overwrite an existing output file
 - Human-readable planned publication history record
 - Local planned history preview save under `history/previews/` inside the selected project
 - Read-only saved planned history preview listing from `history/previews/` inside the selected project

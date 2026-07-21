@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after Qt Publish-pane comparison ergonomics
+Status: current after local remote-state export and inspection helpers
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -17,6 +17,9 @@ upload/delete/skip without contacting or mutating a remote.
 The Qt Publish pane can pass that local manifest path into its publish preview,
 validation, planned-history, saved-preview, and target-overview flows and
 renders comparison metadata plus upload/update/delete/skip buckets.
+The publish CLI can export the selected project's local publishable path set as
+a remote-state manifest and inspect an existing local manifest with the same
+parser used for dry-run comparison.
 
 ## Current Position
 
@@ -192,8 +195,9 @@ readiness report with `valid`, `blocked`, `errors`, and `warnings`. The
 validator checks project validation results, host and identity resolution,
 enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans,
 and required confirmations. `waystone-publishd` exposes the same report through
-`ValidatePublication`. This does not compare remote state, unlock credentials,
-transfer files, or verify remote results.
+`ValidatePublication`. This can use caller-supplied local remote-state
+manifests for comparison planning, but it does not probe remote state, unlock
+credentials, transfer files, or verify remote results.
 
 ## Verification Marker
 
@@ -317,6 +321,12 @@ Result after Qt Publish-pane comparison ergonomics: checks passed on
 JSON contract smoke, publishd D-Bus smoke, focused Qt project smoke, broad Qt
 smoke, format checks, and git diff whitespace checks.
 
+Result after local remote-state export and inspection helpers: checks passed on
+2026-07-20, including focused publish Rust tests, Rust workspace tests, clippy
+with warnings denied, CLI JSON contract smoke, publishd D-Bus smoke, focused
+Qt project smoke, broad Qt smoke, format checks, and git diff whitespace
+checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -340,6 +350,8 @@ smoke, format checks, and git diff whitespace checks.
 - `record validate-publication` and `record validate-feed-entry` validate local audio publication handoff metadata without mutating files.
 - `record generate-feed` creates minimal local Atom feed XML from validated `feeds/entries/*.toml` sidecars, replaces matching existing Atom entries by ID, and preserves unrelated existing Atom entries without publishing remotely.
 - `publish --dry-run` reports feed readiness and invalid feed-entry diagnostics without generating or publishing feeds.
+- `publish --export-remote-state` emits the selected project's local publishable path set as a plain text remote-state manifest and refuses to overwrite an existing output file.
+- `publish --inspect-remote-state` validates and lists local remote-state manifests without contacting a remote.
 - `publish --dry-run --remote-state PATH` compares local publishable files against a caller-supplied local state manifest and reports comparison metadata plus upload/delete/skip buckets without contacting or mutating a remote.
 - `publish --validate` reports publication readiness without probing remote state, transferring files, unlocking credentials, or verifying remotes.
 - The Qt Publish pane displays `publish --validate` results for the selected project and target without mutating projects or remotes.
@@ -366,8 +378,8 @@ smoke, format checks, and git diff whitespace checks.
 
 Recommended next implementation step:
 
-1. Commit and push the Qt Publish-pane comparison ergonomics slice.
-2. Choose the next local publish slice: add a narrow local remote-state export/inspection helper, or start a deliberately scoped transfer-readiness audit.
+1. Commit and push the local remote-state export/inspection helper slice.
+2. Start a deliberately scoped transfer-readiness audit before any real transfer implementation.
 3. Keep real transfer, remote deletion execution, credential unlock, and remote verification deferred until comparison/readiness boundaries are stable.
 
 Alternative next step:
@@ -376,5 +388,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after Qt Publish-pane comparison ergonomics on 2026-07-20. The
+Current after local remote-state export and inspection helpers on 2026-07-20. The
 latest handoff has been resumed and superseded by this checkpoint.

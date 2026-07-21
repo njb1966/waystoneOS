@@ -35,6 +35,14 @@ pub struct RemoteComparisonState {
 }
 
 #[derive(Debug, Clone)]
+pub struct RemoteStateManifest {
+    pub project_id: Option<String>,
+    pub target: Option<String>,
+    pub source: Option<String>,
+    pub paths: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct FeedPublicationState {
     pub configured: bool,
     pub enabled: bool,
@@ -288,6 +296,49 @@ pub fn validate_publication_with_context(
         errors,
         warnings,
     })
+}
+
+pub fn export_remote_state_manifest(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+) -> Result<RemoteStateManifest, PublishPlanError> {
+    let project_root = project_root.as_ref();
+    let validation = validate_project(project_root)?;
+    if !validation.valid {
+        return Err(PublishPlanError::ProjectInvalid);
+    }
+
+    let manifest = load_manifest(project_root)?;
+    let target = find_target(&manifest, target_name)?;
+    let paths = collect_publishable_files(project_root, &manifest)?;
+
+    Ok(RemoteStateManifest {
+        project_id: Some(manifest.project.id.clone()),
+        target: Some(target.name.clone()),
+        source: None,
+        paths,
+    })
+}
+
+pub fn inspect_remote_state_manifest(
+    path: impl AsRef<Path>,
+) -> Result<RemoteStateManifest, PublishPlanError> {
+    let path = path.as_ref();
+    let remote_state = read_remote_state(path)?;
+    Ok(RemoteStateManifest {
+        project_id: None,
+        target: None,
+        source: Some(path.display().to_string()),
+        paths: remote_state.paths.into_iter().collect(),
+    })
+}
+
+pub fn remote_state_manifest_text(paths: &[String]) -> String {
+    let mut text = paths.join("\n");
+    if !text.is_empty() {
+        text.push('\n');
+    }
+    text
 }
 
 fn resolution_blocks(resolution: &Option<Resolution>) -> bool {
@@ -1080,6 +1131,46 @@ mime_type = "audio/ogg; codecs=opus"
             plan.comparison.source.as_deref(),
             Some(remote_state.display().to_string().as_str())
         );
+
+        let _ = fs::remove_file(remote_state);
+    }
+
+    #[test]
+    fn exports_local_publishable_paths_as_remote_state_manifest() {
+        let manifest = export_remote_state_manifest(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+        )
+        .expect("remote-state export should plan");
+
+        assert_eq!(manifest.project_id.as_deref(), Some("ssh-capsule"));
+        assert_eq!(manifest.target.as_deref(), Some("production"));
+        assert_eq!(manifest.paths, vec!["content/index.gmi"]);
+        assert_eq!(
+            remote_state_manifest_text(&manifest.paths),
+            "content/index.gmi\n"
+        );
+    }
+
+    #[test]
+    fn inspects_remote_state_manifest_paths() {
+        let remote_state = temp_project_root("inspect-remote-state").join("remote-state.txt");
+        fs::create_dir_all(remote_state.parent().expect("remote state has parent"))
+            .expect("remote state parent");
+        fs::write(
+            &remote_state,
+            "# comment\ncontent/index.gmi\n\nstale.gmi\ncontent/index.gmi\n",
+        )
+        .expect("remote state");
+
+        let manifest =
+            inspect_remote_state_manifest(&remote_state).expect("remote state should inspect");
+
+        assert_eq!(
+            manifest.source.as_deref(),
+            Some(remote_state.display().to_string().as_str())
+        );
+        assert_eq!(manifest.paths, vec!["content/index.gmi", "stale.gmi"]);
 
         let _ = fs::remove_file(remote_state);
     }

@@ -105,6 +105,31 @@ require({"configured", "source", "remote_paths"} <= publish["data"]["comparison"
 with tempfile.TemporaryDirectory(prefix="waystone-remote-state-contract-") as temp_root:
     remote_state = Path(temp_root) / "remote-state.txt"
     remote_state.write_text("content/index.gmi\nstale.gmi\n", encoding="utf-8")
+    exported_state = Path(temp_root) / "exported-remote-state.txt"
+    remote_state_export = run([
+        "target/debug/publish", "--export-remote-state",
+        "--project", "examples/projects/ssh-capsule.wayproject",
+        "--target", "production",
+        "--output", str(exported_state),
+        "--json"
+    ])
+    require({"project", "target", "source", "path_count", "paths", "manifest", "output_path"}
+            <= remote_state_export["data"].keys(),
+            "publish export-remote-state contract changed")
+    require(remote_state_export["data"]["paths"] == ["content/index.gmi"],
+            "publish export-remote-state paths changed")
+    require(exported_state.read_text(encoding="utf-8") == "content/index.gmi\n",
+            "publish export-remote-state output file changed")
+    remote_state_inspect = run([
+        "target/debug/publish", "--inspect-remote-state",
+        "--remote-state", str(exported_state),
+        "--json"
+    ])
+    require({"project", "target", "source", "path_count", "paths"}
+            <= remote_state_inspect["data"].keys(),
+            "publish inspect-remote-state contract changed")
+    require(remote_state_inspect["data"]["paths"] == ["content/index.gmi"],
+            "publish inspect-remote-state paths changed")
     compared_publish = run([
         "target/debug/publish", "--dry-run",
         "--project", "examples/projects/ssh-capsule.wayproject",

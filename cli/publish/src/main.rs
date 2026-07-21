@@ -1,4 +1,6 @@
 use std::env;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process;
 use waystone_cli_output::{
@@ -11,9 +13,10 @@ use waystone_publication_history::{
     PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
-    dry_run_publish_with_context, validate_publication_with_context, FeedEntryDiagnostic,
+    dry_run_publish_with_context, export_remote_state_manifest, inspect_remote_state_manifest,
+    remote_state_manifest_text, validate_publication_with_context, FeedEntryDiagnostic,
     FeedPublicationState, PublishContext, PublishValidationIssue, RemoteComparisonState,
-    Resolution,
+    RemoteStateManifest, Resolution,
 };
 
 fn main() {
@@ -33,6 +36,12 @@ fn run(args: &[String]) -> i32 {
         ["--help"] | ["help"] | [] => {
             print_help();
             0
+        }
+        _ if positional.contains(&"--export-remote-state") => {
+            export_remote_state(&positional, json)
+        }
+        _ if positional.contains(&"--inspect-remote-state") => {
+            inspect_remote_state(&positional, json)
         }
         _ if positional.contains(&"--validate") => validate_publication_command(&positional, json),
         _ if positional.contains(&"--list-completed-history") => {
@@ -60,6 +69,80 @@ fn run(args: &[String]) -> i32 {
             eprintln!("publish: usage error");
             print_help();
             2
+        }
+    }
+}
+
+fn export_remote_state(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+
+    match export_remote_state_manifest(Path::new(project), target) {
+        Ok(manifest) => {
+            let manifest_text = remote_state_manifest_text(&manifest.paths);
+            let output_path = option_value(args, "--output");
+            if let Some(output_path) = output_path {
+                if let Err(error) = write_new_file(Path::new(output_path), manifest_text.as_bytes())
+                {
+                    return print_command_error("publish", "export_remote_state", &error, json);
+                }
+            }
+
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{{},\"path_count\":{},\"paths\":[{}],\"manifest\":\"{}\",\"output_path\":{}}}}}",
+                    json_remote_state_manifest_identity(&manifest),
+                    manifest.paths.len(),
+                    json_string_array(&manifest.paths),
+                    escape_json(&manifest_text),
+                    json_optional_string(output_path)
+                );
+            } else if let Some(output_path) = output_path {
+                println!(
+                    "Saved remote-state manifest: {} ({} paths)",
+                    output_path,
+                    manifest.paths.len()
+                );
+            } else {
+                print!("{manifest_text}");
+            }
+            0
+        }
+        Err(error) => {
+            print_command_error("publish", "export_remote_state", &error.to_string(), json)
+        }
+    }
+}
+
+fn inspect_remote_state(args: &[&str], json: bool) -> i32 {
+    let Some(remote_state) = option_value(args, "--remote-state") else {
+        return usage_error("missing --remote-state");
+    };
+
+    match inspect_remote_state_manifest(Path::new(remote_state)) {
+        Ok(manifest) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{{},\"path_count\":{},\"paths\":[{}]}}}}",
+                    json_remote_state_manifest_identity(&manifest),
+                    manifest.paths.len(),
+                    json_string_array(&manifest.paths)
+                );
+            } else {
+                println!("Remote-state manifest: {remote_state}");
+                println!("Paths: {}", manifest.paths.len());
+                for path in manifest.paths {
+                    println!("  {path}");
+                }
+            }
+            0
+        }
+        Err(error) => {
+            print_command_error("publish", "inspect_remote_state", &error.to_string(), json)
         }
     }
 }
@@ -640,8 +723,22 @@ fn completed_history_inputs<'a>(args: &'a [&str]) -> Result<CompletedHistoryInpu
     })
 }
 
+fn write_new_file(path: &Path, content: &[u8]) -> Result<(), String> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|error| format!("{}: {}", path.display(), error))?;
+    file.write_all(content)
+        .map_err(|error| format!("{}: {}", path.display(), error))
+}
+
 fn print_help() {
     println!("Usage:");
+    println!(
+        "  publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]"
+    );
+    println!("  publish --inspect-remote-state --remote-state PATH [--json]");
     println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --dry-run --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --planned-history --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
@@ -722,6 +819,15 @@ fn json_remote_comparison(comparison: &RemoteComparisonState) -> String {
         comparison.configured,
         json_optional_string(comparison.source.as_deref()),
         comparison.remote_paths
+    )
+}
+
+fn json_remote_state_manifest_identity(manifest: &RemoteStateManifest) -> String {
+    format!(
+        "\"project\":{},\"target\":{},\"source\":{}",
+        json_optional_string(manifest.project_id.as_deref()),
+        json_optional_string(manifest.target.as_deref()),
+        json_optional_string(manifest.source.as_deref())
     )
 }
 
