@@ -133,7 +133,31 @@ Verification:
 - `QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config`
 - `git diff --check`
 
+Second observed issue:
+
+- The Publish pane stacked dry-run, validation, transfer-intent, removable
+  readiness, feed diagnostic, saved-preview, completed-history, and planned
+  history reports in one crowded vertical surface.
+- Those report areas collapsed into one-line bands in the visible preview.
+
+Resolution:
+
+- The Publish pane now separates reports into `Preview`, `Feed`, `Planned
+  History`, and `Completed History` tabs.
+- The project list and target overview remain visible above the tabs.
+- Existing preview, validation, transfer-intent, removable readiness,
+  feed-diagnostic, saved-preview, and completed-history controls keep their
+  existing object names and CLI adapter behavior.
+
+Verification:
+
+- `cmake --build /tmp/waystone-workspace-qt-build`
+- `scripts/workspace-qt-project-smoke.sh`
+- `scripts/workspace-qt-smoke.sh`
+- `QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --check-roots --no-user-config`
+- `git diff --check`
+
 Still needs follow-up:
 
-- Project owner should relaunch the visible preview and confirm the Create pane
-  is now understandable and that Gemtext editing is usable.
+- Project owner should relaunch the visible preview and confirm the Create and
+  Publish panes are now understandable and readable.

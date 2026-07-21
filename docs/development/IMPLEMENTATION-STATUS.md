@@ -682,6 +682,9 @@ Current behavior:
 - Uses `publish --prepare-removable-execution --json` in the Publish pane to
   show a read-only removable execution readiness report with destination-root
   and per-file operation paths
+- Separates Publish-pane reports into Preview, Feed, Planned History, and
+  Completed History tabs so dry-run, readiness, feed-diagnostic, and history
+  details remain readable in the manual-preview window
 - Derives Publish-pane target choices from `project inspect --json` instead of hard-coded project IDs
 - Shows Publish-pane preview status as ready, blocked, failed, no project, no target, and feed readiness when feed metadata is configured
 - Shows invalid feed-entry diagnostic paths and validation issue text in Publish-pane dry-run detail
@@ -804,7 +807,8 @@ Current state:
 - Systemd user unit syntax is smoke-tested through a generated temporary daemon path
 - Accepts caller-supplied local remote-state manifests for preview and
   transfer-intent comparison
-- Does not expose removable execution over D-Bus yet
+- Exposes confirmed local/removable execution over D-Bus through the
+  ADR-0014 `ExecuteRemovable` method
 - Does not probe remote hosts, perform SSH-family transfers, execute
   deletions, unlock credentials, or verify remote results
 - Uses `crates/publish-service/` as its internal boundary
@@ -1017,8 +1021,10 @@ The manual preview checklist documents the safe repo-local launch path, an
 isolated temporary-root config, the current Explore/Create/Publish/Operate
 checks, expected deferrals, and what findings to record.
 The manual preview findings record shows the dev-run default and explicit-root
-diagnostics passed, offscreen startup reached the Qt event loop, and focused Qt
-workflow smoke passed. Human-visible inspection remains pending.
+diagnostics passed, offscreen startup reached the Qt event loop, focused Qt
+workflow smoke passed, and the first project-owner visible layout issues in
+the Create and Publish panes were corrected. Follow-up visible confirmation of
+those layout fixes remains pending.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract

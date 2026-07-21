@@ -44,6 +44,9 @@ Implemented:
 - Publish-pane publication readiness report using `publish --validate --json`
 - Publish-pane transfer-intent report using `publish --transfer-intent --json`
 - Publish-pane removable execution readiness report using `publish --prepare-removable-execution --json`
+- Publish-pane report-heavy surfaces separated into `Preview`, `Feed`,
+  `Planned History`, and `Completed History` tabs so readiness and history
+  reports do not collapse in the manual-preview window
 - Publish-pane target selection derived from `project inspect --json` metadata
 - Publish-pane ready, blocked, failed, no-project, and no-target preview status display
 - Publish-pane planned history summary and raw record preview using `publish --planned-history --json`

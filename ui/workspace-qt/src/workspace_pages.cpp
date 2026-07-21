@@ -2043,37 +2043,56 @@ QWidget *publishPage(const CliAdapter *adapter,
     targetOverview->setMaximumHeight(120);
     layout->addWidget(targetOverview);
 
-    auto *previewSplitter = new QSplitter(Qt::Vertical);
-    auto *planArea = new QWidget(previewSplitter);
-    auto *planLayout = new QVBoxLayout(planArea);
-    planLayout->setContentsMargins(0, 0, 0, 0);
-    planLayout->addWidget(new QLabel("Dry-run Plan", planArea));
-    auto *plan = new QPlainTextEdit;
+    auto makeReportSection = [](const QString &title, QWidget *content) {
+        auto *section = new QWidget;
+        auto *sectionLayout = new QVBoxLayout(section);
+        sectionLayout->setContentsMargins(0, 0, 0, 0);
+        sectionLayout->setSpacing(4);
+        sectionLayout->addWidget(new QLabel(title, section));
+        sectionLayout->addWidget(content, 1);
+        return section;
+    };
+
+    auto *publishTabs = new QTabWidget(page);
+
+    auto *previewTab = new QWidget(publishTabs);
+    auto *previewTabLayout = new QVBoxLayout(previewTab);
+    previewTabLayout->setContentsMargins(0, 0, 0, 0);
+    auto *previewSplitter = new QSplitter(Qt::Vertical, previewTab);
+    auto *plan = new QPlainTextEdit(previewSplitter);
     plan->setObjectName("publishPlan");
     plan->setReadOnly(true);
-    planLayout->addWidget(plan);
-    planLayout->addWidget(new QLabel("Publication Validation", planArea));
-    auto *validation = new QPlainTextEdit(planArea);
+    plan->setMinimumHeight(140);
+    previewSplitter->addWidget(makeReportSection("Dry-run Plan", plan));
+    auto *validation = new QPlainTextEdit(previewSplitter);
     validation->setObjectName("publishValidationReport");
     validation->setReadOnly(true);
-    validation->setMaximumHeight(150);
+    validation->setMinimumHeight(140);
     validation->setPlainText("No publication validation");
-    planLayout->addWidget(validation);
-    planLayout->addWidget(new QLabel("Transfer Intent", planArea));
-    auto *transferIntent = new QPlainTextEdit(planArea);
+    previewSplitter->addWidget(makeReportSection("Publication Validation", validation));
+    auto *transferIntent = new QPlainTextEdit(previewSplitter);
     transferIntent->setObjectName("publishTransferIntent");
     transferIntent->setReadOnly(true);
-    transferIntent->setMaximumHeight(170);
+    transferIntent->setMinimumHeight(140);
     transferIntent->setPlainText("No transfer intent");
-    planLayout->addWidget(transferIntent);
-    planLayout->addWidget(new QLabel("Removable Execution Readiness", planArea));
-    auto *removableExecution = new QPlainTextEdit(planArea);
+    previewSplitter->addWidget(makeReportSection("Transfer Intent", transferIntent));
+    auto *removableExecution = new QPlainTextEdit(previewSplitter);
     removableExecution->setObjectName("publishRemovableExecutionPlan");
     removableExecution->setReadOnly(true);
-    removableExecution->setMaximumHeight(180);
+    removableExecution->setMinimumHeight(140);
     removableExecution->setPlainText("No removable execution readiness");
-    planLayout->addWidget(removableExecution);
-    auto *feedDiagnosticActions = new QWidget(planArea);
+    previewSplitter->addWidget(
+        makeReportSection("Removable Execution Readiness", removableExecution));
+    for (int index = 0; index < previewSplitter->count(); ++index) {
+        previewSplitter->setStretchFactor(index, 1);
+    }
+    previewTabLayout->addWidget(previewSplitter, 1);
+    publishTabs->addTab(previewTab, "Preview");
+
+    auto *feedTab = new QWidget(publishTabs);
+    auto *feedLayout = new QVBoxLayout(feedTab);
+    feedLayout->setContentsMargins(0, 0, 0, 0);
+    auto *feedDiagnosticActions = new QWidget(feedTab);
     auto *feedDiagnosticActionsLayout = new QHBoxLayout(feedDiagnosticActions);
     feedDiagnosticActionsLayout->setContentsMargins(0, 0, 0, 0);
     auto *feedDiagnostic = new QComboBox(feedDiagnosticActions);
@@ -2091,69 +2110,85 @@ QWidget *publishPage(const CliAdapter *adapter,
     feedDiagnosticActionsLayout->addWidget(feedDiagnostic, 1);
     feedDiagnosticActionsLayout->addWidget(validateFeedDiagnostic);
     feedDiagnosticActionsLayout->addWidget(openFeedDiagnosticInCreate);
-    planLayout->addWidget(feedDiagnosticActions);
-    auto *feedDiagnosticDetail = new QPlainTextEdit(planArea);
+    feedLayout->addWidget(feedDiagnosticActions);
+    auto *feedDiagnosticDetail = new QPlainTextEdit(feedTab);
     feedDiagnosticDetail->setObjectName("publishFeedDiagnosticDetail");
     feedDiagnosticDetail->setReadOnly(true);
-    feedDiagnosticDetail->setMaximumHeight(120);
+    feedDiagnosticDetail->setMinimumHeight(260);
     feedDiagnosticDetail->setPlainText("No invalid feed-entry diagnostics");
-    planLayout->addWidget(feedDiagnosticDetail);
-    previewSplitter->addWidget(planArea);
+    feedLayout->addWidget(makeReportSection("Feed Diagnostic Detail", feedDiagnosticDetail),
+                          1);
+    publishTabs->addTab(feedTab, "Feed");
 
-    auto *historyArea = new QWidget(previewSplitter);
-    auto *historyLayout = new QVBoxLayout(historyArea);
-    historyLayout->setContentsMargins(0, 0, 0, 0);
-    historyLayout->addWidget(new QLabel("History Summary", historyArea));
-    auto *historySummary = new QPlainTextEdit(historyArea);
+    auto *plannedHistoryTab = new QWidget(publishTabs);
+    auto *plannedHistoryLayout = new QVBoxLayout(plannedHistoryTab);
+    plannedHistoryLayout->setContentsMargins(0, 0, 0, 0);
+    auto *plannedHistorySplitter = new QSplitter(Qt::Vertical, plannedHistoryTab);
+    auto *historySummary = new QPlainTextEdit(plannedHistorySplitter);
     historySummary->setObjectName("publishHistorySummary");
     historySummary->setReadOnly(true);
-    historySummary->setMaximumHeight(160);
-    historyLayout->addWidget(historySummary);
-    historyLayout->addWidget(new QLabel("Saved Preview Records", historyArea));
-    auto *savedPreviewFilter = new QLineEdit(historyArea);
+    historySummary->setMinimumHeight(120);
+    plannedHistorySplitter->addWidget(makeReportSection("History Summary", historySummary));
+    auto *savedPreviewArea = new QWidget(plannedHistorySplitter);
+    auto *savedPreviewLayout = new QVBoxLayout(savedPreviewArea);
+    savedPreviewLayout->setContentsMargins(0, 0, 0, 0);
+    savedPreviewLayout->setSpacing(4);
+    savedPreviewLayout->addWidget(new QLabel("Saved Preview Records", savedPreviewArea));
+    auto *savedPreviewFilter = new QLineEdit(savedPreviewArea);
     savedPreviewFilter->setObjectName("publishSavedPreviewFilter");
     savedPreviewFilter->setPlaceholderText("Filter saved previews");
-    historyLayout->addWidget(savedPreviewFilter);
+    savedPreviewLayout->addWidget(savedPreviewFilter);
     auto *savedPreviews = table({"Preview", "Modified", "Size", "Path"}, {});
     savedPreviews->setObjectName("publishSavedPreviewsTable");
-    savedPreviews->setMaximumHeight(150);
-    historyLayout->addWidget(savedPreviews);
-    historyLayout->addWidget(new QLabel("Saved Preview Detail", historyArea));
-    auto *savedPreviewDetail = new QPlainTextEdit(historyArea);
+    savedPreviews->setMinimumHeight(140);
+    savedPreviewLayout->addWidget(savedPreviews, 1);
+    plannedHistorySplitter->addWidget(savedPreviewArea);
+    auto *savedPreviewDetail = new QPlainTextEdit(plannedHistorySplitter);
     savedPreviewDetail->setObjectName("publishSavedPreviewDetail");
     savedPreviewDetail->setReadOnly(true);
-    savedPreviewDetail->setMaximumHeight(180);
-    historyLayout->addWidget(savedPreviewDetail);
-    historyLayout->addWidget(new QLabel("Saved Preview Comparison", historyArea));
-    auto *historyComparison = new QPlainTextEdit(historyArea);
+    savedPreviewDetail->setMinimumHeight(160);
+    plannedHistorySplitter->addWidget(
+        makeReportSection("Saved Preview Detail", savedPreviewDetail));
+    auto *historyComparison = new QPlainTextEdit(plannedHistorySplitter);
     historyComparison->setObjectName("publishHistoryComparison");
     historyComparison->setReadOnly(true);
-    historyComparison->setMaximumHeight(130);
-    historyLayout->addWidget(historyComparison);
-    historyLayout->addWidget(new QLabel("Completed History Records", historyArea));
-    auto *completedHistoryFilter = new QLineEdit(historyArea);
-    completedHistoryFilter->setObjectName("publishCompletedHistoryFilter");
-    completedHistoryFilter->setPlaceholderText("Filter completed records");
-    historyLayout->addWidget(completedHistoryFilter);
-    auto *completedRecords = table({"Record", "Modified", "Size", "Path"}, {});
-    completedRecords->setObjectName("publishCompletedHistoryTable");
-    completedRecords->setMaximumHeight(150);
-    historyLayout->addWidget(completedRecords);
-    historyLayout->addWidget(new QLabel("Completed Record Detail", historyArea));
-    auto *completedRecordDetail = new QPlainTextEdit(historyArea);
-    completedRecordDetail->setObjectName("publishCompletedHistoryDetail");
-    completedRecordDetail->setReadOnly(true);
-    completedRecordDetail->setMaximumHeight(180);
-    historyLayout->addWidget(completedRecordDetail);
-    historyLayout->addWidget(new QLabel("Planned History Record", historyArea));
-    auto *history = new QPlainTextEdit(historyArea);
+    historyComparison->setMinimumHeight(140);
+    plannedHistorySplitter->addWidget(
+        makeReportSection("Saved Preview Comparison", historyComparison));
+    auto *history = new QPlainTextEdit(plannedHistorySplitter);
     history->setObjectName("publishPlannedHistory");
     history->setReadOnly(true);
-    historyLayout->addWidget(history);
-    previewSplitter->addWidget(historyArea);
-    previewSplitter->setStretchFactor(0, 1);
-    previewSplitter->setStretchFactor(1, 1);
-    layout->addWidget(previewSplitter, 1);
+    history->setMinimumHeight(180);
+    plannedHistorySplitter->addWidget(makeReportSection("Planned History Record", history));
+    for (int index = 0; index < plannedHistorySplitter->count(); ++index) {
+        plannedHistorySplitter->setStretchFactor(index, 1);
+    }
+    plannedHistoryLayout->addWidget(plannedHistorySplitter, 1);
+    publishTabs->addTab(plannedHistoryTab, "Planned History");
+
+    auto *completedHistoryTab = new QWidget(publishTabs);
+    auto *completedHistoryLayout = new QVBoxLayout(completedHistoryTab);
+    completedHistoryLayout->setContentsMargins(0, 0, 0, 0);
+    completedHistoryLayout->setSpacing(4);
+    completedHistoryLayout->addWidget(new QLabel("Completed History Records",
+                                                 completedHistoryTab));
+    auto *completedHistoryFilter = new QLineEdit(completedHistoryTab);
+    completedHistoryFilter->setObjectName("publishCompletedHistoryFilter");
+    completedHistoryFilter->setPlaceholderText("Filter completed records");
+    completedHistoryLayout->addWidget(completedHistoryFilter);
+    auto *completedRecords = table({"Record", "Modified", "Size", "Path"}, {});
+    completedRecords->setObjectName("publishCompletedHistoryTable");
+    completedRecords->setMinimumHeight(160);
+    completedHistoryLayout->addWidget(completedRecords, 1);
+    auto *completedRecordDetail = new QPlainTextEdit(completedHistoryTab);
+    completedRecordDetail->setObjectName("publishCompletedHistoryDetail");
+    completedRecordDetail->setReadOnly(true);
+    completedRecordDetail->setMinimumHeight(220);
+    completedHistoryLayout->addWidget(
+        makeReportSection("Completed Record Detail", completedRecordDetail), 1);
+    publishTabs->addTab(completedHistoryTab, "Completed History");
+
+    layout->addWidget(publishTabs, 1);
 
     auto currentProjectPath = [=]() -> QString {
         const int row = projectsTable->currentRow();

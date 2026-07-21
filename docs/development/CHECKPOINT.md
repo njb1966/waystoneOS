@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after repo-local session/install-layout contract
+Status: current after manual-preview layout fixes
 Date: 2026-07-21
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, `waystone-audiod` D-Bus methods for the existing local audio/feed service operations, and the repo-local Debian session/install-layout contract.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, `waystone-audiod` D-Bus methods for the existing local audio/feed service operations, the repo-local Debian session/install-layout contract, and the first project-owner manual-preview layout fixes for Create and Publish.
 It also includes local completed publication-history result records through the
 publish CLI, publish service crate, and `waystone-publishd` D-Bus adapter.
 It also includes a non-mutating publication readiness validation report through
@@ -111,6 +111,9 @@ The Qt Workspace currently has:
 - Publish pane reports configured feed readiness from dry-run output, including feed path, feed XML existence, prepared entry count, invalid entry count, and per-invalid-sidecar diagnostic paths plus issue text
 - Publish pane can run `record validate-feed-entry --json` for a selected invalid feed-entry diagnostic and show the full validation detail
 - Publish pane can open a selected invalid feed-entry diagnostic in the Create pane with the matching project and derived recording ID loaded
+- Publish pane separates report-heavy surfaces into Preview, Feed, Planned
+  History, and Completed History tabs so readiness and history reports remain
+  readable in the manual-preview window
 - Publish pane previews planned publication history records through `publish --planned-history --json`, including file-action grouping, without writing completed history
 - Publish pane can save planned history previews under the selected project `history/previews/` directory through `publish --save-planned-history-preview --json`
 - Publish pane lists saved planned history previews for the selected project through `publish --list-planned-history-previews --json`
@@ -468,6 +471,12 @@ whitespace checks passed on 2026-07-21. The fix separates Write, Files, and
 Recordings views so Gemtext authoring no longer competes directly with audio
 controls.
 
+Result after Publish-pane manual-preview layout fix: Qt build, focused Qt
+project smoke, broad Qt smoke, dev-run root diagnostics, and git diff
+whitespace checks passed on 2026-07-21. The fix separates Preview, Feed,
+Planned History, and Completed History reports so publish readiness and history
+details no longer collapse into one-line bands.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -565,6 +574,9 @@ controls.
   inspection.
 - The Create pane separates Write, Files, and Recordings views to keep Gemtext
   editing usable and audio controls understandable.
+- The Publish pane separates Preview, Feed, Planned History, and Completed
+  History report views to keep dry-run, readiness, feed-diagnostic, and
+  history details readable.
 - The session artifacts have not been installed into `/usr/share`,
   `/usr/bin`, `$XDG_DATA_HOME`, or display-manager-visible directories.
 - SSH-family remote publication execution is not implemented.
@@ -575,7 +587,7 @@ controls.
 Recommended next implementation step:
 
 1. Project owner reruns the visible manual preview checklist and confirms the
-   Create pane layout fix.
+   Create and Publish pane layout fixes.
 2. After the visible pass, choose whether to fix preview issues, improve the
    dev-run/manual path, or plan the first explicitly approved installed-session
    slice.
@@ -589,6 +601,7 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after Create-pane manual-preview layout fix on 2026-07-21.
+Current after Create-pane and Publish-pane manual-preview layout fixes on
+2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.
