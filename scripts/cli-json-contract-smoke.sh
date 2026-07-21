@@ -224,7 +224,7 @@ with tempfile.TemporaryDirectory(prefix="waystone-execute-removable-contract-") 
     require(removable_result["data"]["verification_result"] == "not-run",
             "publish execute-removable verification result changed")
     require(removable_result["data"]["files"] and
-            {"project_path", "source_path", "destination_path", "action", "result", "bytes"}
+            {"project_path", "source_path", "destination_path", "action", "result", "bytes", "error"}
             <= removable_result["data"]["files"][0].keys(),
             "publish execute-removable file result contract changed")
     require("completed_path" in removable_result["data"]["history"],
@@ -233,6 +233,22 @@ with tempfile.TemporaryDirectory(prefix="waystone-execute-removable-contract-") 
             "publish execute-removable history TOML contract changed")
     require((temp_project / "publish" / "export" / "content" / "index.gmi").is_file(),
             "publish execute-removable did not copy content index")
+    exported_removable_state = Path(temp_root) / "removable-state.txt"
+    removable_state = run([
+        "target/debug/publish", "--export-removable-state",
+        "--project", str(temp_project),
+        "--target", "export",
+        "--output", str(exported_removable_state),
+        "--json"
+    ])
+    require({"project", "target", "source", "path_count", "paths", "manifest", "output_path"}
+            <= removable_state["data"].keys(),
+            "publish export-removable-state contract changed")
+    require("content/index.gmi" in removable_state["data"]["paths"],
+            "publish export-removable-state destination paths changed")
+    require(exported_removable_state.read_text(encoding="utf-8") ==
+            removable_state["data"]["manifest"],
+            "publish export-removable-state output file changed")
 
 planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,

@@ -184,6 +184,88 @@ fn export_and_inspect_remote_state_file() {
 }
 
 #[test]
+fn export_removable_state_file_feeds_dry_run_comparison() {
+    let project_root = unique_temp_project_root("removable-state-export");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/audio-capsule.wayproject")),
+        &project_root,
+    );
+    let manifest_path = project_root.join("project.toml");
+    let manifest = std::fs::read_to_string(&manifest_path).expect("project manifest");
+    std::fs::write(
+        &manifest_path,
+        manifest.replace("delete_policy = \"forbid\"", "delete_policy = \"confirm\""),
+    )
+    .expect("project manifest should be updated for delete comparison");
+    std::fs::create_dir_all(project_root.join("publish/export/content"))
+        .expect("destination content directory");
+    std::fs::write(
+        project_root.join("publish/export/content/index.gmi"),
+        "# Existing\n",
+    )
+    .expect("existing destination content");
+    std::fs::write(project_root.join("publish/export/stale.gmi"), "# Stale\n")
+        .expect("stale destination content");
+    let removable_state = project_root.join("removable-state.txt");
+
+    let export = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--export-removable-state",
+            "--project",
+            project_root
+                .to_str()
+                .expect("temp project path should be utf-8"),
+            "--target",
+            "export",
+            "--output",
+            removable_state
+                .to_str()
+                .expect("state path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(export.status.success());
+    let stdout = String::from_utf8_lossy(&export.stdout);
+    assert!(stdout.contains("\"project\":\"audio-capsule\""));
+    assert!(stdout.contains("\"target\":\"export\""));
+    assert!(stdout.contains("\"path_count\":2"));
+    assert!(stdout.contains("\"paths\":[\"content/index.gmi\",\"stale.gmi\"]"));
+    assert_eq!(
+        std::fs::read_to_string(&removable_state).expect("state should be readable"),
+        "content/index.gmi\nstale.gmi\n"
+    );
+
+    let dry_run = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--dry-run",
+            "--project",
+            project_root
+                .to_str()
+                .expect("temp project path should be utf-8"),
+            "--target",
+            "export",
+            "--remote-state",
+            removable_state
+                .to_str()
+                .expect("state path should be utf-8"),
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(dry_run.status.success());
+    let stdout = String::from_utf8_lossy(&dry_run.stdout);
+    assert!(stdout.contains("\"comparison\":{\"configured\":true"));
+    assert!(stdout.contains("\"remote_paths\":2"));
+    assert!(stdout.contains("\"delete\":[\"stale.gmi\"]"));
+    assert!(stdout.contains("\"skip\":[\"content/index.gmi\"]"));
+
+    let _ = std::fs::remove_dir_all(project_root);
+}
+
+#[test]
 fn validate_json_reports_ready_target() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

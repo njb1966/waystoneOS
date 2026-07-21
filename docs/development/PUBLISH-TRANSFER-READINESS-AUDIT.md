@@ -25,6 +25,8 @@ Implemented foundations:
   skip buckets.
 - Caller-supplied local remote-state manifests can be inspected, exported, and
   used for comparison without contacting a remote.
+- Configured removable destination roots can be scanned into the same local
+  state manifest shape without contacting a remote.
 - Deletion planning is visible and governed by target `delete_policy`.
 - Host and identity metadata can be resolved from local metadata roots.
 - Publication readiness validation reports `valid`, `blocked`, `errors`, and
@@ -46,6 +48,9 @@ Implemented foundations:
 - Copy-time removable execution failures are reported as structured failed or
   partial executor results with per-file error text. Completed-history TOML is
   written from those executor results when execution reaches the copy phase.
+- `publish --export-removable-state` emits the configured removable
+  destination root's current file path set so existing removable media can be
+  fed back into dry-run comparison as caller-supplied local state.
 - Planned history previews and completed-history records are inspectable local
   records.
 - `waystone-publishd` exposes preview, validation, read-only transfer-intent,
@@ -81,7 +86,7 @@ Real transfer execution should remain blocked until these gates are satisfied.
 | History source | Completed history must be generated from executor results, not manually supplied success claims. | Implemented for removable execution; manual result helpers still exist |
 | Verification boundary | Transfer success and remote verification must remain separate result stages. | Documented; verifier absent |
 | D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | Read-only transfer intent exposed; mutating executor shape deferred |
-| Test harness | Real execution must be covered by a local fake transport or temporary destination harness before live SSH targets are used. | Temporary-project removable copy harness exists |
+| Test harness | Real execution must be covered by a local fake transport or temporary destination harness before live SSH targets are used. | Temporary-project removable copy and removable-state export harnesses exist |
 
 ## Transfer Command Boundary
 
@@ -211,10 +216,10 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Add removable update/skip ergonomics only after deciding how local
-   destination state should be captured without hashes.
-2. Review a D-Bus mutating executor request/response shape before exposing any
+1. Review a D-Bus mutating executor request/response shape before exposing any
    publish execution through services or Qt.
+2. Consider Qt read-only ergonomics for removable state export only if it helps
+   the local 0.1 demonstrable flow.
 3. Keep SSH-family executors behind the credential, host-trust, remote-path,
    delete-confirmation, executor-history, and verification gates.
 

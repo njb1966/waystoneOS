@@ -171,6 +171,12 @@ pub enum PublishPlanError {
         line: usize,
         entry: String,
     },
+
+    #[error("removable state export only supports removable targets, not {method}: {target}")]
+    UnsupportedRemovableStateTarget { target: String, method: String },
+
+    #[error("removable state export requires target path: {0}")]
+    RemovableDestinationMissing(String),
 }
 
 pub fn dry_run_publish(
@@ -476,6 +482,41 @@ pub fn export_remote_state_manifest(
         project_id: Some(manifest.project.id.clone()),
         target: Some(target.name.clone()),
         source: None,
+        paths,
+    })
+}
+
+pub fn export_removable_state_manifest(
+    project_root: impl AsRef<Path>,
+    target_name: &str,
+) -> Result<RemoteStateManifest, PublishPlanError> {
+    let project_root = project_root.as_ref();
+    let validation = validate_project(project_root)?;
+    if !validation.valid {
+        return Err(PublishPlanError::ProjectInvalid);
+    }
+
+    let manifest = load_manifest(project_root)?;
+    let target = find_target(&manifest, target_name)?;
+    if target.method != "removable" {
+        return Err(PublishPlanError::UnsupportedRemovableStateTarget {
+            target: target.name.clone(),
+            method: target.method.clone(),
+        });
+    }
+
+    let Some(destination_root) = target.path.as_deref() else {
+        return Err(PublishPlanError::RemovableDestinationMissing(
+            target.name.clone(),
+        ));
+    };
+    let destination_root = project_root.join(destination_root);
+    let paths = collect_files_under_root(&destination_root)?;
+
+    Ok(RemoteStateManifest {
+        project_id: Some(manifest.project.id.clone()),
+        target: Some(target.name.clone()),
+        source: Some(destination_root.display().to_string()),
         paths,
     })
 }
@@ -1018,6 +1059,47 @@ fn collect_relative_files_inner(
     Ok(())
 }
 
+fn collect_files_under_root(root: &Path) -> Result<Vec<String>, PublishPlanError> {
+    let mut files = Vec::new();
+    if !root.exists() {
+        return Ok(files);
+    }
+
+    collect_files_under_root_inner(root, root, &mut files)?;
+    files.sort();
+    files.dedup();
+    Ok(files)
+}
+
+fn collect_files_under_root_inner(
+    root: &Path,
+    current: &Path,
+    files: &mut Vec<String>,
+) -> Result<(), PublishPlanError> {
+    let entries =
+        fs::read_dir(current).map_err(|source| PublishPlanError::ReadDirectoryFailed {
+            path: current.to_path_buf(),
+            source,
+        })?;
+
+    for entry in entries {
+        let entry = entry.map_err(|source| PublishPlanError::ReadDirectoryFailed {
+            path: current.to_path_buf(),
+            source,
+        })?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_files_under_root_inner(root, &path, files)?;
+        } else if path.is_file() {
+            if let Ok(relative) = path.strip_prefix(root) {
+                files.push(relative.to_string_lossy().to_string());
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1488,6 +1570,105 @@ delete_policy = "confirm"
             remote_state_manifest_text(&manifest.paths),
             "content/index.gmi\n"
         );
+    }
+
+    #[test]
+    fn exports_removable_destination_paths_as_remote_state_manifest() {
+        let project = temp_project_root("removable-state").join("audio-capsule.wayproject");
+        fs::create_dir_all(project.join("publish/export/content")).expect("destination content");
+        fs::create_dir_all(project.join("publish/export/audio/published"))
+            .expect("destination audio");
+        fs::write(
+            project.join("publish/export/content/index.gmi"),
+            "# Existing\n",
+        )
+        .expect("existing content");
+        fs::write(
+            project.join("publish/export/audio/published/field-note.opus"),
+            b"opus",
+        )
+        .expect("existing audio");
+        fs::write(project.join("publish/export/stale.gmi"), "# Stale\n").expect("stale file");
+        fs::create_dir_all(project.join("content")).expect("source content");
+        fs::write(project.join("content/index.gmi"), "# Local\n").expect("source index");
+        fs::write(
+            project.join("project.toml"),
+            r#"[waystone]
+schema = 1
+created_by = "WaystoneOS"
+
+[project]
+id = "removable-state"
+name = "Removable State"
+type = "capsule"
+
+[content]
+root = "content"
+index = "index.gmi"
+
+[[publish.targets]]
+name = "export"
+method = "removable"
+path = "publish/export"
+delete_policy = "confirm"
+"#,
+        )
+        .expect("manifest");
+
+        let manifest =
+            export_removable_state_manifest(&project, "export").expect("state should export");
+
+        assert_eq!(manifest.project_id.as_deref(), Some("removable-state"));
+        assert_eq!(manifest.target.as_deref(), Some("export"));
+        assert!(manifest
+            .source
+            .as_deref()
+            .is_some_and(|source| source.ends_with("publish/export")));
+        assert_eq!(
+            manifest.paths,
+            vec![
+                "audio/published/field-note.opus",
+                "content/index.gmi",
+                "stale.gmi"
+            ]
+        );
+
+        let remote_state = project.join("removable-state.txt");
+        fs::write(&remote_state, remote_state_manifest_text(&manifest.paths))
+            .expect("state manifest");
+        let plan = dry_run_publish_with_context(
+            &project,
+            "export",
+            &PublishContext {
+                hosts_root: None,
+                identities_root: None,
+                remote_state_path: Some(remote_state),
+            },
+        )
+        .expect("dry-run should use exported state");
+
+        assert_eq!(plan.upload, Vec::<String>::new());
+        assert_eq!(
+            plan.delete,
+            vec!["audio/published/field-note.opus", "stale.gmi"]
+        );
+        assert_eq!(plan.skip, vec!["content/index.gmi"]);
+
+        let _ = fs::remove_dir_all(project.parent().expect("temp project has parent"));
+    }
+
+    #[test]
+    fn removable_state_export_blocks_unsupported_methods() {
+        let error = export_removable_state_manifest(
+            repo_path("examples/projects/ssh-capsule.wayproject"),
+            "production",
+        )
+        .expect_err("ssh target should not export removable state");
+
+        assert!(matches!(
+            error,
+            PublishPlanError::UnsupportedRemovableStateTarget { .. }
+        ));
     }
 
     #[test]

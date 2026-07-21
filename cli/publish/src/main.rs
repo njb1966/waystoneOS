@@ -13,12 +13,12 @@ use waystone_publication_history::{
     PlannedHistoryPreviewDetail, PlannedHistoryPreviewEntry, PublicationHistoryRecord,
 };
 use waystone_publish_plan::{
-    dry_run_publish_with_context, export_remote_state_manifest, inspect_remote_state_manifest,
-    prepare_removable_execution_with_context, remote_state_manifest_text,
-    transfer_intent_with_context, validate_publication_with_context, FeedEntryDiagnostic,
-    FeedPublicationState, PublishContext, PublishValidationIssue, RemoteComparisonState,
-    RemoteStateManifest, RemovableExecutionOperation, RemovableExecutionPlan, Resolution,
-    TransferIntent,
+    dry_run_publish_with_context, export_remote_state_manifest, export_removable_state_manifest,
+    inspect_remote_state_manifest, prepare_removable_execution_with_context,
+    remote_state_manifest_text, transfer_intent_with_context, validate_publication_with_context,
+    FeedEntryDiagnostic, FeedPublicationState, PublishContext, PublishValidationIssue,
+    RemoteComparisonState, RemoteStateManifest, RemovableExecutionOperation,
+    RemovableExecutionPlan, Resolution, TransferIntent,
 };
 use waystone_publish_service::{
     ExecuteRemovableRequest, ExecuteRemovableResponse, PublishService, RemovableExecutionFileResult,
@@ -41,6 +41,9 @@ fn run(args: &[String]) -> i32 {
         ["--help"] | ["help"] | [] => {
             print_help();
             0
+        }
+        _ if positional.contains(&"--export-removable-state") => {
+            export_removable_state(&positional, json)
         }
         _ if positional.contains(&"--export-remote-state") => {
             export_remote_state(&positional, json)
@@ -125,6 +128,54 @@ fn export_remote_state(args: &[&str], json: bool) -> i32 {
         Err(error) => {
             print_command_error("publish", "export_remote_state", &error.to_string(), json)
         }
+    }
+}
+
+fn export_removable_state(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+
+    match export_removable_state_manifest(Path::new(project), target) {
+        Ok(manifest) => {
+            let manifest_text = remote_state_manifest_text(&manifest.paths);
+            let output_path = option_value(args, "--output");
+            if let Some(output_path) = output_path {
+                if let Err(error) = write_new_file(Path::new(output_path), manifest_text.as_bytes())
+                {
+                    return print_command_error("publish", "export_removable_state", &error, json);
+                }
+            }
+
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{{{},\"path_count\":{},\"paths\":[{}],\"manifest\":\"{}\",\"output_path\":{}}}}}",
+                    json_remote_state_manifest_identity(&manifest),
+                    manifest.paths.len(),
+                    json_string_array(&manifest.paths),
+                    escape_json(&manifest_text),
+                    json_optional_string(output_path)
+                );
+            } else if let Some(output_path) = output_path {
+                println!(
+                    "Saved removable-state manifest: {} ({} paths)",
+                    output_path,
+                    manifest.paths.len()
+                );
+            } else {
+                print!("{manifest_text}");
+            }
+            0
+        }
+        Err(error) => print_command_error(
+            "publish",
+            "export_removable_state",
+            &error.to_string(),
+            json,
+        ),
     }
 }
 
@@ -1052,6 +1103,9 @@ fn print_help() {
     println!(
         "  publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]"
     );
+    println!(
+        "  publish --export-removable-state --project PATH --target NAME [--output PATH] [--json]"
+    );
     println!("  publish --inspect-remote-state --remote-state PATH [--json]");
     println!("  publish --execute-removable --project PATH --target NAME --date DATE --confirm-transfer [--remote-state PATH] [--json]");
     println!("  publish --prepare-removable-execution --project PATH --target NAME [--remote-state PATH] [--json]");
@@ -1062,8 +1116,8 @@ fn print_help() {
     println!("  publish --save-planned-history-preview --project PATH --target NAME --date DATE [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --list-planned-history-previews --project PATH [--json]");
     println!("  publish --read-planned-history-preview --project PATH --preview PATH [--json]");
-    println!("  publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
-    println!("  publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
+    println!("  publish --completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|partial|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
+    println!("  publish --save-completed-history --project PATH --target NAME --date DATE --transfer-result completed|failed|partial|skipped --verification-result not-run|passed|failed --rollback-available true|false --rollback-notes TEXT [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --list-completed-history --project PATH [--json]");
     println!("  publish --read-completed-history --project PATH --record PATH [--json]");
 }

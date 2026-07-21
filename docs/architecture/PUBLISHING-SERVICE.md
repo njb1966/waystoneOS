@@ -153,12 +153,16 @@ Current helper commands:
 - `publish --export-remote-state --project PATH --target NAME [--output PATH]`
   emits the selected project's local publishable path set in the same plain
   text manifest format.
+- `publish --export-removable-state --project PATH --target NAME [--output PATH]`
+  emits a removable target's configured destination-root file path set in the
+  same plain text manifest format.
 - `publish --inspect-remote-state --remote-state PATH` validates and lists an
   existing local manifest using the same parser as dry-run comparison.
 
-`--export-remote-state --output PATH` uses create-new file semantics and refuses
-to overwrite an existing file. These helpers are local inspection/export tools;
-they do not contact or mutate remote systems.
+`--export-remote-state --output PATH` and `--export-removable-state --output
+PATH` use create-new file semantics and refuse to overwrite an existing file.
+These helpers are local inspection/export tools; they do not contact or mutate
+remote systems.
 
 ## Destructive Deletion
 
@@ -308,13 +312,15 @@ preview TOML, build completed history result records from explicit
 caller-supplied result fields, save those completed records under project
 `history/completed/`, list saved completed records, and read selected completed
 TOML through the `publish` CLI. It can export the local publishable path set as
-a remote-state manifest, inspect existing local remote-state manifests, and
-compare a dry-run against a caller-supplied local manifest without contacting a
-remote. It can also build a non-mutating transfer intent report that recomputes
-validation and dry-run state, reports whether execution would be ready, lists
-blocking issues and required confirmations, shows change buckets and
-host/identity resolution summaries, and identifies the future completed-history
-directory without executing transfer. The publish planning crate, publish
+a remote-state manifest, export a removable target's configured
+destination-root path set as the same local manifest shape, inspect existing
+local remote-state manifests, and compare a dry-run against a caller-supplied
+local manifest without contacting a remote. It can also build a non-mutating
+transfer intent report that recomputes validation and dry-run state, reports
+whether execution would be ready, lists blocking issues and required
+confirmations, shows change buckets and host/identity resolution summaries, and
+identifies the future completed-history directory without executing transfer.
+The publish planning crate, publish
 service crate, and `publish` CLI can also build a non-mutating removable
 executor preparation plan with a bounded local destination root and per-file
 source/destination operation records. That preparation contract blocks

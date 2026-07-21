@@ -198,6 +198,8 @@ Current behavior:
   after the copy completes
 - Refuses removable upload overwrites when the destination file already exists
 - Refuses stale temporary-copy path collisions before copying starts
+- Exports the configured removable destination root's current file path set as
+  a local remote-state manifest for later dry-run comparison
 - Writes completed-history records from removable executor results, including
   completed, failed, and partial copy-time outcomes
 - Does not execute remote deletions
@@ -217,6 +219,7 @@ Current tests cover:
 - Ready and blocked transfer-intent reports
 - Ready removable executor preparation plans, unsupported-method blockers, and
   delete-operation blockers
+- Removable destination-state manifest export and reuse in dry-run comparison
 - Confirmed removable file-copy execution, completed-history writing, partial
   copy-time failure history, missing confirmation rejection, upload-overwrite
   rejection, and temporary-copy collision rejection
@@ -233,6 +236,7 @@ Current command:
 
 ```text
 publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]
+publish --export-removable-state --project PATH --target NAME [--output PATH] [--json]
 publish --inspect-remote-state --remote-state PATH [--json]
 publish --execute-removable --project PATH --target NAME --date DATE --confirm-transfer [--remote-state PATH] [--json]
 publish --prepare-removable-execution --project PATH --target NAME [--remote-state PATH] [--json]
@@ -279,6 +283,8 @@ Current behavior:
 - Optional local remote-state comparison through `--remote-state PATH`
 - Dry-run JSON includes `comparison` metadata and populated `upload`, `update`, `delete`, and `skip` arrays
 - Local remote-state manifest export from a selected project's publishable path set
+- Local removable destination-state manifest export from a selected removable
+  target's configured destination root
 - Local remote-state manifest inspection using the same path parser as dry-run comparison
 - Remote-state export refuses to overwrite an existing output file
 - Human-readable planned publication history record
