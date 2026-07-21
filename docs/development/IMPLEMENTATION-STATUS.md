@@ -726,6 +726,7 @@ Implemented in:
 session/
 scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
+scripts/install-layout-temp-root-smoke.sh
 ```
 
 Current behavior:
@@ -733,6 +734,7 @@ Current behavior:
 - Provides a repo-local XDG Wayland session entry source file at `session/waystone.desktop`
 - Provides a repo-local launcher wrapper source file at `session/waystone-session`
 - Provides a repo-local install-layout manifest at `session/install-layout.toml`
+- Provides a temporary-root validator for the future installed tree
 - Defines future Debian preview target paths for the session entry, wrapper,
   Workspace binary, service binaries, D-Bus service files, and systemd user
   units
@@ -985,6 +987,10 @@ failure when the selected Workspace binary is missing.
 The dev-session smoke built the Qt Workspace under `/tmp`, launched it through
 `session/waystone-session`, and verified default-root, explicit-config, and
 missing-root diagnostics through `--check-roots` without installing files.
+The install-layout temp-root smoke staged the future installed tree under
+`/tmp`, verified session, D-Bus service, service binary, and systemd user-unit
+path alignment against `session/install-layout.toml`, and verified systemd user
+unit syntax against temporary binary placeholders.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract

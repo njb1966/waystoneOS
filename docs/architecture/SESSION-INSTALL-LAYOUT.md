@@ -18,6 +18,7 @@ session/
   waystone-session
 scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
+scripts/install-layout-temp-root-smoke.sh
 ```
 
 `session/waystone.desktop` is the source XDG session entry. In a later
@@ -100,6 +101,7 @@ Run:
 ```bash
 scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
+scripts/install-layout-temp-root-smoke.sh
 ```
 
 The layout smoke verifies:
@@ -115,7 +117,14 @@ The dev-session smoke builds the Qt Workspace under `/tmp`, runs it through
 `session/waystone-session`, and verifies default-root, explicit-config, and
 missing-root diagnostics through `--check-roots`.
 
-Both smoke scripts write only to temporary directories under `/tmp`.
+The temp-root install-layout smoke stages the session entry, launcher wrapper,
+Workspace binary placeholder, service binary placeholders, D-Bus service files,
+and systemd user units under a generated `/tmp` root. It verifies that staged
+paths match `session/install-layout.toml`, that D-Bus service files point to
+the contracted binaries and systemd unit names, and that systemd user unit
+syntax remains valid when pointed at the temporary binary placeholders.
+
+All session smoke scripts write only to temporary directories under `/tmp`.
 
 ## Deferrals
 

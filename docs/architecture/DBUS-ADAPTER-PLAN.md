@@ -335,7 +335,7 @@ Additional D-Bus verification should prove:
 
 ## Next Work
 
-1. Review current Phase 0/0.1 alignment and choose the next implementation slice deliberately.
-2. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
-3. Add install/package automation only when the repo has a broader install layout.
+1. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
+2. Use the repo-local session/install-layout contract and temporary-root validation as the boundary before any install/package automation.
+3. Add a narrow repo-local dev-run command for launching the current preview through `session/waystone-session`.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.
