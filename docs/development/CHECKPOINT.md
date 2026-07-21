@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after D-Bus removable executor implementation
+Status: current after Qt removable-state export helper
 Date: 2026-07-21
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -422,6 +422,9 @@ Result after D-Bus removable executor implementation: checks passed on
 publishd D-Bus smoke, clippy with warnings denied, and git diff whitespace
 checks.
 
+Result after Qt removable-state export helper: checks passed on 2026-07-21,
+including the focused Qt project/publish smoke and git diff whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -478,6 +481,9 @@ checks.
 - The Qt Publish pane displays `publish --transfer-intent` results for the
   selected project and target without mutating projects or remotes.
 - The Qt Publish pane can supply a local remote-state manifest to publish preview and history commands and displays comparison buckets without contacting or mutating a remote.
+- The Qt Publish pane can export a selected removable target's destination-state
+  manifest into a project-local `history/previews/` helper file and load that
+  path into the existing remote-state comparison field.
 - `publish --completed-history` and `publish --save-completed-history` create local completed history result records from explicit result fields and do not execute remote transfer or verification.
 - The Qt Publish pane lists and reads saved completed history records without creating completed records or mutating remotes.
 - The Qt Publish pane can hand selected invalid feed-entry diagnostics back to the Create pane without editing metadata.
@@ -500,8 +506,8 @@ checks.
 
 Recommended next implementation step:
 
-1. Consider Qt read-only ergonomics for removable state export if it helps the
-   local 0.1 demonstrable flow.
+1. Run a brief Phase 0/0.1 alignment audit before choosing the next
+   implementation slice.
 2. Keep Qt mutating publish controls, real SSH transfer, remote deletion
    execution, credential unlock, and
    remote verification deferred until comparison/readiness boundaries are
@@ -513,6 +519,6 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after D-Bus removable executor implementation on 2026-07-21.
+Current after Qt removable-state export helper on 2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.

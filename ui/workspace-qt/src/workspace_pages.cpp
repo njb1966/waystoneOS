@@ -518,6 +518,19 @@ QString plannedHistoryDate() {
     return QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
 }
 
+QString safeStateTargetName(QString target) {
+    target.replace(QRegularExpression("[^A-Za-z0-9._-]+"), "_");
+    return target.isEmpty() ? QString("target") : target;
+}
+
+QString removableStateExportPath(const QString &projectPath, const QString &target) {
+    const QString stamp =
+        QDateTime::currentDateTimeUtc().toString("yyyyMMdd'T'HHmmsszzz'Z'");
+    return QDir(projectPath)
+        .filePath("history/previews/removable-state-" +
+                  safeStateTargetName(target) + "-" + stamp + ".txt");
+}
+
 QString renderPublishPreview(const PublishPreview &preview) {
     if (!preview.ok) {
         return "Dry-run preview failed\n" + preview.error;
@@ -1966,6 +1979,11 @@ QWidget *publishPage(const CliAdapter *adapter,
     auto *remoteState = new QLineEdit(toolbar);
     remoteState->setObjectName("publishRemoteStatePath");
     remoteState->setPlaceholderText("Remote state file");
+    auto *exportState = new QPushButton("Export State");
+    exportState->setObjectName("publishExportRemovableState");
+    auto *exportStateStatus = new QLabel("State export: idle");
+    exportStateStatus->setObjectName("publishRemovableStateExportStatus");
+    exportStateStatus->setWordWrap(true);
     auto *preview = new QPushButton("Preview");
     preview->setObjectName("publishPreview");
     auto *savePreview = new QPushButton("Save Preview");
@@ -1981,10 +1999,12 @@ QWidget *publishPage(const CliAdapter *adapter,
     toolbarLayout->addWidget(target);
     toolbarLayout->addWidget(new QLabel("Remote State"));
     toolbarLayout->addWidget(remoteState, 1);
+    toolbarLayout->addWidget(exportState);
     toolbarLayout->addWidget(preview);
     toolbarLayout->addWidget(savePreview);
     toolbarLayout->addWidget(refresh);
     toolbarLayout->addWidget(previewStatus, 1);
+    toolbarLayout->addWidget(exportStateStatus, 1);
     toolbarLayout->addWidget(saveStatus, 1);
     toolbarLayout->addStretch();
     layout->addWidget(toolbar);
@@ -2470,6 +2490,49 @@ QWidget *publishPage(const CliAdapter *adapter,
         updateHistoryComparison();
     };
 
+    auto runExportRemovableState = [=]() {
+        const int row = projectsTable->currentRow();
+        if (row < 0) {
+            exportStateStatus->setText("State export: no project selected");
+            return;
+        }
+        auto *item = projectsTable->item(row, 0);
+        if (item == nullptr) {
+            exportStateStatus->setText("State export: no project selected");
+            return;
+        }
+
+        const QString targetName = selectedPublishTarget(target);
+        if (targetName.isEmpty()) {
+            exportStateStatus->setText("State export: no target configured");
+            return;
+        }
+
+        const QString projectPath = item->data(Qt::UserRole).toString();
+        const QString outputPath = removableStateExportPath(projectPath, targetName);
+        const QString outputDirectory = QFileInfo(outputPath).absolutePath();
+        QDir directory;
+        if (!directory.mkpath(outputDirectory)) {
+            exportStateStatus->setText("State export failed: " + outputDirectory);
+            return;
+        }
+
+        const RemovableStateExportResult exported =
+            adapter->exportRemovableState(projectPath, targetName, outputPath);
+        if (!exported.ok) {
+            exportStateStatus->setText("State export failed: " + exported.error);
+            return;
+        }
+
+        remoteState->setText(exported.outputPath.isEmpty() ? outputPath
+                                                           : exported.outputPath);
+        exportStateStatus->setText(
+            QString("State exported: %1 (%2 paths)")
+                .arg(remoteState->text(), QString::number(exported.pathCount)));
+        refreshTargetOverview();
+        runPreview();
+    };
+
     auto refreshPublishProjects = [=]() {
         populatePublishTable(projectsTable, target, plan, previewStatus, adapter,
                              projectFilter->text(), remoteState->text().trimmed());
@@ -2497,6 +2560,8 @@ QWidget *publishPage(const CliAdapter *adapter,
         refreshTargetOverview();
         runPreview();
     });
+
+    QObject::connect(exportState, &QPushButton::clicked, runExportRemovableState);
 
     QObject::connect(preview, &QPushButton::clicked, runPreview);
 

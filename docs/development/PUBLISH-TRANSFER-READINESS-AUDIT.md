@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after D-Bus removable executor implementation
+Status: current after Qt removable-state export helper
 Date: 2026-07-21
 
 This audit records the boundary between the current local/removable publishing
@@ -51,6 +51,9 @@ Implemented foundations:
 - `publish --export-removable-state` emits the configured removable
   destination root's current file path set so existing removable media can be
   fed back into dry-run comparison as caller-supplied local state.
+- The Qt Publish pane can call `publish --export-removable-state --json` for
+  the selected removable target, save the helper manifest under project
+  `history/previews/`, and load that path into the existing comparison field.
 - Planned history previews and completed-history records are inspectable local
   records.
 - `waystone-publishd` exposes preview, validation, read-only transfer-intent,
@@ -220,8 +223,8 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Consider Qt read-only ergonomics for removable state export only if it helps
-   the local 0.1 demonstrable flow.
+1. Run a brief Phase 0/0.1 alignment audit before choosing the next
+   implementation slice.
 2. Keep Qt mutating publish controls deferred until the D-Bus removable
    execution path has an explicitly approved UI flow.
 3. Keep SSH-family executors behind the credential, host-trust, remote-path,

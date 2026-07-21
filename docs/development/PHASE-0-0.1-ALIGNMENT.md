@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after D-Bus removable executor implementation
+Status: current after Qt removable-state export helper
 Date: 2026-07-21
 
 This document records the deliberate alignment check between the Phase 0
@@ -90,7 +90,7 @@ or approved scope changes.
 | Workspace Frame | Partial, healthy | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
-| Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, removable destination-state export, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service/D-Bus, failed/partial copy-time executor history, D-Bus removable executor smoke coverage, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
+| Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, removable destination-state export, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service/D-Bus, failed/partial copy-time executor history, D-Bus removable executor smoke coverage, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, Qt removable destination-state export helper, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
 | Audio Path | Partial, improved | Audio-capable project defaults, recording metadata sidecars, recording metadata update, feed-entry metadata update, narrow WAV master capture from explicit `ffmpeg` input sources, real `ffmpeg/libopus` Opus publication-copy export, feed-entry metadata sidecars, publication/feed-entry handoff validation, minimal Atom feed XML generation with local existing-entry merge/update, local sidecar attachment, Qt Create-pane capture, export, attachment, recording-update, feed-entry preparation/update, validation, and feed-generation controls, record/listen CLIs, audio service boundary, and D-Bus adapter for local audio/feed operations exist. Audio device enumeration and playback are not implemented. |
 | Host and Identity Model | Strong for metadata scope | Host/identity records, validation, CLIs, service wrappers, D-Bus adapters, and Operate-pane read-only inspection exist. Secret storage and SSH host probing are not implemented. |
 | Add-On Integration Points | On track | Browser, Helm, and Comm remain add-on integration targets. No sibling repositories have been modified. |
@@ -129,11 +129,14 @@ service crate, publishd D-Bus, and Qt Publish pane. Dry-run preview can compare
 local publishable files against a caller-supplied local remote-state manifest
 and classify upload/delete/skip without contacting or mutating a remote. The Qt
 Publish pane can provide that local manifest path and render comparison
-metadata plus upload/update/delete/skip dry-run buckets. The CLI can also
-export the local publishable path set as a plain text remote-state manifest and
-inspect existing local manifests with the same parser. It can also export a
-removable target destination root's current file path set into the same local
-manifest shape. The CLI and publish service can now build a non-mutating
+metadata plus upload/update/delete/skip dry-run buckets. The Qt Publish pane
+can also export a selected removable target's destination-state manifest into a
+project-local helper file under `history/previews/` and load that path into the
+existing comparison field. The CLI can also export the local publishable path
+set as a plain text remote-state manifest and inspect existing local manifests
+with the same parser. It can also export a removable target destination root's
+current file path set into the same local manifest shape. The CLI and publish
+service can now build a non-mutating
 transfer-intent report with
 `execution_ready`, blocking issues, required confirmations, host/identity
 summaries, comparison metadata, change buckets, and the future completed-history
@@ -245,6 +248,8 @@ Concrete deliverables should be small and inspectable:
   implementing any mutating publish IPC method.
 - Implement confirmed D-Bus removable execution in `waystone-publishd` from the
   ADR-0014 shape with private-session-bus smoke coverage.
+- Add Qt read-only ergonomics for removable destination-state export into a
+  project-local comparison manifest.
 
 ## Explicitly Still Deferred
 

@@ -1,7 +1,7 @@
 # Waystone Workspace UI Plan
 
 Status: Current scaffold plan
-Date: 2026-07-18
+Date: 2026-07-21
 
 This document defines the first Waystone Workspace UI planning boundary. It is not an implementation plan for a full desktop shell or custom compositor.
 
@@ -178,7 +178,10 @@ lists saved preview records through `publish --list-planned-history-previews
 --read-planned-history-preview --json`, preserves the selected saved-preview row
 across refreshes when the preview still exists, reports first-line differences
 between generated and selected saved planned history, and filters visible
-saved-preview records by filename or path. It also lists saved completed
+saved-preview records by filename or path. It can export a selected removable
+target's destination-state manifest through `publish --export-removable-state
+--json`, save that helper file under project `history/previews/`, and load the
+generated path into the existing comparison field. It also lists saved completed
 history records through `publish --list-completed-history --json`, loads
 selected completed-record TOML through `publish --read-completed-history
 --json`, and filters visible completed records by filename or path. The

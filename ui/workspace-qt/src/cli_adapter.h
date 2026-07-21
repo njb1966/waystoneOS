@@ -142,6 +142,16 @@ struct RemovableExecutionPlan {
     QString error;
 };
 
+struct RemovableStateExportResult {
+    bool ok = false;
+    QString project;
+    QString target;
+    QString outputPath;
+    int pathCount = 0;
+    QStringList paths;
+    QString error;
+};
+
 struct PlannedHistoryFile {
     QString path;
     QString action;
@@ -342,6 +352,8 @@ public:
     RemovableExecutionPlan prepareRemovableExecution(
         const QString &path, const QString &target,
         const QString &remoteStatePath = {}) const;
+    RemovableStateExportResult exportRemovableState(
+        const QString &path, const QString &target, const QString &outputPath) const;
     PlannedHistoryPreview plannedPublicationHistory(const QString &path,
                                                     const QString &target,
                                                     const QString &date,

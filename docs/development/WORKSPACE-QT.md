@@ -1,7 +1,7 @@
 # Waystone Workspace Qt Development
 
 Status: local authoring prototype
-Date: 2026-07-20
+Date: 2026-07-21
 
 The first Waystone Workspace UI source lives in:
 
@@ -53,6 +53,7 @@ Implemented:
 - Publish-pane selected completed-history detail loading using `publish --read-completed-history --json`
 - Publish-pane completed-history filename/path filter
 - Publish-pane optional local remote-state path passed to publish dry-run, validation, planned-history, and saved-preview commands
+- Publish-pane removable destination-state export using `publish --export-removable-state --json`; the exported project-local manifest path is loaded into the existing remote-state comparison field
 - Publish-pane comparison metadata plus upload/update/delete/skip dry-run detail display
 - Publish-pane per-target overview table using read-only dry-run status, method, change count, verification count, and destination
 - Publish-pane target overview row selection updates the active target and refreshes the existing preview/history panes
@@ -200,8 +201,8 @@ planned-history preview transitions, saved-preview listing, selected saved
 preview detail loading, saved-preview row selection preservation,
 generated-vs-saved comparison reporting, and saved-preview filtering without
 remote publication. It also verifies read-only transfer-intent and removable
-execution readiness reporting for ready, blocked, and caller-supplied
-remote-state comparison states. It also seeds a local completed-history result
+execution readiness reporting for ready, blocked, exported removable-state,
+and caller-supplied remote-state comparison states. It also seeds a local completed-history result
 record and verifies completed-record listing, selected-record detail loading,
 and completed-record filtering in the Publish pane.
 

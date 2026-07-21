@@ -589,6 +589,46 @@ RemovableExecutionPlan CliAdapter::prepareRemovableExecution(
     return plan;
 }
 
+RemovableStateExportResult CliAdapter::exportRemovableState(
+    const QString &path, const QString &target, const QString &outputPath) const {
+    const CommandResult result =
+        runCommand("publish", {"--export-removable-state",
+                               "--project",
+                               path,
+                               "--target",
+                               target,
+                               "--output",
+                               outputPath,
+                               "--json"});
+
+    RemovableStateExportResult exported;
+    if (!result.error.isEmpty()) {
+        exported.error = result.error;
+        return exported;
+    }
+
+    if (result.exitCode != 0) {
+        exported.error = commandFailureDetail(result, "publish export-removable-state failed");
+        return exported;
+    }
+
+    QString error;
+    const QJsonObject root = parseJsonObject(result.standardOutput, &error);
+    if (!error.isEmpty()) {
+        exported.error = "publish export-removable-state returned unreadable JSON";
+        return exported;
+    }
+
+    const QJsonObject data = root.value("data").toObject();
+    exported.ok = true;
+    exported.project = data.value("project").toString();
+    exported.target = data.value("target").toString();
+    exported.outputPath = data.value("output_path").toString();
+    exported.pathCount = data.value("path_count").toInt();
+    exported.paths = jsonStringArray(data.value("paths").toArray());
+    return exported;
+}
+
 PlannedHistoryPreview CliAdapter::plannedPublicationHistory(const QString &path,
                                                             const QString &target,
                                                             const QString &date,

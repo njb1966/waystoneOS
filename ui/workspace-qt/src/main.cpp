@@ -755,6 +755,9 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *selector = page->findChild<QComboBox *>("publishTargetSelector");
     auto *status = page->findChild<QLabel *>("publishPreviewStatus");
     auto *remoteState = page->findChild<QLineEdit *>("publishRemoteStatePath");
+    auto *exportState = page->findChild<QPushButton *>("publishExportRemovableState");
+    auto *exportStateStatus =
+        page->findChild<QLabel *>("publishRemovableStateExportStatus");
     auto *previewButton = page->findChild<QPushButton *>("publishPreview");
     auto *savePreview = page->findChild<QPushButton *>("publishSavePreview");
     auto *saveStatus = page->findChild<QLabel *>("publishSavePreviewStatus");
@@ -781,6 +784,7 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
     auto *projects = page->findChild<QTableWidget *>("publishProjectsTable");
     auto *targetOverview = page->findChild<QTableWidget *>("publishTargetOverviewTable");
     if (selector == nullptr || status == nullptr || remoteState == nullptr ||
+        exportState == nullptr || exportStateStatus == nullptr ||
         previewButton == nullptr || savePreview == nullptr || saveStatus == nullptr ||
         plan == nullptr || validation == nullptr || transferIntent == nullptr ||
         removableExecution == nullptr || historySummary == nullptr ||
@@ -887,6 +891,47 @@ int runPublishTargetStatusSmoke(const CliAdapter &adapter, const QApplication &a
         delete page;
         return 1;
     }
+
+    const QString removableDestination =
+        QDir(created.projectPath).filePath("publish/export/content");
+    if (!QDir().mkpath(removableDestination)) {
+        err << "workspace publish smoke: removable destination setup failed"
+            << Qt::endl;
+        delete page;
+        return 1;
+    }
+    QString removableStateSeedError;
+    if (!writeFile(QDir(removableDestination).filePath("index.gmi"),
+                   "Seeded removable destination\n", &removableStateSeedError)) {
+        err << "workspace publish smoke: removable destination seed failed: "
+            << removableStateSeedError << Qt::endl;
+        delete page;
+        return 1;
+    }
+
+    exportState->click();
+    QApplication::processEvents();
+    const QString exportedStatePath = remoteState->text().trimmed();
+    const bool exportedUnderProject =
+        QDir::cleanPath(exportedStatePath)
+            .startsWith(QDir::cleanPath(created.projectPath + "/history/previews/"));
+    if (!exportStateStatus->text().startsWith("State exported:") ||
+        !exportStateStatus->text().contains("(1 paths)") ||
+        exportedStatePath.isEmpty() || !QFileInfo::exists(exportedStatePath) ||
+        !exportedUnderProject ||
+        !plan->toPlainText().contains("Source: " + exportedStatePath) ||
+        !plan->toPlainText().contains("Remote paths: 1") ||
+        !plan->toPlainText().contains("Skip:") ||
+        !plan->toPlainText().contains("content/index.gmi")) {
+        err << "workspace publish smoke: removable state export did not feed comparison"
+            << Qt::endl;
+        err << "state status: " << exportStateStatus->text() << Qt::endl;
+        err << "remote state: " << exportedStatePath << Qt::endl;
+        err << "publish plan: " << plan->toPlainText() << Qt::endl;
+        delete page;
+        return 1;
+    }
+
     if (completedRecords->rowCount() < 1 || completedRecords->item(0, 0) == nullptr ||
         !completedRecords->item(0, 0)->text().contains("export") ||
         !completedRecordDetail->toPlainText().contains("export-completed.toml") ||
