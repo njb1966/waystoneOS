@@ -190,6 +190,8 @@ Version 0.1 implementation is complete when:
 Current implementation progress is tracked in [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md).
 Manual preview steps for the repo-local development session are tracked in
 [MANUAL-PREVIEW-CHECKLIST.md](MANUAL-PREVIEW-CHECKLIST.md).
+Recorded manual-preview results are tracked in
+[MANUAL-PREVIEW-FINDINGS.md](MANUAL-PREVIEW-FINDINGS.md).
 
 ## Explicit Deferrals
 

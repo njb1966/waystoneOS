@@ -64,7 +64,7 @@ printf "audio_metadata = %s\n" "$preview_root/audio" >> "$preview_config"
 Confirm the temporary roots are valid:
 
 ```bash
-scripts/run-dev-session.sh --config "$preview_config" --check-roots
+QT_QPA_PLATFORM=offscreen scripts/run-dev-session.sh --config "$preview_config" --check-roots
 ```
 
 Expected result:
@@ -148,3 +148,6 @@ For each manual pass, record:
 - any visible UI confusion
 - any command output or terminal error
 - whether repository examples or only temporary roots were used
+
+Current recorded findings live in
+[MANUAL-PREVIEW-FINDINGS.md](MANUAL-PREVIEW-FINDINGS.md).

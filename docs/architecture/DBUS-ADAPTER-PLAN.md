@@ -337,5 +337,5 @@ Additional D-Bus verification should prove:
 
 1. Keep Qt Workspace on CLI adapters until D-Bus activation behavior is stable in installed environments.
 2. Use the repo-local session/install-layout contract and temporary-root validation as the boundary before any install/package automation.
-3. Run the manual preview checklist before installed-session work and keep Qt on CLI adapters unless that pass exposes a specific blocker.
+3. Run the manual preview checklist in a visible desktop session before installed-session work and keep Qt on CLI adapters unless that pass exposes a specific blocker.
 4. Keep project migration, repair, archive, export, credential unlock, host-key probing, remote transfer, and cross-service calls deferred.

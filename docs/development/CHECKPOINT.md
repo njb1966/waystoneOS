@@ -456,6 +456,12 @@ Result after manual preview checklist: documentation/status checks,
 --no-user-config`, and git diff whitespace checks passed on 2026-07-21. No
 command behavior changed and no files were installed outside the repository.
 
+Result after agent-observable manual preview findings: default-root and
+explicit temporary-root dev-run diagnostics, offscreen startup timeout probe,
+focused Qt project smoke, and git diff whitespace checks passed on 2026-07-21.
+No files were installed outside the repository. Human-visible UI inspection is
+still pending.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -548,6 +554,9 @@ command behavior changed and no files were installed outside the repository.
 - `docs/development/MANUAL-PREVIEW-CHECKLIST.md` documents the current manual
   preview path through `scripts/run-dev-session.sh`, including temporary-root
   setup, workflow checks, expected deferrals, and finding notes.
+- `docs/development/MANUAL-PREVIEW-FINDINGS.md` records the first
+  agent-observable preview pass and the remaining need for project-owner visual
+  inspection.
 - The session artifacts have not been installed into `/usr/share`,
   `/usr/bin`, `$XDG_DATA_HOME`, or display-manager-visible directories.
 - SSH-family remote publication execution is not implemented.
@@ -557,8 +566,9 @@ command behavior changed and no files were installed outside the repository.
 
 Recommended next implementation step:
 
-1. Run the manual preview checklist and record findings.
-2. After the manual pass, choose whether to fix preview issues, improve the
+1. Project owner runs the visible manual preview checklist and records
+   findings.
+2. After the visible pass, choose whether to fix preview issues, improve the
    dev-run/manual path, or plan the first explicitly approved installed-session
    slice.
 3. Keep actual installation outside the repository, Qt mutating publish
@@ -571,6 +581,6 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after manual preview checklist on 2026-07-21.
+Current after agent-observable manual preview findings on 2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.

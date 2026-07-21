@@ -729,6 +729,7 @@ scripts/session-dev-smoke.sh
 scripts/install-layout-temp-root-smoke.sh
 scripts/run-dev-session.sh
 docs/development/MANUAL-PREVIEW-CHECKLIST.md
+docs/development/MANUAL-PREVIEW-FINDINGS.md
 ```
 
 Current behavior:
@@ -741,6 +742,9 @@ Current behavior:
   through `session/waystone-session`
 - Provides a manual preview checklist for exercising the current repo-local
   session path with temporary roots
+- Records the first agent-observable manual preview findings, including
+  terminal checks, offscreen startup, focused Qt smoke coverage, and the
+  remaining need for human-visible inspection
 - Defines future Debian preview target paths for the session entry, wrapper,
   Workspace binary, service binaries, D-Bus service files, and systemd user
   units
@@ -1008,6 +1012,9 @@ through `session/waystone-session`, and verified default root diagnostics with
 The manual preview checklist documents the safe repo-local launch path, an
 isolated temporary-root config, the current Explore/Create/Publish/Operate
 checks, expected deferrals, and what findings to record.
+The manual preview findings record shows the dev-run default and explicit-root
+diagnostics passed, offscreen startup reached the Qt event loop, and focused Qt
+workflow smoke passed. Human-visible inspection remains pending.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract
