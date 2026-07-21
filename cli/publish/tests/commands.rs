@@ -339,6 +339,74 @@ fn prepare_removable_execution_json_blocks_unsupported_methods() {
 }
 
 #[test]
+fn execute_removable_json_copies_files_and_writes_history() {
+    let project_root = unique_temp_project_root("execute-removable");
+    copy_directory(
+        std::path::Path::new(&repo_path("examples/projects/audio-capsule.wayproject")),
+        &project_root,
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--execute-removable",
+            "--project",
+            project_root
+                .to_str()
+                .expect("temp project path should be utf-8"),
+            "--target",
+            "export",
+            "--date",
+            "2026-07-21T00:00:00Z",
+            "--confirm-transfer",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(output.status.success());
+    assert!(project_root
+        .join("publish/export/content/index.gmi")
+        .is_file());
+    assert!(project_root
+        .join("publish/export/audio/published/field-note.opus")
+        .is_file());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"transfer_result\":\"completed\""));
+    assert!(stdout.contains("\"verification_result\":\"not-run\""));
+    assert!(stdout.contains("\"files\":["));
+    assert!(stdout.contains("\"action\":\"upload\""));
+    assert!(stdout.contains("\"result\":\"copied\""));
+    assert!(stdout.contains("\"bytes\":"));
+    assert!(stdout.contains("\"history\":{\"completed_path\":\""));
+    assert!(stdout.contains("history/completed"));
+    assert!(stdout.contains("copied-upload"));
+
+    let _ = std::fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn execute_removable_json_requires_confirm_transfer() {
+    let output = Command::new(env!("CARGO_BIN_EXE_publish"))
+        .args([
+            "--execute-removable",
+            "--project",
+            &repo_path("examples/projects/audio-capsule.wayproject"),
+            "--target",
+            "export",
+            "--date",
+            "2026-07-21T00:00:00Z",
+            "--json",
+        ])
+        .output()
+        .expect("publish command should run");
+
+    assert!(!output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"status\":\"error\""));
+    assert!(stdout.contains("confirm-transfer"));
+}
+
+#[test]
 fn dry_run_json_reports_feed_state() {
     let output = Command::new(env!("CARGO_BIN_EXE_publish"))
         .args([

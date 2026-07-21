@@ -320,24 +320,30 @@ executor preparation plan with a bounded local destination root and per-file
 source/destination operation records. That preparation contract blocks
 unsupported methods, existing transfer-intent blockers, and delete operations;
 it does not copy files, delete files, create directories, write completed
-history, call D-Bus, or contact a remote. Preview and completed-record saving
-are local project writes only.
+history, call D-Bus, or contact a remote. The publish service crate and
+`publish` CLI can execute confirmed local/removable file-copy transfers from
+that preparation contract with `--execute-removable --confirm-transfer`, refuse
+upload overwrites, and write completed history from executor results with
+verification left as `not-run`. Preview and completed-record saving are local
+project writes only.
 Saved preview reads are constrained to the selected project's
 `history/previews/` directory, and completed-record reads are constrained to
 the selected project's `history/completed/` directory. These preview,
 validation, local comparison, helper, preparation, and local history operations are
-available through the `publish` CLI; preview, validation, transfer-intent
-reporting, planned-history generation, completed-history result-record
-generation, and completed-history save/list/read are also available through the
-`waystone-publishd` D-Bus adapter. D-Bus completed-history saving is a local
-project write only. The transfer-intent D-Bus method is read-only; it is not a
-mutating executor. It does not generate feeds automatically, probe remote
-state, perform transfer, execute deletions, access credentials, probe SSH host
-keys, or verify a remote result.
+available through the `publish` CLI; removable execution is also available
+through the `publish` CLI. Preview, validation, transfer-intent reporting,
+planned-history generation, completed-history result-record generation, and
+completed-history save/list/read are available through the `waystone-publishd`
+D-Bus adapter. D-Bus completed-history saving is a local project write only.
+The transfer-intent D-Bus method is read-only; it is not a mutating executor.
+The D-Bus adapter does not expose removable execution yet. Publishing does not
+generate feeds automatically, probe remote state, run SSH-family transfer,
+execute deletions, access credentials, probe SSH host keys, or verify a remote
+result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 
-Actual transfer remains deferred until project validation, host identity, and
-credential boundaries are stable. The current transfer-readiness audit is
+SSH-family remote transfer remains deferred until project validation, host
+identity, and credential boundaries are stable. The current transfer-readiness audit is
 tracked in
 [../development/PUBLISH-TRANSFER-READINESS-AUDIT.md](../development/PUBLISH-TRANSFER-READINESS-AUDIT.md).

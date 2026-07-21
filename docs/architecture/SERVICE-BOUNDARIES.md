@@ -142,19 +142,22 @@ RecordPublication
 ListPublicationHistory
 ```
 
-Current implementation is limited to non-mutating preview, publication
-readiness validation, transfer-intent reporting, optional caller-supplied local
-remote-state comparison, planned-history generation, completed-history record
-construction from explicit result fields, local planned-preview saves under
-project `history/previews/`, read-only saved-preview listing and detail loading
-from that project-local directory, local completed-history saves under project
-`history/completed/`, and read-only completed-record listing and detail loading
-from that project-local directory. `TransferIntent`, `BuildCompletedHistory`,
-`SaveCompletedHistory`, `ListCompletedHistory`, and `ReadCompletedHistory` are
-exposed through `waystone-publishd`. `SaveCompletedHistory` writes only local
-project history under `history/completed/`.
-It does not probe remote hosts, perform transfers, execute deletions, unlock
-credentials, or verify remote results.
+Current implementation includes non-mutating preview, publication readiness
+validation, transfer-intent reporting, optional caller-supplied local
+remote-state comparison, removable execution preparation, confirmed
+local/removable file-copy execution through the service crate and CLI,
+planned-history generation, completed-history record construction from explicit
+result fields, local planned-preview saves under project `history/previews/`,
+read-only saved-preview listing and detail loading from that project-local
+directory, local completed-history saves under project `history/completed/`,
+completed history from removable executor results, and read-only
+completed-record listing and detail loading from that project-local directory.
+`TransferIntent`, `BuildCompletedHistory`, `SaveCompletedHistory`,
+`ListCompletedHistory`, and `ReadCompletedHistory` are exposed through
+`waystone-publishd`. `SaveCompletedHistory` writes only local project history
+under `history/completed/`. The D-Bus adapter does not expose removable
+execution yet. Publishing does not probe remote hosts, perform SSH-family
+transfers, execute deletions, unlock credentials, or verify remote results.
 
 Safety requirements:
 

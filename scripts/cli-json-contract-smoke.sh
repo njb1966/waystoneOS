@@ -204,6 +204,36 @@ require(removable_execution["data"]["operations"]["delete"] == [],
 require("completed_directory" in removable_execution["data"]["history"],
         "publish prepare-removable-execution history contract changed")
 
+with tempfile.TemporaryDirectory(prefix="waystone-execute-removable-contract-") as temp_root:
+    temp_project = Path(temp_root) / "audio-capsule.wayproject"
+    shutil.copytree(Path(repo_root) / project_path, temp_project)
+    removable_result = run([
+        "target/debug/publish", "--execute-removable",
+        "--project", str(temp_project),
+        "--target", "export",
+        "--date", "2026-07-21T00:00:00Z",
+        "--confirm-transfer",
+        "--json"
+    ])
+    require({"project", "target", "method", "destination_root",
+             "transfer_result", "verification_result", "files", "history"}
+            <= removable_result["data"].keys(),
+            "publish execute-removable contract changed")
+    require(removable_result["data"]["transfer_result"] == "completed",
+            "publish execute-removable transfer result changed")
+    require(removable_result["data"]["verification_result"] == "not-run",
+            "publish execute-removable verification result changed")
+    require(removable_result["data"]["files"] and
+            {"project_path", "source_path", "destination_path", "action", "result", "bytes"}
+            <= removable_result["data"]["files"][0].keys(),
+            "publish execute-removable file result contract changed")
+    require("completed_path" in removable_result["data"]["history"],
+            "publish execute-removable history path contract changed")
+    require("record_toml" in removable_result["data"]["history"],
+            "publish execute-removable history TOML contract changed")
+    require((temp_project / "publish" / "export" / "content" / "index.gmi").is_file(),
+            "publish execute-removable did not copy content index")
+
 planned_history = run([
     "target/debug/publish", "--planned-history", "--project", project_path,
     "--target", "export", "--date", "2026-07-18T00:00:00Z", "--json"

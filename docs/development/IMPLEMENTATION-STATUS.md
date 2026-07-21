@@ -192,8 +192,13 @@ Current behavior:
   local destination root and per-file source/destination operation records
 - Blocks the removable executor preparation plan for unsupported methods,
   existing transfer-intent blockers, and delete operations
-- Does not perform transfers
+- Executes confirmed local/removable file-copy transfers from the removable
+  preparation plan
+- Refuses removable upload overwrites when the destination file already exists
+- Writes completed-history records from removable executor results
 - Does not execute remote deletions
+- Does not execute planned delete operations for removable targets yet
+- Does not perform SSH-family transfers
 - Does not access credentials
 - Does not probe SSH host keys
 
@@ -208,6 +213,8 @@ Current tests cover:
 - Ready and blocked transfer-intent reports
 - Ready removable executor preparation plans, unsupported-method blockers, and
   delete-operation blockers
+- Confirmed removable file-copy execution, completed-history writing, missing
+  confirmation rejection, and upload-overwrite rejection
 
 ## Publish CLI
 
@@ -222,6 +229,7 @@ Current command:
 ```text
 publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]
 publish --inspect-remote-state --remote-state PATH [--json]
+publish --execute-removable --project PATH --target NAME --date DATE --confirm-transfer [--remote-state PATH] [--json]
 publish --prepare-removable-execution --project PATH --target NAME [--remote-state PATH] [--json]
 publish --transfer-intent --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
 publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]
@@ -242,6 +250,7 @@ Current behavior:
 - Human-readable publication readiness validation report
 - Human-readable non-mutating transfer intent report
 - Human-readable non-mutating removable executor preparation plan
+- Human-readable confirmed removable execution result
 - JSON publication readiness validation report with `valid`, `blocked`, `errors`, and `warnings`
 - JSON transfer intent report with `execution_ready`, `blocked_reasons`,
   `confirmations`, `host_resolution`, `identity_resolution`, `comparison`,
@@ -251,6 +260,13 @@ Current behavior:
   `history.completed_directory`
 - Removable executor preparation reports local source/destination paths but
   does not copy files, delete files, or write completed history
+- JSON removable execution result with `transfer_result`,
+  `verification_result`, per-file copy results, bytes copied, completed-history
+  path, and completed-history TOML
+- `publish --execute-removable` requires `--confirm-transfer`, copies upload
+  and update files into the configured removable destination root, refuses
+  upload overwrites, writes completed history from executor results, and leaves
+  verification as `not-run`
 - Publish validation checks project validation, host and identity resolution, enabled-feed readiness, invalid feed-entry sidecars, empty file-change plans, and required confirmations
 - Feed readiness in dry-run JSON and human output
 - Optional local remote-state comparison through `--remote-state PATH`
@@ -313,6 +329,8 @@ Current tests cover:
 - Planned history generation from SSH dry-run
 - Completed history generation from SSH dry-run plus explicit result fields
 - Removable executor preparation JSON contract and unsupported-method blocker
+- Removable executor execution JSON contract, copied file results, and
+  missing-confirmation rejection
 - TOML rendering shape
 - Planned preview write, list, read, and outside-directory rejection
 - Completed history write, list, read, and outside-directory rejection
@@ -336,6 +354,8 @@ Current behavior:
 - Builds non-mutating transfer-intent reports from validation and dry-run state
 - Builds non-mutating removable executor preparation plans from transfer intent
   and dry-run state
+- Executes confirmed removable file-copy transfers from the preparation plan
+  and writes completed-history records from executor results
 - Preserves blocked dry-run state
 - Exposes preview, publication readiness validation, read-only transfer-intent
   reporting, planned-history generation, and completed-history result-record
@@ -346,9 +366,9 @@ Current behavior:
 Current tests cover:
 
 - SSH preview, publication readiness validation, transfer-intent reporting,
-  removable executor preparation planning, planned-history generation,
-  completed-history result generation, and completed-history save/list/read
-  through the service wrapper
+  removable executor preparation planning, removable file-copy execution,
+  planned-history generation, completed-history result generation, and
+  completed-history save/list/read through the service wrapper
 
 ## Host and Identity Crate
 
@@ -707,7 +727,9 @@ Current state:
 - Systemd user unit syntax is smoke-tested through a generated temporary daemon path
 - Accepts caller-supplied local remote-state manifests for preview and
   transfer-intent comparison
-- Does not probe remote hosts, perform transfers, execute deletions, unlock credentials, or verify remote results
+- Does not expose removable execution over D-Bus yet
+- Does not probe remote hosts, perform SSH-family transfers, execute
+  deletions, unlock credentials, or verify remote results
 - Uses `crates/publish-service/` as its internal boundary
 
 ## Host and Identity Services

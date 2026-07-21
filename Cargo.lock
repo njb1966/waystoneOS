@@ -955,6 +955,7 @@ dependencies = [
  "waystone-cli-output",
  "waystone-publication-history",
  "waystone-publish-plan",
+ "waystone-publish-service",
 ]
 
 [[package]]

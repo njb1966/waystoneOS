@@ -93,7 +93,7 @@ Deliver:
 
 Can be mocked:
 
-- Actual transfer execution
+- SSH-family remote transfer execution
 - Remote verification
 
 Must be real:

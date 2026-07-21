@@ -12,3 +12,4 @@ path = "src/main.rs"
 waystone-cli-output = { path = "../../crates/cli-output" }
 waystone-publication-history = { path = "../../crates/publication-history" }
 waystone-publish-plan = { path = "../../crates/publish-plan" }
+waystone-publish-service = { path = "../../crates/publish-service" }

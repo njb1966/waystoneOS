@@ -20,6 +20,9 @@ use waystone_publish_plan::{
     RemoteStateManifest, RemovableExecutionOperation, RemovableExecutionPlan, Resolution,
     TransferIntent,
 };
+use waystone_publish_service::{
+    ExecuteRemovableRequest, ExecuteRemovableResponse, PublishService, RemovableExecutionFileResult,
+};
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -45,6 +48,7 @@ fn run(args: &[String]) -> i32 {
         _ if positional.contains(&"--inspect-remote-state") => {
             inspect_remote_state(&positional, json)
         }
+        _ if positional.contains(&"--execute-removable") => execute_removable(&positional, json),
         _ if positional.contains(&"--prepare-removable-execution") => {
             prepare_removable_execution(&positional, json)
         }
@@ -331,6 +335,54 @@ fn prepare_removable_execution(args: &[&str], json: bool) -> i32 {
             &error.to_string(),
             json,
         ),
+    }
+}
+
+fn execute_removable(args: &[&str], json: bool) -> i32 {
+    let Some(project) = option_value(args, "--project") else {
+        return usage_error("missing --project");
+    };
+    let Some(target) = option_value(args, "--target") else {
+        return usage_error("missing --target");
+    };
+    let Some(date) = option_value(args, "--date") else {
+        return usage_error("missing --date");
+    };
+
+    let service = PublishService;
+    match service.execute_removable(ExecuteRemovableRequest {
+        project_path: PathBuf::from(project),
+        target: target.to_string(),
+        remote_state_path: option_value(args, "--remote-state").map(PathBuf::from),
+        date: date.to_string(),
+        confirm_transfer: args.contains(&"--confirm-transfer"),
+    }) {
+        Ok(executed) => {
+            if json {
+                println!(
+                    "{{\"status\":\"ok\",\"schema\":1,\"data\":{}}}",
+                    json_execute_removable_response(&executed)
+                );
+            } else {
+                println!("Removable execution completed");
+                println!("Project: {}", executed.plan.project_id);
+                println!("Target: {}", executed.plan.target);
+                println!("Method: {}", executed.plan.method);
+                println!("Destination root: {}", executed.plan.destination_root);
+                println!("Transfer result: {}", executed.result.transfer_result);
+                println!(
+                    "Verification result: {}",
+                    executed.result.verification_result
+                );
+                println!("Completed history: {}", executed.history_path.display());
+                println!("Files:");
+                for file in executed.result.files {
+                    println!("  {} {}: {}", file.result, file.action, file.project_path);
+                }
+            }
+            0
+        }
+        Err(error) => print_command_error("publish", "execute_removable", &error.to_string(), json),
     }
 }
 
@@ -874,6 +926,42 @@ fn json_removable_operations(operations: &[RemovableExecutionOperation]) -> Stri
         .join(",")
 }
 
+fn json_execute_removable_response(executed: &ExecuteRemovableResponse) -> String {
+    let record_toml = executed.record.to_toml();
+    format!(
+        "{{\"project\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"destination_root\":\"{}\",\"transfer_result\":\"{}\",\"verification_result\":\"{}\",\"files\":[{}],\"history\":{{\"completed_path\":\"{}\",\"record_toml\":\"{}\"}}}}",
+        escape_json(&executed.plan.project_id),
+        escape_json(&executed.plan.target),
+        escape_json(&executed.plan.method),
+        escape_json(&executed.plan.destination_root),
+        escape_json(&executed.result.transfer_result),
+        escape_json(&executed.result.verification_result),
+        json_removable_file_results(&executed.result.files),
+        escape_json(&executed.history_path.display().to_string()),
+        escape_json(&record_toml)
+    )
+}
+
+fn json_removable_file_results(files: &[RemovableExecutionFileResult]) -> String {
+    files
+        .iter()
+        .map(|file| {
+            format!(
+                "{{\"project_path\":\"{}\",\"source_path\":{},\"destination_path\":\"{}\",\"action\":\"{}\",\"result\":\"{}\",\"bytes\":{}}}",
+                escape_json(&file.project_path),
+                json_optional_string(file.source_path.as_deref()),
+                escape_json(&file.destination_path),
+                escape_json(&file.action),
+                escape_json(&file.result),
+                file.bytes
+                    .map(|bytes| bytes.to_string())
+                    .unwrap_or_else(|| "null".to_string())
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 fn print_removable_operations(label: &str, operations: &[RemovableExecutionOperation]) {
     println!("{label}:");
     for operation in operations {
@@ -953,6 +1041,7 @@ fn print_help() {
         "  publish --export-remote-state --project PATH --target NAME [--output PATH] [--json]"
     );
     println!("  publish --inspect-remote-state --remote-state PATH [--json]");
+    println!("  publish --execute-removable --project PATH --target NAME --date DATE --confirm-transfer [--remote-state PATH] [--json]");
     println!("  publish --prepare-removable-execution --project PATH --target NAME [--remote-state PATH] [--json]");
     println!("  publish --transfer-intent --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
     println!("  publish --validate --project PATH --target NAME [--hosts ROOT] [--identities ROOT] [--remote-state PATH] [--json]");
