@@ -188,6 +188,8 @@ Version 0.1 implementation is complete when:
 - The prototype advances the first vertical slice.
 
 Current implementation progress is tracked in [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md).
+Manual preview steps for the repo-local development session are tracked in
+[MANUAL-PREVIEW-CHECKLIST.md](MANUAL-PREVIEW-CHECKLIST.md).
 
 ## Explicit Deferrals
 

@@ -197,6 +197,12 @@ The dev-session smoke builds the Qt Workspace under `/tmp`, launches it through
 explicit-config, and missing-root diagnostics without installing the session
 entry or wrapper.
 
+Manual preview checklist:
+
+```text
+docs/development/MANUAL-PREVIEW-CHECKLIST.md
+```
+
 Focused project create/save, recording attachment/feed-entry, and Publish-pane target/status smoke test:
 
 ```bash

@@ -728,6 +728,7 @@ scripts/session-layout-smoke.sh
 scripts/session-dev-smoke.sh
 scripts/install-layout-temp-root-smoke.sh
 scripts/run-dev-session.sh
+docs/development/MANUAL-PREVIEW-CHECKLIST.md
 ```
 
 Current behavior:
@@ -738,6 +739,8 @@ Current behavior:
 - Provides a temporary-root validator for the future installed tree
 - Provides a repo-local dev-run command for launching the current preview
   through `session/waystone-session`
+- Provides a manual preview checklist for exercising the current repo-local
+  session path with temporary roots
 - Defines future Debian preview target paths for the session entry, wrapper,
   Workspace binary, service binaries, D-Bus service files, and systemd user
   units
@@ -1002,6 +1005,9 @@ unit syntax against temporary binary placeholders.
 The repo-local dev-run command built the Rust CLIs and Qt Workspace, launched
 through `session/waystone-session`, and verified default root diagnostics with
 `--check-roots --no-user-config` and Qt offscreen mode.
+The manual preview checklist documents the safe repo-local launch path, an
+isolated temporary-root config, the current Explore/Create/Publish/Operate
+checks, expected deferrals, and what findings to record.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract
