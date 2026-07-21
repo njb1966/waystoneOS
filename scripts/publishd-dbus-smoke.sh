@@ -150,6 +150,57 @@ for expected in host_missing identity_missing; do
   esac
 done
 
+transfer_intent_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  TransferIntent \
+  s "{\"project_path\":\"examples/projects/audio-capsule.wayproject\",\"target\":\"export\"}")"
+for expected in audio-capsule export removable execution_ready blocked_reasons confirmations completed_directory content/index.gmi; do
+  case "$transfer_intent_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: TransferIntent did not report expected ready intent"
+      echo "$transfer_intent_output"
+      exit 1
+      ;;
+  esac
+done
+
+blocked_transfer_intent_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  TransferIntent \
+  s "{\"project_path\":\"examples/projects/ssh-capsule.wayproject\",\"target\":\"production\"}")"
+for expected in execution_ready host_missing identity_missing offgridholdout nick-pub; do
+  case "$blocked_transfer_intent_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: TransferIntent did not report expected blockers"
+      echo "$blocked_transfer_intent_output"
+      exit 1
+      ;;
+  esac
+done
+
+compared_transfer_intent_output="$(busctl --user call \
+  org.waystone.Publish1 \
+  /org/waystone/Publish \
+  org.waystone.Publish1 \
+  TransferIntent \
+  s "{\"project_path\":\"$smoke_project\",\"target\":\"production\",\"hosts_root\":\"examples/connections/hosts\",\"identities_root\":\"examples/connections/identities\",\"remote_state_path\":\"$remote_state\"}")"
+for expected in comparison remote_paths stale.gmi delete skip confirmation_required completed_directory; do
+  case "$compared_transfer_intent_output" in
+    *"$expected"*) ;;
+    *)
+      echo "publishd D-Bus smoke: TransferIntent did not report expected remote-state comparison"
+      echo "$compared_transfer_intent_output"
+      exit 1
+      ;;
+  esac
+done
+
 history_output="$(busctl --user call \
   org.waystone.Publish1 \
   /org/waystone/Publish \

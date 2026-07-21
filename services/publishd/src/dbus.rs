@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use waystone_publish_service::{
     BuildCompletedHistoryRequest, BuildPlannedHistoryRequest, ListCompletedHistoryRequest,
     PreviewPublicationRequest, PublishService, ReadCompletedHistoryRequest,
-    SaveCompletedHistoryRequest, ValidatePublicationRequest,
+    SaveCompletedHistoryRequest, TransferIntentRequest, ValidatePublicationRequest,
 };
 use zbus::{blocking::connection, interface};
 
@@ -91,6 +91,24 @@ impl PublishDbus {
             }) {
             Ok(validation) => success_response(validation_report_response(validation.report)),
             Err(error) => error_response("publication_validation_failed", &error.to_string()),
+        }
+    }
+
+    fn transfer_intent(&self, request: &str) -> String {
+        let request = match parse_preview_request(request) {
+            Ok(request) => request,
+            Err(error) => return error_response("invalid_request", &error),
+        };
+
+        match self.service.transfer_intent(TransferIntentRequest {
+            project_path: request.project_path,
+            target: request.target,
+            hosts_root: request.hosts_root,
+            identities_root: request.identities_root,
+            remote_state_path: request.remote_state_path,
+        }) {
+            Ok(intent) => success_response(transfer_intent_response(intent.intent)),
+            Err(error) => error_response("transfer_intent_failed", &error.to_string()),
         }
     }
 
@@ -394,6 +412,34 @@ fn history_record_value(
             "available": record.rollback.available,
             "notes": record.rollback.notes,
         }
+    })
+}
+
+fn transfer_intent_response(intent: waystone_publish_plan::TransferIntent) -> serde_json::Value {
+    json!({
+        "project": intent.project_id,
+        "target": intent.target,
+        "method": intent.method,
+        "destination": intent.destination,
+        "execution_ready": intent.execution_ready,
+        "blocked_reasons": intent.blocked_reasons.into_iter().map(validation_issue_response).collect::<Vec<_>>(),
+        "confirmations": intent.confirmations,
+        "host_resolution": intent.host_resolution.map(resolution_response),
+        "identity_resolution": intent.identity_resolution.map(resolution_response),
+        "comparison": {
+            "configured": intent.comparison.configured,
+            "source": intent.comparison.source,
+            "remote_paths": intent.comparison.remote_paths,
+        },
+        "changes": {
+            "upload": intent.upload,
+            "update": intent.update,
+            "delete": intent.delete,
+            "skip": intent.skip,
+        },
+        "history": {
+            "completed_directory": intent.completed_history_dir,
+        },
     })
 }
 

@@ -321,7 +321,9 @@ Current behavior:
 - Passes optional caller-supplied remote-state manifests into dry-run preview and validation planning
 - Builds non-mutating transfer-intent reports from validation and dry-run state
 - Preserves blocked dry-run state
-- Exposes preview, publication readiness validation, planned-history generation, and completed-history result-record generation/save/list/read through `waystone-publishd` D-Bus adapter
+- Exposes preview, publication readiness validation, read-only transfer-intent
+  reporting, planned-history generation, and completed-history result-record
+  generation/save/list/read through `waystone-publishd` D-Bus adapter
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - Does not perform remote mutation
 
@@ -679,12 +681,13 @@ Current state:
 
 - Runs as a direct D-Bus session service when launched manually
 - Owns `org.waystone.Publish1` at `/org/waystone/Publish`
-- Implements `PreviewPublication`, `ValidatePublication`, `BuildPlannedHistory`, `BuildCompletedHistory`, `SaveCompletedHistory`, `ListCompletedHistory`, and `ReadCompletedHistory`
+- Implements `PreviewPublication`, `ValidatePublication`, `TransferIntent`, `BuildPlannedHistory`, `BuildCompletedHistory`, `SaveCompletedHistory`, `ListCompletedHistory`, and `ReadCompletedHistory`
 - Requests single-owner bus name behavior; duplicate daemon instances fail quickly
 - Provides repo-local D-Bus service and systemd user unit activation artifacts
 - D-Bus autostart is smoke-tested through a generated temporary service file
 - Systemd user unit syntax is smoke-tested through a generated temporary daemon path
-- Accepts caller-supplied local remote-state manifests for preview comparison
+- Accepts caller-supplied local remote-state manifests for preview and
+  transfer-intent comparison
 - Does not probe remote hosts, perform transfers, execute deletions, unlock credentials, or verify remote results
 - Uses `crates/publish-service/` as its internal boundary
 

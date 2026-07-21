@@ -1,6 +1,6 @@
 # WaystoneOS Checkpoint
 
-Status: current after non-mutating transfer-intent contract
+Status: current after read-only transfer-intent D-Bus exposure
 Date: 2026-07-20
 
 This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
@@ -28,6 +28,7 @@ are explicit. The publish planning crate, publish service crate, and publish
 CLI now expose a non-mutating transfer-intent report with execution readiness,
 blocking reasons, required confirmations, host/identity summaries, comparison
 metadata, change buckets, and the future completed-history directory.
+`waystone-publishd` exposes the same read-only report through D-Bus.
 
 ## Current Position
 
@@ -345,13 +346,17 @@ Result after non-mutating transfer-intent contract: checks passed on
 clippy with warnings denied, CLI JSON contract smoke, publishd D-Bus smoke,
 and git diff whitespace checks.
 
+Result after read-only transfer-intent D-Bus exposure: checks passed on
+2026-07-20, including formatting, full Rust tests, clippy with warnings
+denied, publishd D-Bus smoke, and git diff whitespace checks.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
 - No files outside this repository were edited by the assistant.
 - Sibling Waystone applications remain future add-ons only.
 - `waystone-projectd` direct D-Bus serving is implemented for project create, list, inspect, and validate.
-- `waystone-publishd` direct D-Bus serving is implemented for non-mutating publication preview, publication readiness validation, planned-history generation, completed-history result-record generation, and project-local completed-history save/list/read.
+- `waystone-publishd` direct D-Bus serving is implemented for non-mutating publication preview, publication readiness validation, read-only transfer-intent reporting, planned-history generation, completed-history result-record generation, and project-local completed-history save/list/read.
 - `waystone-projectd` fails cleanly without a session bus and rejects duplicate bus ownership.
 - `waystone-projectd` D-Bus service file and systemd user unit are present in the repo.
 - `waystone-publishd` fails cleanly without a session bus and rejects duplicate bus ownership.
@@ -400,8 +405,8 @@ and git diff whitespace checks.
 
 Recommended next implementation step:
 
-1. Commit and push the non-mutating transfer-intent slice.
-2. Choose between read-only D-Bus/Qt exposure for transfer intent or a bounded
+1. Commit and push the read-only transfer-intent D-Bus exposure slice.
+2. Choose between Qt read-only transfer-intent display or a bounded
    removable-executor contract/test-harness slice.
 3. Keep real SSH transfer, remote deletion execution, credential unlock, and
    remote verification deferred until comparison/readiness boundaries are
@@ -413,5 +418,5 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after non-mutating transfer-intent contract on 2026-07-20. The
+Current after read-only transfer-intent D-Bus exposure on 2026-07-20. The
 latest handoff has been resumed and superseded by this checkpoint.

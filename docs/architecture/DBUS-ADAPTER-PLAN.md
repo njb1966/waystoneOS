@@ -300,7 +300,7 @@ Additional D-Bus verification should prove:
 - A duplicate daemon instance on the same session bus fails quickly instead of taking over the name.
 - D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
 - The checked-in systemd user unit verifies after substituting a temporary daemon path.
-- `waystone-publishd` can start, own `org.waystone.Publish1`, reject duplicate ownership, and serve preview, caller-supplied local remote-state comparison, validation, planned-history, completed-history generation/save/list/read, and invalid-request responses.
+- `waystone-publishd` can start, own `org.waystone.Publish1`, reject duplicate ownership, and serve preview, caller-supplied local remote-state comparison, validation, read-only transfer-intent reporting, planned-history, completed-history generation/save/list/read, and invalid-request responses.
 - Publish D-Bus service-file autostart works on a private test session bus using a generated temporary service file.
 - The checked-in publish systemd user unit verifies after substituting a temporary daemon path.
 - `waystone-hostd` can start, own `org.waystone.Host1`, reject duplicate ownership, and serve list, inspect, validate, and invalid-request responses.

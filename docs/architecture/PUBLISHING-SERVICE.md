@@ -262,6 +262,7 @@ Implemented methods:
 ```text
 PreviewPublication
 ValidatePublication
+TransferIntent
 BuildPlannedHistory
 BuildCompletedHistory
 SaveCompletedHistory
@@ -319,14 +320,14 @@ Saved preview reads are constrained to the selected project's
 `history/previews/` directory, and completed-record reads are constrained to
 the selected project's `history/completed/` directory. These preview,
 validation, local comparison, helper, and local history operations are
-available through the `publish` CLI; preview, validation, planned-history generation,
-completed-history result-record generation, and completed-history save/list/read
-are also available through the `waystone-publishd` D-Bus adapter.
-D-Bus completed-history saving is a local project write only. The transfer
-intent report is currently available through the publish planning/service/CLI
-path, not as a mutating D-Bus executor. It does not generate feeds
-automatically, probe remote state, perform transfer, execute deletions, access
-credentials, probe SSH host keys, or verify a remote result.
+available through the `publish` CLI; preview, validation, transfer-intent
+reporting, planned-history generation, completed-history result-record
+generation, and completed-history save/list/read are also available through the
+`waystone-publishd` D-Bus adapter. D-Bus completed-history saving is a local
+project write only. The transfer-intent D-Bus method is read-only; it is not a
+mutating executor. It does not generate feeds automatically, probe remote
+state, perform transfer, execute deletions, access credentials, probe SSH host
+keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 

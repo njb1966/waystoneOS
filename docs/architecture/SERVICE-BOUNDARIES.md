@@ -122,6 +122,7 @@ Initial operations:
 ```text
 PreviewPublication
 ValidatePublication
+TransferIntent
 BuildPlannedHistory
 BuildCompletedHistory
 SaveCompletedHistory
@@ -142,13 +143,13 @@ ListPublicationHistory
 ```
 
 Current implementation is limited to non-mutating preview, publication
-readiness validation, optional caller-supplied local remote-state comparison,
-planned-history generation, completed-history record construction from explicit
-result fields, local planned-preview saves under project `history/previews/`,
-read-only saved-preview listing and detail loading from that project-local
-directory, local completed-history saves under project `history/completed/`,
-and read-only completed-record listing and detail loading from that
-project-local directory. `BuildCompletedHistory`,
+readiness validation, transfer-intent reporting, optional caller-supplied local
+remote-state comparison, planned-history generation, completed-history record
+construction from explicit result fields, local planned-preview saves under
+project `history/previews/`, read-only saved-preview listing and detail loading
+from that project-local directory, local completed-history saves under project
+`history/completed/`, and read-only completed-record listing and detail loading
+from that project-local directory. `TransferIntent`, `BuildCompletedHistory`,
 `SaveCompletedHistory`, `ListCompletedHistory`, and `ReadCompletedHistory` are
 exposed through `waystone-publishd`. `SaveCompletedHistory` writes only local
 project history under `history/completed/`.

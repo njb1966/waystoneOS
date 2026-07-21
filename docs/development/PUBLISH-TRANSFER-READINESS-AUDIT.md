@@ -1,6 +1,6 @@
 # Publish Transfer Readiness Audit
 
-Status: current after non-mutating transfer-intent contract
+Status: current after read-only transfer-intent D-Bus exposure
 Date: 2026-07-20
 
 This audit records the boundary between the current non-mutating publishing
@@ -29,14 +29,14 @@ Implemented foundations:
 - Host and identity metadata can be resolved from local metadata roots.
 - Publication readiness validation reports `valid`, `blocked`, `errors`, and
   `warnings`.
-- `publish --transfer-intent` reports execution readiness, blocking issues,
-  required confirmations, change buckets, host/identity resolution summaries,
-  comparison metadata, and the future completed-history directory without
-  executing transfer.
+- `publish --transfer-intent` and `org.waystone.Publish1.TransferIntent`
+  report execution readiness, blocking issues, required confirmations, change
+  buckets, host/identity resolution summaries, comparison metadata, and the
+  future completed-history directory without executing transfer.
 - Planned history previews and completed-history records are inspectable local
   records.
-- `waystone-publishd` exposes preview, validation, planned-history, and
-  completed-history record operations over D-Bus.
+- `waystone-publishd` exposes preview, validation, read-only transfer-intent,
+  planned-history, and completed-history record operations over D-Bus.
 
 Important current limits:
 
@@ -66,7 +66,7 @@ Real transfer execution should remain blocked until these gates are satisfied.
 | Failure semantics | Partial transfer, cancellation, network failure, and permission failure must have stable result states. | Deferred |
 | History source | Completed history must be generated from executor results, not manually supplied success claims. | Manual result fields exist |
 | Verification boundary | Transfer success and remote verification must remain separate result stages. | Documented; verifier absent |
-| D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | Deferred |
+| D-Bus contract | Any mutating publish method must have a reviewed request/response shape before UI use. | Read-only transfer intent exposed; mutating executor shape deferred |
 | Test harness | Real execution must be covered by a local fake transport or temporary destination harness before live SSH targets are used. | Deferred |
 
 ## Transfer Command Boundary
@@ -164,10 +164,10 @@ Choose the next boundary deliberately before any remote mutation.
 
 Recommended implementation order:
 
-1. Add `waystone-publishd` D-Bus exposure for the read-only transfer-intent
-   report if the UI or service boundary needs it before execution work.
-2. Otherwise, define the bounded `removable` executor contract and test harness
-   before implementing file-copy behavior.
+1. Decide whether to surface transfer intent in the Qt Publish pane as a
+   read-only readiness view.
+2. Define the bounded `removable` executor contract and test harness before
+   implementing file-copy behavior.
 3. Keep SSH-family executors behind the credential, host-trust, remote-path,
    delete-confirmation, executor-history, and verification gates.
 
