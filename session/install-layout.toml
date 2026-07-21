@@ -1,0 +1,37 @@
+schema = 1
+description = "WaystoneOS version 0.1 Debian-hosted session/install layout contract."
+
+[session]
+desktop_source = "session/waystone.desktop"
+desktop_install = "/usr/share/wayland-sessions/waystone.desktop"
+wrapper_source = "session/waystone-session"
+wrapper_install = "/usr/bin/waystone-session"
+workspace_binary_install = "/usr/bin/waystone-workspace"
+
+[binaries]
+projectd = "/usr/bin/waystone-projectd"
+publishd = "/usr/bin/waystone-publishd"
+hostd = "/usr/bin/waystone-hostd"
+identityd = "/usr/bin/waystone-identityd"
+audiod = "/usr/bin/waystone-audiod"
+
+[dbus_services]
+project = "/usr/share/dbus-1/services/org.waystone.Project1.service"
+publish = "/usr/share/dbus-1/services/org.waystone.Publish1.service"
+host = "/usr/share/dbus-1/services/org.waystone.Host1.service"
+identity = "/usr/share/dbus-1/services/org.waystone.Identity1.service"
+audio = "/usr/share/dbus-1/services/org.waystone.Audio1.service"
+
+[systemd_user_units]
+project = "/usr/lib/systemd/user/waystone-projectd.service"
+publish = "/usr/lib/systemd/user/waystone-publishd.service"
+host = "/usr/lib/systemd/user/waystone-hostd.service"
+identity = "/usr/lib/systemd/user/waystone-identityd.service"
+audio = "/usr/lib/systemd/user/waystone-audiod.service"
+
+[limits]
+installs_outside_repo = false
+bootable_image = false
+custom_compositor = false
+dbus_activation_install = false
+sibling_app_embedding = false

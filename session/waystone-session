@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -eu
+
+workspace_bin="${WAYSTONE_WORKSPACE_BIN:-/usr/bin/waystone-workspace}"
+
+if [ ! -x "$workspace_bin" ]; then
+    echo "waystone-session: workspace binary not executable: $workspace_bin" >&2
+    exit 127
+fi
+
+args=()
+
+if [ "${WAYSTONE_REPO_ROOT:-}" != "" ]; then
+    args+=("--repo-root" "$WAYSTONE_REPO_ROOT")
+fi
+
+if [ "${WAYSTONE_WORKSPACE_CONFIG:-}" != "" ]; then
+    args+=("--config" "$WAYSTONE_WORKSPACE_CONFIG")
+fi
+
+exec "$workspace_bin" "${args[@]}" "$@"

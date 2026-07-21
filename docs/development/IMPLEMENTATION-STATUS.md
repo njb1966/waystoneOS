@@ -38,6 +38,7 @@ services/publishd/
 services/hostd/
 services/identityd/
 services/audiod/
+session/
 ```
 
 ## Project Format Crate
@@ -717,6 +718,33 @@ Current behavior:
 - Does not expose `publish --execute-removable` in the Qt UI yet
 - Does not call Rust crates directly, D-Bus, sibling apps, audio devices, or remote services
 
+## Session Layout
+
+Implemented in:
+
+```text
+session/
+scripts/session-layout-smoke.sh
+```
+
+Current behavior:
+
+- Provides a repo-local XDG Wayland session entry source file at `session/waystone.desktop`
+- Provides a repo-local launcher wrapper source file at `session/waystone-session`
+- Provides a repo-local install-layout manifest at `session/install-layout.toml`
+- Defines future Debian preview target paths for the session entry, wrapper,
+  Workspace binary, service binaries, D-Bus service files, and systemd user
+  units
+- Lets the wrapper execute a Workspace binary selected by `WAYSTONE_WORKSPACE_BIN`
+- Falls back to `/usr/bin/waystone-workspace` when no override is provided
+- Passes optional `WAYSTONE_REPO_ROOT` and `WAYSTONE_WORKSPACE_CONFIG` values
+  to the Workspace as `--repo-root` and `--config`
+- Fails with exit code `127` and a clear diagnostic when the selected Workspace
+  binary is not executable
+- Does not install files outside the repository, register with a display
+  manager, start services, call D-Bus, create a bootable image, or launch
+  sibling applications
+
 ## Project Service
 
 Implemented in:
@@ -880,6 +908,7 @@ scripts/projectd-systemd-unit-smoke.sh
 scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
+scripts/session-layout-smoke.sh
 ```
 
 Local results through 2026-07-21: Qt 6 was discoverable after installing
@@ -949,6 +978,9 @@ failure on a private test session bus. The activation smokes verified projectd,
 publishd, host/identity, and audiod D-Bus service-file autostart. The systemd
 smokes verified projectd, publishd, host/identity, and audiod unit syntax
 through temporary paths.
+The session layout smoke verified the repo-local session entry, install
+manifest, wrapper argument passing through a fake Workspace binary, and clear
+failure when the selected Workspace binary is missing.
 
 Local result on 2026-07-20: real `ffmpeg/libopus` Opus publication-copy export
 passed Rust tests, clippy with warnings denied, and the CLI JSON contract

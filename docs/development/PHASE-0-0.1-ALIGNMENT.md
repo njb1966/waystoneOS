@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after OS/session pivot audit
+Status: current after repo-local session/install-layout contract
 Date: 2026-07-21
 
 This document records the deliberate alignment check between the Phase 0
@@ -96,7 +96,7 @@ or approved scope changes.
 
 | Workstream | Alignment | Notes |
 | --- | --- | --- |
-| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, and focused smoke coverage are real. Dedicated Wayland session, session entry files, installed binary layout, and terminal integration remain deferred. This is now the recommended next workstream. |
+| Workspace Frame | Partial, now next critical path | Four panes exist in Qt. Navigation, visual frame, root config, focused smoke coverage, and repo-local Debian session/install-layout artifacts are real. Actual installation, display-manager registration, installed activation, and terminal integration remain deferred. |
 | Project Format and Service Contract | Strong | Format, examples, validation, type-specific audio/feed creation defaults, create/list/inspect/validate CLI, service wrapper, and D-Bus adapter exist. Project repair, migration, and archive/export are not implemented. |
 | CLI Foundation | Strong | Core CLIs use stable command names, human output, JSON output, shared error envelope, and integration tests. `way` is command discovery only, not dispatch. |
 | Publishing Model | Strong for dry-run, validation, local comparison, transfer-intent, local-history, removable preparation, and local removable execution scope | Dry-run plans, local remote-state export/inspection helpers, removable destination-state export, caller-supplied local remote-state comparison, non-mutating transfer-intent reports through CLI/service/D-Bus, removable executor preparation through CLI/service, confirmed local/removable file-copy execution through CLI/service/D-Bus, failed/partial copy-time executor history, D-Bus removable executor smoke coverage, Qt transfer-intent display, Qt removable execution readiness display, Qt comparison display/input, Qt removable destination-state export helper, publication readiness validation, Qt validation display, feed readiness reporting with invalid feed-entry diagnostics, selected diagnostic validation detail, diagnostic handoff back to Create, blocked states, planned history generation, saved preview records, completed history result records, D-Bus completed-history result-record generation/save/list/read, Qt completed-history list/detail display, and Publish-pane inspection exist. Remote probing, SSH-family transfer, delete execution, and verification are not implemented. |
@@ -170,18 +170,16 @@ transfer, and compositor work.
 
 Audit result:
 
-The next implementation slice should leave the publishing refinement lane and
-start the Debian-hosted OS/session lane. The smallest useful slice is a
-repo-local session/install-layout contract before installing anything outside
-the repository.
+The previous implementation slice left the publishing refinement lane and
+started the Debian-hosted OS/session lane with a repo-local
+session/install-layout contract before installing anything outside the
+repository.
 
 Recommended next deliverables:
 
-- Add an ADR for the version 0.1 Debian session/install-layout boundary.
-- Define repo-local session artifacts such as a `.desktop` session file,
-  launcher/wrapper script, and install manifest target paths.
-- Add smoke verification that the session artifact points at the built
-  Workspace binary and fails clearly when prerequisites are missing.
+- Add a repo-local dev-session launch smoke that runs the `waystone-session`
+  wrapper against the current Qt Workspace diagnostics.
+- Keep the smoke non-installing and temporary-root based.
 - Keep actual installation into `/usr/share`, `/usr/bin`,
   `$XDG_DATA_HOME`, or system/user service directories behind explicit
   approval and a later installer/package slice.

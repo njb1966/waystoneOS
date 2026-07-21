@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=WaystoneOS
+Comment=WaystoneOS small-web workstation session
+Exec=/usr/bin/waystone-session
+TryExec=/usr/bin/waystone-session
+Type=Application
+DesktopNames=WaystoneOS

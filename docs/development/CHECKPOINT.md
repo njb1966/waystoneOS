@@ -1,9 +1,9 @@
 # WaystoneOS Checkpoint
 
-Status: current after OS/session pivot audit
+Status: current after repo-local session/install-layout contract
 Date: 2026-07-21
 
-This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, and `waystone-audiod` D-Bus methods for the existing local audio/feed service operations.
+This checkpoint marks the current implementation state after the first repository push, the first local Workspace root configuration slice, the initial project, publish, host, identity, and audio D-Bus adapter and activation-artifact slices, the first local Workspace authoring preview slice, the Qt project creation flow, focused Qt project create/save smoke coverage, local Gemtext link validation, removable publish-target setup, Create-pane content file listing, Create-pane content file filtering, Create-pane content file detail, Publish-pane local project previews, Publish-pane target status controls, focused Publish-pane target/status smoke coverage, Publish-pane planned history preview, Publish-pane planned history action summary, Publish-pane planned history preview export, Publish-pane saved preview listing, Publish-pane saved preview detail loading, Publish-pane saved preview selection preservation, Publish-pane saved preview comparison aid, Publish-pane saved preview filtering, Publish-pane target overview, Publish-pane target overview selection, Publish-pane project filtering, the Phase 0/0.1 alignment audit, the local audio attachment slice, Create-pane recording attachment controls, audio-capable project creation defaults, feed-entry metadata preparation, audio publication handoff validation, Qt feed-entry preparation controls, minimal feed XML generation and local Atom feed merge/update, Qt feed generation controls, Publish-pane feed readiness reporting, real `ffmpeg/libopus` Opus publication-copy export, Qt Create-pane controls for that export command, Publish-pane invalid feed-entry diagnostics, Publish-pane validation detail for selected feed-entry diagnostics, the CLI/service recording metadata update command, Qt Create-pane controls for that update command, the CLI/service feed-entry update command, Qt Create-pane controls for that feed-entry update command, Publish-to-Create handoff for selected invalid feed-entry diagnostics, narrow local WAV master capture from explicit `ffmpeg` input sources, Qt Create-pane controls for that capture command, `waystone-audiod` D-Bus methods for the existing local audio/feed service operations, and the repo-local Debian session/install-layout contract.
 It also includes local completed publication-history result records through the
 publish CLI, publish service crate, and `waystone-publishd` D-Bus adapter.
 It also includes a non-mutating publication readiness validation report through
@@ -75,6 +75,7 @@ The current system is a local-first development preview made of:
 - Native CLIs for project, publish, host, identity, record, listen, and way command discovery
 - D-Bus service binaries for project, publish, host, identity, and audio service boundaries
 - Qt 6 C++ Workspace prototype using CLI JSON adapters and local project content editing
+- Repo-local Debian session entry, launcher wrapper, and install-layout manifest
 - Examples and invalid fixtures for project, publish, host, identity, and audio metadata behavior
 - Smoke scripts for Qt startup and CLI JSON contract fields
 
@@ -264,6 +265,7 @@ scripts/projectd-systemd-unit-smoke.sh
 scripts/publishd-systemd-unit-smoke.sh
 scripts/host-identity-systemd-unit-smoke.sh
 scripts/audiod-systemd-unit-smoke.sh
+scripts/session-layout-smoke.sh
 ```
 
 Result after Qt feed-entry preparation controls: all relevant checks passed on
@@ -429,6 +431,10 @@ Result after OS/session pivot audit: documentation/status checks passed on
 2026-07-21; no command behavior changed. The next implementation lane is the
 repo-local Debian session/install-layout contract.
 
+Result after repo-local Debian session/install-layout contract: session layout
+smoke and git diff whitespace checks passed on 2026-07-21. No files were
+installed outside the repository.
+
 ## Important Boundaries
 
 - Initial repository commit and push were completed after explicit user approval.
@@ -503,6 +509,14 @@ repo-local Debian session/install-layout contract.
 - `waystone-audiod` D-Bus service file and systemd user unit are present in the repo.
 - D-Bus autostart is verified on a private test session bus with generated temporary service files.
 - Activation files have not been installed into user or system service directories.
+- `session/waystone.desktop`, `session/waystone-session`, and
+  `session/install-layout.toml` define the repo-local Debian session and future
+  install-layout contract.
+- `session/waystone-session` launches the selected Workspace binary, passes
+  optional repo-development settings, and fails clearly when the Workspace
+  binary is missing.
+- The session artifacts have not been installed into `/usr/share`,
+  `/usr/bin`, `$XDG_DATA_HOME`, or display-manager-visible directories.
 - SSH-family remote publication execution is not implemented.
 - Qt Workspace data roots default to repository examples and can be overridden with `--config` or user app config.
 
@@ -510,14 +524,13 @@ repo-local Debian session/install-layout contract.
 
 Recommended next implementation step:
 
-1. Add a repo-local Debian session/install-layout contract for version 0.1:
-   session entry shape, wrapper/launcher expectations, binary/service target
-   paths, and smoke verification.
+1. Add a repo-local dev-session launch smoke that builds or locates
+   `waystone-workspace`, runs the `waystone-session` wrapper with
+   `--check-roots`, and verifies the session can reach the existing Workspace
+   root diagnostics without installing files.
 2. Keep actual installation outside the repository, Qt mutating publish
-   controls, real SSH transfer, remote deletion
-   execution, credential unlock, and
-   remote verification deferred until comparison/readiness boundaries are
-   stable.
+   controls, real SSH transfer, remote deletion execution, credential unlock,
+   remote verification, audio device enumeration, and playback deferred.
 
 Alternative next step:
 
@@ -525,6 +538,6 @@ Alternative next step:
 
 ## Pause Marker
 
-Current after OS/session pivot audit on 2026-07-21.
+Current after repo-local session/install-layout contract on 2026-07-21.
 No background servers, watchers, async jobs, manual human actions, OS image,
 installer, installed service activation, or boot/loading path are pending.

@@ -13,6 +13,7 @@ Start here:
 - [SERVICE-BOUNDARIES.md](SERVICE-BOUNDARIES.md): first-slice service ownership
 - [SERVICE-CONTRACTS.md](SERVICE-CONTRACTS.md): current Rust service contracts and future D-Bus names
 - [DBUS-ADAPTER-PLAN.md](DBUS-ADAPTER-PLAN.md): first D-Bus adapter sequencing and verification gates
+- [SESSION-INSTALL-LAYOUT.md](SESSION-INSTALL-LAYOUT.md): repo-local Debian session and future install layout
 - [PUBLISHING-SERVICE.md](PUBLISHING-SERVICE.md): publishing dry-run, transfer, verification, and history model
 - [HOST-IDENTITY-MODEL.md](HOST-IDENTITY-MODEL.md): host trust and credential boundary model
 - [AUDIO-METADATA.md](AUDIO-METADATA.md): recording metadata sidecar model
