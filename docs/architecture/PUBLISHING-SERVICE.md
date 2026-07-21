@@ -323,4 +323,7 @@ deletions, access credentials, probe SSH host keys, or verify a remote result.
 
 Current implementation status is tracked in [../development/IMPLEMENTATION-STATUS.md](../development/IMPLEMENTATION-STATUS.md).
 
-Actual transfer remains deferred until project validation, host identity, and credential boundaries are stable.
+Actual transfer remains deferred until project validation, host identity, and
+credential boundaries are stable. The current transfer-readiness audit is
+tracked in
+[../development/PUBLISH-TRANSFER-READINESS-AUDIT.md](../development/PUBLISH-TRANSFER-READINESS-AUDIT.md).

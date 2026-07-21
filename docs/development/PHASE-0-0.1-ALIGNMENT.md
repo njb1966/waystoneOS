@@ -1,6 +1,6 @@
 # Phase 0 and Version 0.1 Alignment
 
-Status: current after local remote-state export and inspection helpers
+Status: current after publish transfer-readiness audit
 Date: 2026-07-20
 
 This document records the deliberate alignment check between the Phase 0
@@ -14,6 +14,7 @@ Reviewed sources:
 - `docs/development/VERSION-0.1-MILESTONE.md`
 - `docs/development/IMPLEMENTATION-STATUS.md`
 - `docs/development/CHECKPOINT.md`
+- `docs/development/PUBLISH-TRANSFER-READINESS-AUDIT.md`
 - Current repository file layout
 
 ## Summary Judgment
@@ -130,8 +131,9 @@ and classify upload/delete/skip without contacting or mutating a remote. The Qt
 Publish pane can provide that local manifest path and render comparison
 metadata plus upload/update/delete/skip dry-run buckets. The CLI can also
 export the local publishable path set as a plain text remote-state manifest and
-inspect existing local manifests with the same parser. The next slice should be
-a transfer-readiness audit before any real remote mutation. It should still
+inspect existing local manifests with the same parser. The transfer-readiness
+audit is now complete and recommends a non-mutating transfer-intent contract as
+the next implementation slice before any real remote mutation. It should still
 avoid device enumeration, packaging, installed services, remote transfer, and
 compositor work.
 
@@ -205,6 +207,7 @@ Concrete deliverables should be small and inspectable:
 - Expose local remote-state comparison input and change-bucket display in the
   Qt Publish pane.
 - Add local remote-state manifest export/inspection helpers in the publish CLI.
+- Audit transfer-readiness gates before any real remote mutation.
 
 ## Explicitly Still Deferred
 
